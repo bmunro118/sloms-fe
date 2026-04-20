@@ -2,12 +2,14 @@ import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
+import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
   const { isStaff, canMutate } = useAuth();
+  const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
   const [customerAccount, setCustomerAccount] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -43,9 +45,13 @@ export default function CreateOrderScreen() {
       });
       router.replace('/(app)/orders');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create order.');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to create order.');
+      }
     } finally {
-      setIsSaving(false);
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
     }
   };
 

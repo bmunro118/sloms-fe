@@ -50,6 +50,8 @@ interface InitialAuthSnapshot {
   mustChangePassword: boolean;
 }
 
+type AuthState = InitialAuthSnapshot;
+
 function mapRole(rawRole: string | undefined): UserRole {
   switch ((rawRole ?? '').toLowerCase()) {
     case 'admin':
@@ -117,37 +119,40 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const initialSnapshot = useMemo(() => getInitialAuthSnapshot(), []);
+  const [authState, setAuthState] = useState<AuthState>(() => getInitialAuthSnapshot());
 
-  const [isLoading, setIsLoading] = useState(initialSnapshot.isLoading);
-  const [token, setToken] = useState<string | null>(initialSnapshot.token);
-  const [user, setUser] = useState<AuthUser | null>(initialSnapshot.user);
-  const [mustChangePassword, setMustChangePassword] = useState(initialSnapshot.mustChangePassword);
+  const setSignedOutState = useCallback(() => {
+    setAuthState({
+      isLoading: false,
+      token: null,
+      user: null,
+      mustChangePassword: false,
+    });
+  }, []);
 
   const hydrateSession = useCallback(async () => {
     try {
       const storedToken = await getStoredAccessToken();
       if (!storedToken) {
-        setToken(null);
-        setUser(null);
-        setMustChangePassword(false);
+        setSignedOutState();
         return;
       }
 
       const payload = decodeJwt(storedToken);
       if (!payload) {
         await clearAccessToken();
-        setToken(null);
-        setUser(null);
-        setMustChangePassword(false);
+        setSignedOutState();
         return;
       }
 
       // If token is scoped for forced password change, block app access.
       if (payload.scope === 'password_change') {
-        setToken(storedToken);
-        setUser(null);
-        setMustChangePassword(true);
+        setAuthState({
+          isLoading: false,
+          token: storedToken,
+          user: null,
+          mustChangePassword: true,
+        });
         return;
       }
 
@@ -158,23 +163,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token: storedToken,
       });
 
-      setToken(storedToken);
-      setUser({
-        userId: Number(me.userId ?? payload.userId),
-        username: me.username ?? payload.username,
-        fullName: payload.fullName ?? me.username,
-        role: mapRole(me.role ?? payload.role),
+      setAuthState({
+        isLoading: false,
+        token: storedToken,
+        user: {
+          userId: Number(me.userId ?? payload.userId),
+          username: me.username ?? payload.username,
+          fullName: payload.fullName ?? me.username,
+          role: mapRole(me.role ?? payload.role),
+        },
+        mustChangePassword: false,
       });
-      setMustChangePassword(false);
     } catch {
       await clearAccessToken();
-      setToken(null);
-      setUser(null);
-      setMustChangePassword(false);
-    } finally {
-      setIsLoading(false);
+      setSignedOutState();
     }
-  }, []);
+  }, [setSignedOutState]);
 
   useEffect(() => {
     hydrateSession();
@@ -183,7 +187,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(
     async ({ accessToken, mustChangePassword: mustChange = false }: SignInPayload) => {
       await persistAccessToken(accessToken);
-      setToken(accessToken);
 
       const payload = decodeJwt(accessToken);
       if (!payload) {
@@ -191,19 +194,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (mustChange || payload.scope === 'password_change') {
-        setMustChangePassword(true);
-        setUser(null);
+        setAuthState({
+          isLoading: false,
+          token: accessToken,
+          user: null,
+          mustChangePassword: true,
+        });
         return;
       }
 
-      setMustChangePassword(false);
-      setUser({
-        userId: Number(payload.userId),
-        username: payload.username,
-        fullName: payload.fullName ?? payload.username,
-        role: mapRole(payload.role),
+      setAuthState({
+        isLoading: false,
+        token: accessToken,
+        user: {
+          userId: Number(payload.userId),
+          username: payload.username,
+          fullName: payload.fullName ?? payload.username,
+          role: mapRole(payload.role),
+        },
+        mustChangePassword: false,
       });
-      setIsLoading(false);
     },
     []
   );
@@ -216,26 +226,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Invalid full-access token returned after password change.');
       }
 
-      setToken(newAccessToken);
-      setUser({
-        userId: Number(payload.userId),
-        username: payload.username,
-        fullName: payload.fullName ?? payload.username,
-        role: mapRole(payload.role),
+      setAuthState({
+        isLoading: false,
+        token: newAccessToken,
+        user: {
+          userId: Number(payload.userId),
+          username: payload.username,
+          fullName: payload.fullName ?? payload.username,
+          role: mapRole(payload.role),
+        },
+        mustChangePassword: false,
       });
-      setMustChangePassword(false);
-      setIsLoading(false);
     },
     []
   );
 
   const signOut = useCallback(async () => {
     await clearAccessToken();
-    setToken(null);
-    setUser(null);
-    setMustChangePassword(false);
-    setIsLoading(false);
-  }, []);
+    setSignedOutState();
+  }, [setSignedOutState]);
+
+  const { isLoading, token, user, mustChangePassword } = authState;
 
   const role = user?.role ?? null;
   const isStaff = role !== null && role !== 'Customer';

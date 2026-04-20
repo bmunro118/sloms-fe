@@ -24,26 +24,27 @@ export default function OrdersListScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    const controller = new AbortController();
     (async () => {
       try {
         const response = await apiRequest<OrdersResponse>(ENDPOINTS.orders.list, {
           method: 'GET',
           requireAuth: true,
+          signal: controller.signal,
         });
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setOrders(Array.isArray(response?.data) ? response.data : []);
         }
       } catch (err) {
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Failed to load orders.');
         }
       } finally {
-        if (mounted) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     })();
     return () => {
-      mounted = false;
+      controller.abort();
     };
   }, []);
 

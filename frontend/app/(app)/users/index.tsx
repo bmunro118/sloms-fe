@@ -23,28 +23,33 @@ export default function UsersScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    if (!isAdmin) {
+      return;
+    }
+
+    const controller = new AbortController();
     (async () => {
       try {
         const response = await apiRequest<UsersResponse>(ENDPOINTS.users.list, {
           method: 'GET',
           requireAuth: true,
+          signal: controller.signal,
         });
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setUsers(Array.isArray(response?.data) ? response.data : []);
         }
       } catch (err) {
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Failed to load users.');
         }
       } finally {
-        if (mounted) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     })();
     return () => {
-      mounted = false;
+      controller.abort();
     };
-  }, []);
+  }, [isAdmin]);
 
   if (!isAdmin) {
     return <Redirect href="/(app)/dashboard" />;

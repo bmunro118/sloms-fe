@@ -23,28 +23,33 @@ export default function CustomersListScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    if (!isStaff) {
+      return;
+    }
+
+    const controller = new AbortController();
     (async () => {
       try {
         const response = await apiRequest<CustomersResponse>(ENDPOINTS.customers.list, {
           method: 'GET',
           requireAuth: true,
+          signal: controller.signal,
         });
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setCustomers(Array.isArray(response?.data) ? response.data : []);
         }
       } catch (err) {
-        if (mounted) {
+        if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Failed to load customers.');
         }
       } finally {
-        if (mounted) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     })();
     return () => {
-      mounted = false;
+      controller.abort();
     };
-  }, []);
+  }, [isStaff]);
 
   if (!isStaff) {
     return <Redirect href="/(app)/dashboard" />;

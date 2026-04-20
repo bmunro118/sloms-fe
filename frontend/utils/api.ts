@@ -6,6 +6,7 @@ type RequestOptions = {
   headers?: Record<string, string>;
   requireAuth?: boolean;
   token?: string; // explicit token; if omitted and requireAuth=true, reads from storage
+  signal?: AbortSignal;
 };
 
 export async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise<T> {
@@ -15,6 +16,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     headers = {},
     requireAuth = true,
     token: explicitToken,
+    signal,
   } = options;
 
   let authToken: string | null = explicitToken ?? null;
@@ -22,14 +24,21 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     authToken = await getStoredAccessToken();
   }
 
+  const requestHeaders: Record<string, string> = {
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    ...headers,
+  };
+
+  const hasBody = body !== undefined && body !== null;
+  if (hasBody && !('Content-Type' in requestHeaders)) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
+
   const response = await fetch(url, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    signal,
+    headers: requestHeaders,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   if (!response.ok) {
@@ -37,5 +46,14 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     throw new Error(`Request failed (${response.status}): ${responseText || response.statusText}`);
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.toLowerCase().includes('application/json')) {
+    return response.json() as Promise<T>;
+  }
+
+  return (await response.text()) as T;
 }

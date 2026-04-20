@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
+import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -16,6 +17,7 @@ type OrderDetails = {
 export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
   const { canMutate } = useAuth();
+  const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
 
@@ -24,19 +26,32 @@ export default function OrderDetailScreen() {
   const [isDispatching, setIsDispatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = async () => {
+  const canUpdate = (signal?: AbortSignal) => isMountedRef.current && !signal?.aborted;
+
+  const reload = async (signal?: AbortSignal) => {
+    if (!canUpdate(signal)) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
       const response = await apiRequest<OrderDetails>(ENDPOINTS.orders.byId(orderNumber, orderBatch), {
         method: 'GET',
         requireAuth: true,
+        signal,
       });
-      setOrder(response);
+      if (canUpdate(signal)) {
+        setOrder(response);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load order.');
+      if (canUpdate(signal)) {
+        setError(err instanceof Error ? err.message : 'Failed to load order.');
+      }
     } finally {
-      setIsLoading(false);
+      if (canUpdate(signal)) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -46,7 +61,12 @@ export default function OrderDetailScreen() {
       setIsLoading(false);
       return;
     }
-    reload();
+    const controller = new AbortController();
+    reload(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [orderNumber, orderBatch]);
 
   const handleDispatch = async () => {
@@ -60,9 +80,13 @@ export default function OrderDetailScreen() {
       });
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to dispatch order.');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to dispatch order.');
+      }
     } finally {
-      setIsDispatching(false);
+      if (isMountedRef.current) {
+        setIsDispatching(false);
+      }
     }
   };
 

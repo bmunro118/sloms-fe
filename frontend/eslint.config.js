@@ -54,7 +54,6 @@ export default [
       'node_modules/**',
       '.expo/**',
       'dist/**',
-      'app-example/**',
       '**/*.test.ts',
       '**/*.test.tsx',
       'src/features/app-shell/**', // internals are allowed to import each other

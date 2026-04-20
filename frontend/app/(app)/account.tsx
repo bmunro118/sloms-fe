@@ -1,35 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
+import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
-type MeResponse = {
-  id?: number;
-  userId?: number;
-  username?: string;
-  fullName?: string;
-  role?: string;
-};
-
 export default function AccountScreen() {
   const { user, signOut } = useAuth();
+  const isMountedRef = useIsMountedRef();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        await apiRequest<MeResponse>(ENDPOINTS.users.me, {
-          method: 'GET',
-          requireAuth: true,
-        });
-      } catch {
-        // Keep profile fallback from auth context if endpoint is unavailable.
-      }
-    })();
-  }, []);
 
   const handlePasswordChange = async () => {
     setStatus(null);
@@ -47,11 +28,15 @@ export default function AccountScreen() {
           newPassword,
         },
       });
-      setStatus('Password updated successfully.');
-      setCurrentPassword('');
-      setNewPassword('');
+      if (isMountedRef.current) {
+        setStatus('Password updated successfully.');
+        setCurrentPassword('');
+        setNewPassword('');
+      }
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Unable to change password.');
+      if (isMountedRef.current) {
+        setStatus(err instanceof Error ? err.message : 'Unable to change password.');
+      }
     }
   };
 

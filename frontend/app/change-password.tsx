@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
+import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -11,6 +12,7 @@ interface ChangePasswordResponse {
 
 export default function ChangePasswordScreen() {
   const { mustChangePassword, token, completePasswordChange, signOut } = useAuth();
+  const isMountedRef = useIsMountedRef();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,9 +53,13 @@ export default function ChangePasswordScreen() {
 
       await completePasswordChange(response.accessToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to change password.');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to change password.');
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 

@@ -1,5 +1,6 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
+import { AppErrorBoundary } from '@components/error/AppErrorBoundary';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { AppShellProvider } from '@src/features/app-shell';
 
@@ -35,10 +36,12 @@ function AuthGuard() {
 
 export default function RootLayout() {
   return (
-    <AppShellProvider>
-      <AuthProvider>
-        <AuthGuard />
-      </AuthProvider>
-    </AppShellProvider>
+    <AppErrorBoundary>
+      <AppShellProvider>
+        <AuthProvider>
+          <AuthGuard />
+        </AuthProvider>
+      </AppShellProvider>
+    </AppErrorBoundary>
   );
 }

@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from 'expo-router';
-import { PropsWithChildren, useMemo, useState } from 'react';
+import { PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 
@@ -27,40 +27,54 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
     }));
   }, [items, pathname]);
 
-  const renderNavItems = (compact: boolean, onNavigate?: () => void) => {
-    return navigationItems.map((item) => (
-      <Pressable
-        key={item.id}
-        style={[styles.navItem, item.active ? styles.navItemActive : null, compact ? styles.navItemCompact : null]}
-        onPress={() => {
-          router.push(item.href as never);
-          onNavigate?.();
-        }}
-      >
-        <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>
-          {compact ? item.shortLabel : item.label}
-        </Text>
-      </Pressable>
-    ));
-  };
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
-  const renderSidebar = (compact: boolean) => {
-    return (
-      <View style={[styles.sidebar, { width: compact ? 84 : sidebarWidth }]}> 
-        <Text style={[styles.brand, compact ? styles.brandCompact : null]}>{compact ? title.slice(0, 1) : title}</Text>
-        <View style={styles.navList}>{renderNavItems(compact)}</View>
-        <Pressable style={[styles.signOutButton, compact ? styles.navItemCompact : null]} onPress={onSignOut}>
-          <Text style={styles.signOutButtonText}>{compact ? 'Out' : 'Sign out'}</Text>
+  const createNavigateHandler = useCallback(
+    (href: AppShellNavItem['href'], onNavigate?: () => void) => () => {
+      router.push(href as never);
+      onNavigate?.();
+    },
+    [router]
+  );
+
+  const renderNavItems = useCallback(
+    (compact: boolean, onNavigate?: () => void) => {
+      return navigationItems.map((item) => (
+        <Pressable
+          key={item.id}
+          style={[styles.navItem, item.active ? styles.navItemActive : null, compact ? styles.navItemCompact : null]}
+          onPress={createNavigateHandler(item.href, onNavigate)}
+        >
+          <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>
+            {compact ? item.shortLabel : item.label}
+          </Text>
         </Pressable>
-      </View>
-    );
-  };
+      ));
+    },
+    [createNavigateHandler, navigationItems]
+  );
+
+  const renderSidebar = useCallback(
+    (compact: boolean) => {
+      return (
+        <View style={[styles.sidebar, { width: compact ? 84 : sidebarWidth }]}> 
+          <Text style={[styles.brand, compact ? styles.brandCompact : null]}>{compact ? title.slice(0, 1) : title}</Text>
+          <View style={styles.navList}>{renderNavItems(compact)}</View>
+          <Pressable style={[styles.signOutButton, compact ? styles.navItemCompact : null]} onPress={onSignOut}>
+            <Text style={styles.signOutButtonText}>{compact ? 'Out' : 'Sign out'}</Text>
+          </Pressable>
+        </View>
+      );
+    },
+    [onSignOut, renderNavItems, sidebarWidth, title]
+  );
 
   if (showDrawer) {
     return (
       <View style={styles.rootDrawer}>
         <View style={styles.mobileTopBar}>
-          <Pressable style={styles.menuButton} onPress={() => setDrawerOpen(true)}>
+          <Pressable style={styles.menuButton} onPress={openDrawer}>
             <Text style={styles.menuButtonText}>Menu</Text>
           </Pressable>
           <Text style={styles.mobileTitle}>{title}</Text>
@@ -71,10 +85,10 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
 
         {drawerOpen ? (
           <View style={styles.drawerOverlay}>
-            <Pressable style={styles.drawerBackdrop} onPress={() => setDrawerOpen(false)} />
+            <Pressable style={styles.drawerBackdrop} onPress={closeDrawer} />
             <View style={styles.drawerPanel}>
               <Text style={styles.brand}>{title}</Text>
-              <View style={styles.navList}>{renderNavItems(false, () => setDrawerOpen(false))}</View>
+              <View style={styles.navList}>{renderNavItems(false, closeDrawer)}</View>
               <Pressable style={styles.signOutButton} onPress={onSignOut}>
                 <Text style={styles.signOutButtonText}>Sign out</Text>
               </Pressable>

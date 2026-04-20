@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
+import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -12,6 +13,7 @@ interface LoginResponse {
 
 export default function LoginScreen() {
   const { isAuthenticated, mustChangePassword, signIn } = useAuth();
+  const isMountedRef = useIsMountedRef();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,9 +50,13 @@ export default function LoginScreen() {
         mustChangePassword: response.mustChangePassword,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
