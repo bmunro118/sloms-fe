@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 
 function GuardedRoot() {
-  const { isLoading, isAuthenticated, role } = useAuth();
+  const { isLoading, isAuthenticated, mustChangePassword } = useAuth();
 
   if (isLoading) {
     return (
@@ -17,8 +17,8 @@ function GuardedRoot() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       {!isAuthenticated && <Stack.Screen name="index" />}
-      {isAuthenticated && role === 'admin' && <Stack.Screen name="(admin)" />}
-      {isAuthenticated && role === 'client' && <Stack.Screen name="(client)" />}
+      {mustChangePassword && <Stack.Screen name="change-password" />}
+      {isAuthenticated && <Stack.Screen name="(app)" />}
     </Stack>
   );
 }

@@ -1,54 +1,66 @@
+import { Platform } from 'react-native';
+
 const ACCESS_TOKEN_KEY = 'sloms.access-token';
-let inMemoryToken: string | null = null;
 
-type UserRole = 'admin' | 'client';
+// ---------------------------------------------------------------------------
+// Storage — localStorage on web, expo-secure-store on mobile
+// ---------------------------------------------------------------------------
 
-function hasBrowserStorage() {
-  return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined';
-}
-
-export async function getStoredAccessToken() {
-  if (hasBrowserStorage()) {
-    return globalThis.localStorage.getItem(ACCESS_TOKEN_KEY);
-  }
-
-  return inMemoryToken;
-}
-
-export async function persistAccessToken(token: string) {
-  if (hasBrowserStorage()) {
-    globalThis.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+export async function persistAccessToken(token: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    }
     return;
   }
-
-  inMemoryToken = token;
+  const SecureStore = await import('expo-secure-store');
+  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
 }
 
-export async function clearAccessToken() {
-  if (hasBrowserStorage()) {
-    globalThis.localStorage.removeItem(ACCESS_TOKEN_KEY);
-    return;
-  }
-
-  inMemoryToken = null;
-}
-
-export function decodeRoleFromToken(token: string | null): UserRole | null {
-  if (!token) {
+export async function getStoredAccessToken(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage.getItem(ACCESS_TOKEN_KEY);
+    }
     return null;
   }
-
-  if (token.startsWith('mock-admin:')) {
-    return 'admin';
-  }
-
-  if (token.startsWith('mock-client:')) {
-    return 'client';
-  }
-
-  return null;
+  const SecureStore = await import('expo-secure-store');
+  return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
 }
 
-export function createMockToken(role: UserRole) {
-  return `mock-${role}:${Date.now()}`;
+export async function clearAccessToken(): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+    }
+    return;
+  }
+  const SecureStore = await import('expo-secure-store');
+  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+}
+
+// ---------------------------------------------------------------------------
+// JWT decode — base64url decode the payload, no signature verification
+// ---------------------------------------------------------------------------
+
+export interface JwtPayload {
+  userId: number;
+  username: string;
+  role: string;
+  fullName?: string;
+  scope?: string; // 'password_change' for forced-change scoped tokens
+  iat?: number;
+  exp?: number;
+}
+
+export function decodeJwt(token: string): JwtPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    return JSON.parse(atob(padded)) as JwtPayload;
+  } catch {
+    return null;
+  }
 }

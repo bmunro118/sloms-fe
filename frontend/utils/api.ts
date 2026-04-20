@@ -1,4 +1,3 @@
-import { API_BASE_URL } from './config';
 import { getStoredAccessToken } from './auth';
 
 type RequestOptions = {
@@ -6,27 +5,28 @@ type RequestOptions = {
   body?: unknown;
   headers?: Record<string, string>;
   requireAuth?: boolean;
+  token?: string; // explicit token; if omitted and requireAuth=true, reads from storage
 };
 
-function buildUrl(path: string) {
-  return `${API_BASE_URL}${path}`;
-}
-
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise<T> {
   const {
     method = 'GET',
     body,
     headers = {},
     requireAuth = true,
+    token: explicitToken,
   } = options;
 
-  const token = requireAuth ? await getStoredAccessToken() : null;
+  let authToken: string | null = explicitToken ?? null;
+  if (requireAuth && !authToken) {
+    authToken = await getStoredAccessToken();
+  }
 
-  const response = await fetch(buildUrl(path), {
+  const response = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,

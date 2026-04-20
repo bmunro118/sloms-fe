@@ -1,22 +1,98 @@
 import Constants from 'expo-constants';
 
-const fallbackBaseUrl = 'https://api.sloms.local';
-
-export const API_BASE_URL =
+export const API_BASE_URL: string =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
-  Constants.expoConfig?.extra?.apiBaseUrl ??
-  fallbackBaseUrl;
+  (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
+  'https://slomsapi.wonderfulsky-1907992c.uksouth.azurecontainerapps.io';
+
+const e = (path: string) => `${API_BASE_URL}${path}`;
 
 export const ENDPOINTS = {
+  // ── Auth ───────────────────────────────────────────────────────────────────
   auth: {
-    login: '/auth/login',
-    refresh: '/auth/refresh',
-    me: '/auth/me',
+    login: e('/api/auth/login'),
+    changePassword: e('/api/auth/change-password'),
+    me: e('/api/auth/me'),
   },
-  admin: {
-    dashboard: '/admin/dashboard',
+
+  // ── Users ──────────────────────────────────────────────────────────────────
+  users: {
+    me: e('/api/users/me'),
+    mePassword: e('/api/users/me/password'),
+    auditLog: e('/api/users/audit-log'),
+    list: e('/api/users'),
+    byId: (id: number) => e(`/api/users/${id}`),
+    deactivate: (id: number) => e(`/api/users/${id}/deactivate`),
+    reactivate: (id: number) => e(`/api/users/${id}/reactivate`),
+    unlock: (id: number) => e(`/api/users/${id}/unlock`),
+    resetPassword: (id: number) => e(`/api/users/${id}/reset-password`),
   },
-  client: {
-    dashboard: '/client/dashboard',
+
+  // ── Customers ──────────────────────────────────────────────────────────────
+  customers: {
+    list: e('/api/customers'),
+    byId: (id: number) => e(`/api/customers/${id}`),
+    suspend: (id: number) => e(`/api/customers/${id}/suspend`),
+    reinstate: (id: number) => e(`/api/customers/${id}/reinstate`),
+    addresses: (customerId: number) => e(`/api/customers/${customerId}/addresses`),
+    addressById: (customerId: number, addressId: number) =>
+      e(`/api/customers/${customerId}/addresses/${addressId}`),
+    setDefaultAddress: (customerId: number, addressId: number) =>
+      e(`/api/customers/${customerId}/addresses/${addressId}/set-default`),
   },
-} as const;
+
+  // ── Orders ─────────────────────────────────────────────────────────────────
+  orders: {
+    list: e('/api/orders'),
+    byId: (orderNumber: number, orderBatch: number) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}`),
+    tracking: (orderNumber: number, orderBatch: number) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/tracking`),
+    dispatch: (orderNumber: number, orderBatch: number) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/dispatch`),
+    breakdown: (orderNumber: number, orderBatch: number) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/breakdown`),
+    items: (orderNumber: number, orderBatch: number) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/items`),
+    itemById: (orderNumber: number, orderBatch: number, serialNumber: string) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/items/${serialNumber}`),
+    itemBySerial: (serialNumber: string) => e(`/api/orders/items/${serialNumber}`),
+    checkoutItem: (orderNumber: number, orderBatch: number, serialNumber: string) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/items/${serialNumber}/checkout`),
+    uncheckedOutItem: (orderNumber: number, orderBatch: number, serialNumber: string) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/items/${serialNumber}/unchecked-out`),
+  },
+
+  // ── Price List ─────────────────────────────────────────────────────────────
+  priceList: {
+    list: e('/api/price-list'),
+    byId: (itemId: string) => e(`/api/price-list/${itemId}`),
+    allListsForItem: (itemId: string) => e(`/api/price-list/${itemId}/lists`),
+    priceForList: (itemId: string, listName: string) =>
+      e(`/api/price-list/${itemId}/lists/${listName}`),
+    lists: e('/api/price-list/lists'),
+    revisions: e('/api/price-list/revisions'),
+    revisionById: (id: number) => e(`/api/price-list/revisions/${id}`),
+    activateRevision: (id: number) => e(`/api/price-list/revisions/${id}/activate`),
+    exportCsv: e('/api/price-list/export'),
+    importCsv: e('/api/price-list/import'),
+    voidItem: (itemId: string) => e(`/api/price-list/items/${itemId}`),
+    voidListType: (id: number) => e(`/api/price-list/lists/${id}`),
+  },
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  settings: {
+    list: e('/api/settings'),
+    byKey: (key: string) => e(`/api/settings/${key}`),
+    value: (key: string) => e(`/api/settings/${key}/value`),
+    userSettings: e('/api/settings/user'),
+    userSetting: (key: string) => e(`/api/settings/user/${key}`),
+  },
+
+  // ── VAT Rates ──────────────────────────────────────────────────────────────
+  vatRates: {
+    list: e('/api/vat-rates'),
+    current: e('/api/vat-rates/current'),
+    close: (id: number) => e(`/api/vat-rates/${id}/close`),
+  },
+};
