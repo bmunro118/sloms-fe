@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../../src/context/AuthContext';
@@ -17,6 +17,7 @@ type OrdersResponse = {
 };
 
 export default function OrdersListScreen() {
+  const router = useRouter();
   const { canMutate, isStaff } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,11 +52,9 @@ export default function OrdersListScreen() {
       <View style={styles.headerRow}>
         <Text style={styles.title}>Orders</Text>
         {isStaff && canMutate ? (
-          <Link href="/(app)/orders/create" asChild>
-            <Pressable style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Create order</Text>
-            </Pressable>
-          </Link>
+          <Pressable style={styles.primaryButton} onPress={() => router.push('/(app)/orders/create')}>
+            <Text style={styles.primaryButtonText}>Create order</Text>
+          </Pressable>
         ) : null}
       </View>
 
@@ -65,19 +64,17 @@ export default function OrdersListScreen() {
       {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
 
       {orders.map((order) => (
-        <Link
+        <Pressable
           key={`${order.orderNumber}-${order.orderBatch}`}
-          href={`/(app)/orders/${order.orderNumber}/${order.orderBatch}` as never}
-          asChild
+          style={styles.card}
+          onPress={() => router.push(`/(app)/orders/${order.orderNumber}/${order.orderBatch}` as never)}
         >
-          <Pressable style={styles.card}>
-            <Text style={styles.cardTitle}>Order {order.orderNumber} / Batch {order.orderBatch}</Text>
-            <Text style={styles.cardMeta}>Status: {order.status ?? 'Unknown'}</Text>
-            {typeof order.customerAccount === 'number' ? (
-              <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
-            ) : null}
-          </Pressable>
-        </Link>
+          <Text style={styles.cardTitle}>Order {order.orderNumber} / Batch {order.orderBatch}</Text>
+          <Text style={styles.cardMeta}>Status: {order.status ?? 'Unknown'}</Text>
+          {typeof order.customerAccount === 'number' ? (
+            <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
+          ) : null}
+        </Pressable>
       ))}
     </View>
   );

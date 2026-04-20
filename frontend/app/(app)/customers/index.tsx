@@ -1,4 +1,4 @@
-import { Redirect, Link } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../../src/context/AuthContext';
@@ -16,6 +16,7 @@ type CustomersResponse = {
 };
 
 export default function CustomersListScreen() {
+  const router = useRouter();
   const { isStaff } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,12 +57,14 @@ export default function CustomersListScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && customers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
       {customers.map((customer) => (
-        <Link key={customer.id} href={`/(app)/customers/${customer.id}` as never} asChild>
-          <Pressable style={styles.card}>
-            <Text style={styles.cardTitle}>{customer.companyName ?? `Customer #${customer.id}`}</Text>
-            <Text style={styles.cardMeta}>Account: {customer.accountNumber ?? 'N/A'}</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          key={customer.id}
+          style={styles.card}
+          onPress={() => router.push(`/(app)/customers/${customer.id}` as never)}
+        >
+          <Text style={styles.cardTitle}>{customer.companyName ?? `Customer #${customer.id}`}</Text>
+          <Text style={styles.cardMeta}>Account: {customer.accountNumber ?? 'N/A'}</Text>
+        </Pressable>
       ))}
     </View>
   );

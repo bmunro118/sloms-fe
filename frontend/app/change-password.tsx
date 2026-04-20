@@ -17,7 +17,7 @@ export default function ChangePasswordScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (!mustChangePassword) {
-    return <Redirect href="/(app)" />;
+    return <Redirect href="/(app)/dashboard" />;
   }
 
   const handleSubmit = async () => {

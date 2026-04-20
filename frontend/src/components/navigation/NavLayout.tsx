@@ -1,4 +1,4 @@
-import { Link, usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { PropsWithChildren } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ interface NavLayoutProps extends PropsWithChildren {
 }
 
 export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLayoutProps) {
+  const router = useRouter();
   const pathname = usePathname();
 
   return (
@@ -24,11 +25,13 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
           {items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
-              <Link key={item.href} href={item.href as never} asChild>
-                <Pressable style={[styles.navItem, active ? styles.navItemActive : null]}>
-                  <Text style={[styles.navItemText, active ? styles.navItemTextActive : null]}>{item.label}</Text>
-                </Pressable>
-              </Link>
+              <Pressable
+                key={item.href}
+                style={[styles.navItem, active ? styles.navItemActive : null]}
+                onPress={() => router.push(item.href as never)}
+              >
+                <Text style={[styles.navItemText, active ? styles.navItemTextActive : null]}>{item.label}</Text>
+              </Pressable>
             );
           })}
         </View>

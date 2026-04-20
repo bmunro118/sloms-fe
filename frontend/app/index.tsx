@@ -22,7 +22,7 @@ export default function LoginScreen() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href="/(app)" />;
+    return <Redirect href="/(app)/dashboard" />;
   }
 
   const handleLogin = async () => {
