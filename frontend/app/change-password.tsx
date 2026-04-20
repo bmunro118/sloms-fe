@@ -1,9 +1,9 @@
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useAuth } from '../src/context/AuthContext';
-import { apiRequest } from '../utils/api';
-import { ENDPOINTS } from '../utils/config';
+import { useAuth } from '@context/AuthContext';
+import { apiRequest } from '@utils/api';
+import { ENDPOINTS } from '@utils/config';
 
 interface ChangePasswordResponse {
   accessToken: string;

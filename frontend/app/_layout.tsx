@@ -1,7 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import { AuthProvider, useAuth } from '../src/context/AuthContext';
-import { AppShellProvider } from '../src/features/app-shell';
+import { AuthProvider, useAuth } from '@context/AuthContext';
+import { AppShellProvider } from '@src/features/app-shell';
 
 /**
  * AuthGuard lives inside AuthProvider so it can read auth state.

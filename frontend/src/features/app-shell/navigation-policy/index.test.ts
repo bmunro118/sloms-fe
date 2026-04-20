@@ -32,9 +32,19 @@ describe('canRoleAccessPath', () => {
     expect(canRoleAccessPath('Customer', '/(app)/settings')).toBe(false);
   });
 
+  it('allows exact path checks when route groups are omitted', () => {
+    expect(canRoleAccessPath('Manager', '/settings')).toBe(true);
+    expect(canRoleAccessPath('Customer', '/settings')).toBe(false);
+  });
+
   it('allows nested paths for authorized base modules', () => {
     expect(canRoleAccessPath('Admin', '/(app)/orders/create')).toBe(true);
     expect(canRoleAccessPath('Admin', '/(app)/orders/123/456')).toBe(true);
+  });
+
+  it('allows nested paths when route groups are omitted', () => {
+    expect(canRoleAccessPath('Admin', '/orders/create')).toBe(true);
+    expect(canRoleAccessPath('Admin', '/orders/123/456')).toBe(true);
   });
 
   it('denies unknown module paths and missing role', () => {

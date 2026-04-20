@@ -1,8 +1,8 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { NavLayout } from '../../src/components/navigation/NavLayout';
-import { useAuth } from '../../src/context/AuthContext';
-import { canRoleAccessPath, resolveNavItemsForRole } from '../../src/features/app-shell';
+import { NavLayout } from '@components/navigation/NavLayout';
+import { useAuth } from '@context/AuthContext';
+import { canRoleAccessPath, resolveNavItemsForRole } from '@src/features/app-shell';
 
 export default function AppLayout() {
   const { role, signOut } = useAuth();

@@ -1,4 +1,4 @@
-import { UserRole } from '../../../context/AuthContext';
+import { UserRole } from '@context/AuthContext';
 
 export type AppRoutePath =
   | '/(app)/dashboard'
@@ -83,18 +83,30 @@ export function resolveNavItemsForRole(role: UserRole | null): AppShellNavItem[]
   }));
 }
 
+function normalizeRoutePath(path: string): string {
+  const withoutTrailingSlash = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+  // Expo route groups like /(app) are not present in usePathname(), so strip groups before matching.
+  const withoutGroups = withoutTrailingSlash.replace(/\/\([^/]+\)(?=\/|$)/g, '');
+  return withoutGroups || '/';
+}
+
+export function isRouteMatch(path: string, href: AppRoutePath): boolean {
+  const normalizedPath = normalizeRoutePath(path);
+  const normalizedHref = normalizeRoutePath(href);
+
+  return normalizedPath === normalizedHref || normalizedPath.startsWith(`${normalizedHref}/`);
+}
+
 export function canRoleAccessPath(role: UserRole | null, path: string): boolean {
   if (!role) {
     return false;
   }
-
-  const normalizedPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
 
   return NAV_POLICY.some((item) => {
     if (!item.visibleTo.includes(role)) {
       return false;
     }
 
-    return normalizedPath === item.href || normalizedPath.startsWith(`${item.href}/`);
+    return isRouteMatch(path, item.href);
   });
 }

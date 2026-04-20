@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useAuth } from '../../src/context/AuthContext';
+import { useAuth } from '@context/AuthContext';
 
 export default function DashboardScreen() {
   const { user, role } = useAuth();

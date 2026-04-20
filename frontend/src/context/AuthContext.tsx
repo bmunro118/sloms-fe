@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { apiRequest } from '../../utils/api';
-import { ENDPOINTS } from '../../utils/config';
+import { apiRequest } from '@utils/api';
+import { ENDPOINTS } from '@utils/config';
 import {
   JwtPayload,
   clearAccessToken,
@@ -9,7 +9,7 @@ import {
   getStoredAccessToken,
   getStoredAccessTokenSnapshot,
   persistAccessToken,
-} from '../../utils/auth';
+} from '@utils/auth';
 
 export type UserRole = 'Admin' | 'Manager' | 'Operative' | 'ReadOnly' | 'Customer';
 

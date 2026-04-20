@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { apiRequest } from '../../../utils/api';
-import { API_BASE_URL } from '../../../utils/config';
+import { apiRequest } from '@utils/api';
+import { API_BASE_URL } from '@utils/config';
 
 type DocumentRow = {
   id: number;

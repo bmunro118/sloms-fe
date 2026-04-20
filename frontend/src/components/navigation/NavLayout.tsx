@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { PropsWithChildren, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AppShellNavItem, useAppShell } from '../../features/app-shell';
+import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 
 interface NavLayoutProps extends PropsWithChildren {
   title?: string;
@@ -22,7 +22,7 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
   const navigationItems = useMemo(() => {
     return items.map((item) => ({
       ...item,
-      active: pathname === item.href || pathname.startsWith(`${item.href}/`),
+      active: isRouteMatch(pathname, item.href),
       shortLabel: item.label.slice(0, 1).toUpperCase(),
     }));
   }, [items, pathname]);

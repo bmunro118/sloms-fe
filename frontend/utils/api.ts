@@ -1,4 +1,4 @@
-import { getStoredAccessToken } from './auth';
+import { getStoredAccessToken } from '@utils/auth';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
