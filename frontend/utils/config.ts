@@ -1,9 +1,35 @@
 import Constants from 'expo-constants';
 
-export const API_BASE_URL: string =
+const RAW_API_BASE_URL: string =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
   'https://slomsapi.wonderfulsky-1907992c.uksouth.azurecontainerapps.io';
+
+function assertValidApiBaseUrl(url: string): string {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error('API base URL is invalid. Provide a full URL including protocol.');
+  }
+
+  const protocol = parsedUrl.protocol.toLowerCase();
+  const host = parsedUrl.hostname.toLowerCase();
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+
+  if (protocol === 'https:') {
+    return parsedUrl.origin;
+  }
+
+  if (__DEV__ && protocol === 'http:' && isLocalHost) {
+    return parsedUrl.origin;
+  }
+
+  throw new Error('Insecure API base URL blocked. Use HTTPS in production.');
+}
+
+export const API_BASE_URL: string = assertValidApiBaseUrl(RAW_API_BASE_URL);
 
 const e = (path: string) => `${API_BASE_URL}${path}`;
 

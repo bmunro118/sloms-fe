@@ -53,13 +53,14 @@ Derived permission helpers:
 
 ### 5. Token Storage & Security Posture
 Token handling is platform-specific:
-1. Web: localStorage-based token persistence for the current v2 implementation.
+1. Web: `sessionStorage` persistence by default in v2, configurable via `EXPO_PUBLIC_WEB_TOKEN_STORAGE` (`memory`, `sessionStorage`, or `localStorage`).
 2. Mobile: `expo-secure-store` for device-secure storage.
 
 Security notes:
 1. JWT payload is decoded client-side for identity/role bootstrap.
 2. Backend remains source of truth; `/api/auth/me` is used to validate active session identity.
 3. All protected requests are made with Authorization header Bearer token via shared API utility.
+4. API base URL validation blocks insecure HTTP origins in production builds; dev-only HTTP is limited to localhost.
 
 ### 6. API Integration Pattern
 All network operations route through centralized utilities:

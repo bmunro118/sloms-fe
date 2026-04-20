@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
-import { apiRequest } from '@utils/api';
+import { ApiError, apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 interface ChangePasswordResponse {
@@ -54,7 +54,13 @@ export default function ChangePasswordScreen() {
       await completePasswordChange(response.accessToken);
     } catch (err) {
       if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to change password.');
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+          setError('Your password-change session expired. Please sign in again.');
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Failed to change password.');
+        }
       }
     } finally {
       if (isMountedRef.current) {

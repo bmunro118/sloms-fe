@@ -20,8 +20,10 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
   }
 
   componentDidCatch(error: unknown): void {
-    // Keep logging simple for now; route this to telemetry when monitoring is added.
-    console.error('Unhandled render error', error);
+    // Keep verbose stack/details out of production logs.
+    if (__DEV__) {
+      console.error('Unhandled render error', error);
+    }
   }
 
   private handleRetry = () => {

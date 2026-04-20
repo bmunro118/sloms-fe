@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
-import { apiRequest } from '@utils/api';
+import { ApiError, apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 interface LoginResponse {
@@ -51,7 +51,13 @@ export default function LoginScreen() {
       });
     } catch (err) {
       if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+        if (err instanceof ApiError && err.status === 401) {
+          setError('Invalid username or password.');
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Login failed. Please try again.');
+        }
       }
     } finally {
       if (isMountedRef.current) {
