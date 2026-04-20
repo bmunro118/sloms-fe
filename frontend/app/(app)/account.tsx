@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
@@ -41,7 +42,7 @@ export default function AccountScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContent gap={10}>
       <Text style={styles.title}>Account</Text>
       <Text style={styles.meta}>Username: {user?.username ?? 'Unknown'}</Text>
       <Text style={styles.meta}>Role: {user?.role ?? 'Unknown'}</Text>
@@ -70,15 +71,11 @@ export default function AccountScreen() {
       <Pressable onPress={signOut} style={styles.secondaryButton}>
         <Text style={styles.secondaryButtonText}>Sign out</Text>
       </Pressable>
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 10,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',

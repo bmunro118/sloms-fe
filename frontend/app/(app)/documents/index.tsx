@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { apiRequest } from '@utils/api';
 import { API_BASE_URL } from '@utils/config';
 
@@ -47,7 +48,7 @@ export default function DocumentsScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <ScreenContent>
       <Text style={styles.title}>Documents</Text>
       {isLoading ? <Text style={styles.muted}>Loading documents...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -59,15 +60,11 @@ export default function DocumentsScreen() {
           <Text style={styles.cardMeta}>Generated: {doc.generatedDate ?? 'N/A'}</Text>
         </View>
       ))}
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 12,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',

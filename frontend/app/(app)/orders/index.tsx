@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
@@ -49,7 +50,7 @@ export default function OrdersListScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <ScreenContent>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Orders</Text>
         {isStaff && canMutate ? (
@@ -77,15 +78,11 @@ export default function OrdersListScreen() {
           ) : null}
         </Pressable>
       ))}
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 12,
-  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

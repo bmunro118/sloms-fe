@@ -1,6 +1,7 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
@@ -55,7 +56,7 @@ export default function CustomerDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenContent>
       <Text style={styles.title}>Customer Detail</Text>
       {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -68,15 +69,11 @@ export default function CustomerDetailScreen() {
           <Text style={styles.item}>Email: {customer.contactEmail ?? 'N/A'}</Text>
         </View>
       ) : null}
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 12,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',

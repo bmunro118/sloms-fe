@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
@@ -56,7 +57,7 @@ export default function CreateOrderScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContent gap={10}>
       <Text style={styles.title}>Create Order</Text>
 
       <TextInput
@@ -79,15 +80,11 @@ export default function CreateOrderScreen() {
       <Pressable onPress={handleCreate} style={[styles.button, isSaving ? styles.disabled : null]} disabled={isSaving}>
         <Text style={styles.buttonText}>{isSaving ? 'Saving...' : 'Create'}</Text>
       </Pressable>
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 10,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',

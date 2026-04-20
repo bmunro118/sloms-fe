@@ -1,5 +1,6 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@components/error/AppErrorBoundary';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { AppShellProvider } from '@src/features/app-shell';
@@ -37,11 +38,13 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <AppErrorBoundary>
-      <AppShellProvider>
-        <AuthProvider>
-          <AuthGuard />
-        </AuthProvider>
-      </AppShellProvider>
+      <SafeAreaProvider>
+        <AppShellProvider>
+          <AuthProvider>
+            <AuthGuard />
+          </AuthProvider>
+        </AppShellProvider>
+      </SafeAreaProvider>
     </AppErrorBoundary>
   );
 }

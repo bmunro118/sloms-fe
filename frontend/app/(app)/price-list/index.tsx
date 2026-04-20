@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
@@ -52,7 +53,7 @@ export default function PriceListScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenContent>
       <Text style={styles.title}>Price List</Text>
       {isLoading ? <Text style={styles.muted}>Loading price list...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -64,15 +65,11 @@ export default function PriceListScreen() {
           <Text style={styles.cardMeta}>{row.description ?? 'No description'}</Text>
         </View>
       ))}
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 12,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',

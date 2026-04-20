@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { apiRequest } from '@utils/api';
@@ -91,7 +92,7 @@ export default function OrderDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenContent gap={10}>
       <Text style={styles.title}>Order Detail</Text>
       <Text style={styles.meta}>Order: {orderNumber} / Batch: {orderBatch}</Text>
 
@@ -117,15 +118,11 @@ export default function OrderDetailScreen() {
       ) : (
         <Text style={styles.muted}>Read-only role: dispatch action hidden.</Text>
       )}
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 10,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',

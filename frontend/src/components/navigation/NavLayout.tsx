@@ -1,6 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 
 interface NavLayoutProps extends PropsWithChildren {
@@ -13,6 +14,7 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
   const router = useRouter();
   const pathname = usePathname();
   const { shellMode } = useAppShell();
+  const insets = useSafeAreaInsets();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isCollapsed = shellMode === 'sidebar-collapsed';
@@ -73,7 +75,7 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
   if (showDrawer) {
     return (
       <View style={styles.rootDrawer}>
-        <View style={styles.mobileTopBar}>
+        <View style={[styles.mobileTopBar, { paddingTop: insets.top + 10 }]}> 
           <Pressable style={styles.menuButton} onPress={openDrawer}>
             <Text style={styles.menuButtonText}>Menu</Text>
           </Pressable>
@@ -86,7 +88,7 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
         {drawerOpen ? (
           <View style={styles.drawerOverlay}>
             <Pressable style={styles.drawerBackdrop} onPress={closeDrawer} />
-            <View style={styles.drawerPanel}>
+            <View style={[styles.drawerPanel, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}> 
               <Text style={styles.brand}>{title}</Text>
               <View style={styles.navList}>{renderNavItems(false, closeDrawer)}</View>
               <Pressable style={styles.signOutButton} onPress={onSignOut}>
@@ -96,7 +98,7 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
           </View>
         ) : null}
 
-        <ScrollView contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
+        <ScrollView contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 20 }]}>{children}</ScrollView>
       </View>
     );
   }

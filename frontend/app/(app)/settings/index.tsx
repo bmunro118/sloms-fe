@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
@@ -55,7 +56,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenContent>
       <Text style={styles.title}>Settings</Text>
       {isLoading ? <Text style={styles.muted}>Loading settings...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -67,15 +68,11 @@ export default function SettingsScreen() {
           <Text style={styles.cardMeta}>{entry.description ?? 'No description'}</Text>
         </View>
       ))}
-    </View>
+    </ScreenContent>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    gap: 12,
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',
