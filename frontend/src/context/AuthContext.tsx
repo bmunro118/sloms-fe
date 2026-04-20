@@ -1,7 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { apiRequest } from '../../utils/api';
 import { ENDPOINTS } from '../../utils/config';
-import { clearAccessToken, decodeJwt, getStoredAccessToken, persistAccessToken } from '../../utils/auth';
+import {
+  JwtPayload,
+  clearAccessToken,
+  decodeJwt,
+  getStoredAccessToken,
+  getStoredAccessTokenSnapshot,
+  persistAccessToken,
+} from '../../utils/auth';
 
 export type UserRole = 'Admin' | 'Manager' | 'Operative' | 'ReadOnly' | 'Customer';
 
@@ -35,31 +43,88 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [mustChangePassword, setMustChangePassword] = useState(false);
+interface InitialAuthSnapshot {
+  isLoading: boolean;
+  token: string | null;
+  user: AuthUser | null;
+  mustChangePassword: boolean;
+}
 
-  const mapRole = useCallback((rawRole: string | undefined): UserRole => {
-    switch ((rawRole ?? '').toLowerCase()) {
-      case 'admin':
-        return 'Admin';
-      case 'manager':
-        return 'Manager';
-      case 'operative':
-        return 'Operative';
-      case 'readonly':
-      case 'read_only':
-      case 'read-only':
-        return 'ReadOnly';
-      default:
-        return 'Customer';
-    }
-  }, []);
+function mapRole(rawRole: string | undefined): UserRole {
+  switch ((rawRole ?? '').toLowerCase()) {
+    case 'admin':
+      return 'Admin';
+    case 'manager':
+      return 'Manager';
+    case 'operative':
+      return 'Operative';
+    case 'readonly':
+    case 'read_only':
+    case 'read-only':
+      return 'ReadOnly';
+    default:
+      return 'Customer';
+  }
+}
+
+function mapPayloadUser(payload: JwtPayload): AuthUser {
+  return {
+    userId: Number(payload.userId),
+    username: payload.username,
+    fullName: payload.fullName ?? payload.username,
+    role: mapRole(payload.role),
+  };
+}
+
+function getInitialAuthSnapshot(): InitialAuthSnapshot {
+  const token = getStoredAccessTokenSnapshot();
+
+  // Native storage is async only, so bootstrap waits for hydrateSession once.
+  if (!token) {
+    return {
+      isLoading: Platform.OS !== 'web',
+      token: null,
+      user: null,
+      mustChangePassword: false,
+    };
+  }
+
+  const payload = decodeJwt(token);
+  if (!payload) {
+    return {
+      isLoading: false,
+      token: null,
+      user: null,
+      mustChangePassword: false,
+    };
+  }
+
+  if (payload.scope === 'password_change') {
+    return {
+      isLoading: false,
+      token,
+      user: null,
+      mustChangePassword: true,
+    };
+  }
+
+  return {
+    isLoading: false,
+    token,
+    user: mapPayloadUser(payload),
+    mustChangePassword: false,
+  };
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const initialSnapshot = useMemo(() => getInitialAuthSnapshot(), []);
+
+  const [isLoading, setIsLoading] = useState(initialSnapshot.isLoading);
+  const [token, setToken] = useState<string | null>(initialSnapshot.token);
+  const [user, setUser] = useState<AuthUser | null>(initialSnapshot.user);
+  const [mustChangePassword, setMustChangePassword] = useState(initialSnapshot.mustChangePassword);
 
   const hydrateSession = useCallback(async () => {
-    setIsLoading(true);
     try {
       const storedToken = await getStoredAccessToken();
       if (!storedToken) {
@@ -109,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [mapRole]);
+  }, []);
 
   useEffect(() => {
     hydrateSession();
@@ -138,8 +203,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fullName: payload.fullName ?? payload.username,
         role: mapRole(payload.role),
       });
+      setIsLoading(false);
     },
-    [mapRole]
+    []
   );
 
   const completePasswordChange = useCallback(
@@ -158,8 +224,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: mapRole(payload.role),
       });
       setMustChangePassword(false);
+      setIsLoading(false);
     },
-    [mapRole]
+    []
   );
 
   const signOut = useCallback(async () => {
@@ -167,6 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     setMustChangePassword(false);
+    setIsLoading(false);
   }, []);
 
   const role = user?.role ?? null;

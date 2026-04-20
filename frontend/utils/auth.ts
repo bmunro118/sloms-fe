@@ -28,6 +28,19 @@ export async function getStoredAccessToken(): Promise<string | null> {
   return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
 }
 
+// Sync token snapshot is available on web only and lets bootstrap avoid a loading flicker.
+export function getStoredAccessTokenSnapshot(): string | null {
+  if (Platform.OS !== 'web') {
+    return null;
+  }
+
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
 export async function clearAccessToken(): Promise<void> {
   if (Platform.OS === 'web') {
     if (typeof localStorage !== 'undefined') {

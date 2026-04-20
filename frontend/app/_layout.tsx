@@ -1,46 +1,44 @@
-import { Stack } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { AppShellProvider } from '../src/features/app-shell';
 
-function GuardedRoot() {
+/**
+ * AuthGuard lives inside AuthProvider so it can read auth state.
+ * It always renders <Stack> — never conditionally swaps it for a View.
+ * Redirects happen in useEffect (after paint), never during render,
+ * so they cannot interfere with React Navigation's useSyncExternalStore
+ * subscription in withLayoutContext.
+ */
+function AuthGuard() {
   const { isLoading, isAuthenticated, mustChangePassword } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
 
-  if (isLoading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#0f766e" />
-        <Text style={styles.loaderText}>Loading session...</Text>
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (isLoading) return;
 
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {!isAuthenticated && <Stack.Screen name="index" />}
-      {mustChangePassword && <Stack.Screen name="change-password" />}
-      {isAuthenticated && <Stack.Screen name="(app)" />}
-    </Stack>
-  );
+    const inApp = segments[0] === '(app)';
+    const inChangePassword = segments[0] === 'change-password';
+
+    if (mustChangePassword && !inChangePassword) {
+      router.replace('/change-password');
+    } else if (!isAuthenticated && (inApp || inChangePassword)) {
+      router.replace('/');
+    } else if (isAuthenticated && !mustChangePassword && !inApp) {
+      router.replace('/(app)/dashboard');
+    }
+  }, [isLoading, isAuthenticated, mustChangePassword, segments, router]);
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <GuardedRoot />
-    </AuthProvider>
+    <AppShellProvider>
+      <AuthProvider>
+        <AuthGuard />
+      </AuthProvider>
+    </AppShellProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loaderContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    gap: 12,
-  },
-  loaderText: {
-    fontSize: 16,
-    color: '#334155',
-  },
-});

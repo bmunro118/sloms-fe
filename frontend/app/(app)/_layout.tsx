@@ -1,65 +1,24 @@
-import { Redirect, Slot } from 'expo-router';
-import { useMemo } from 'react';
-import { NavLayout, NavItem } from '../../src/components/navigation/NavLayout';
+import { Slot, usePathname, useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
+import { NavLayout } from '../../src/components/navigation/NavLayout';
 import { useAuth } from '../../src/context/AuthContext';
-
-const roleNavMap: Record<string, NavItem[]> = {
-  Customer: [
-    { label: 'Dashboard', href: '/(app)/dashboard' },
-    { label: 'Orders', href: '/(app)/orders' },
-    { label: 'Documents', href: '/(app)/documents' },
-    { label: 'Account', href: '/(app)/account' },
-  ],
-  ReadOnly: [
-    { label: 'Dashboard', href: '/(app)/dashboard' },
-    { label: 'Orders', href: '/(app)/orders' },
-    { label: 'Customers', href: '/(app)/customers' },
-    { label: 'Documents', href: '/(app)/documents' },
-    { label: 'Price List', href: '/(app)/price-list' },
-    { label: 'Account', href: '/(app)/account' },
-  ],
-  Operative: [
-    { label: 'Dashboard', href: '/(app)/dashboard' },
-    { label: 'Orders', href: '/(app)/orders' },
-    { label: 'Customers', href: '/(app)/customers' },
-    { label: 'Documents', href: '/(app)/documents' },
-    { label: 'Price List', href: '/(app)/price-list' },
-    { label: 'Account', href: '/(app)/account' },
-  ],
-  Manager: [
-    { label: 'Dashboard', href: '/(app)/dashboard' },
-    { label: 'Orders', href: '/(app)/orders' },
-    { label: 'Customers', href: '/(app)/customers' },
-    { label: 'Documents', href: '/(app)/documents' },
-    { label: 'Price List', href: '/(app)/price-list' },
-    { label: 'Settings', href: '/(app)/settings' },
-    { label: 'Account', href: '/(app)/account' },
-  ],
-  Admin: [
-    { label: 'Dashboard', href: '/(app)/dashboard' },
-    { label: 'Orders', href: '/(app)/orders' },
-    { label: 'Customers', href: '/(app)/customers' },
-    { label: 'Users', href: '/(app)/users' },
-    { label: 'Documents', href: '/(app)/documents' },
-    { label: 'Price List', href: '/(app)/price-list' },
-    { label: 'Settings', href: '/(app)/settings' },
-    { label: 'Account', href: '/(app)/account' },
-  ],
-};
+import { canRoleAccessPath, resolveNavItemsForRole } from '../../src/features/app-shell';
 
 export default function AppLayout() {
-  const { isLoading, isAuthenticated, role, signOut } = useAuth();
+  const { role, signOut } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const navItems = useMemo(() => {
-    if (!role) return [];
-    return roleNavMap[role] ?? roleNavMap.Customer;
-  }, [role]);
+  const navItems = useMemo(() => resolveNavItemsForRole(role), [role]);
+  const fallbackHref = navItems[0]?.href ?? '/(app)/dashboard';
 
-  if (isLoading) return null;
-
-  if (!isAuthenticated) {
-    return <Redirect href="/" />;
-  }
+  // Role-based path guard — fires after paint, never blocks Slot from mounting.
+  // Auth guard (unauthenticated redirect) is handled by AuthGuard in app/_layout.tsx.
+  useEffect(() => {
+    if (role && !canRoleAccessPath(role, pathname)) {
+      router.replace(fallbackHref as never);
+    }
+  }, [role, pathname, fallbackHref, router]);
 
   return (
     <NavLayout items={navItems} onSignOut={signOut}>
