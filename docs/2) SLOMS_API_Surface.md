@@ -5,13 +5,15 @@
 **Version:** 1.0
 
 REST API for the SLOMS (Sonic Labs Order Management System) backend.  
-All protected endpoints require a **Bearer JWT** in the `Authorization` header, obtained from `POST /api/auth/login`.
+Protected endpoints use a hybrid auth model: web clients authenticate with `HttpOnly` cookies, while native mobile clients use a **Bearer JWT** in the `Authorization` header obtained from `POST /api/auth/login`.
 
 ---
 
 ## Authentication
 
-Security scheme: `access-token` (HTTP Bearer, JWT)
+Security scheme:
+1. Web: browser-managed `HttpOnly` session cookie.
+2. Mobile: `access-token` (HTTP Bearer, JWT)
 
 ```
 Authorization: Bearer <accessToken>
@@ -47,17 +49,22 @@ Customer-role users must have a `linkedCustomerId` set at creation and automatic
 
 #### `POST /api/auth/login`
 
-Returns a signed JWT access token on success.
+Authenticates a user and issues a platform-appropriate session credential on success.
 
 **Request body:**
 ```json
 {
   "username": "admin",
-  "password": "Admin@1234"
+  "password": "Admin@1234",
+  "clientType": "web"
 }
 ```
 
-**Response 200:** Login successful — returns `accessToken`, `userId`, `username`, `role`, `fullName`.
+`clientType` rules:
+1. `web`: returns auth via `Set-Cookie`; token is not included in the JSON body.
+2. `mobile`: returns `accessToken` in the JSON body for secure device storage.
+
+**Response 200:** Login successful — returns session metadata, and for mobile also returns `accessToken`, `userId`, `username`, `role`, `fullName`.
 
 > If `mustChangePassword` is `true`, the response returns a short-lived `password_change`-scoped token. Pass it to `POST /api/auth/change-password` before any other request.
 

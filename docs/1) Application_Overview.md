@@ -33,7 +33,7 @@ Role controls display and actions, not route tree duplication.
 Authentication is JWT-based and integrated with SLOMS auth endpoints.
 
 Flow summary:
-1. Login via `POST /api/auth/login`.
+1. Login via `POST /api/auth/login` with `clientType` set to `web` or `mobile`.
 2. If `mustChangePassword=true` (or JWT `scope=password_change`), user is routed to forced password-change screen.
 3. Password update via `POST /api/auth/change-password` returns full-access token.
 4. Normal session hydration validates token via `GET /api/auth/me`.
@@ -53,13 +53,13 @@ Derived permission helpers:
 
 ### 5. Token Storage & Security Posture
 Token handling is platform-specific:
-1. Web: `sessionStorage` persistence by default in v2, configurable via `EXPO_PUBLIC_WEB_TOKEN_STORAGE` (`memory`, `sessionStorage`, or `localStorage`).
-2. Mobile: `expo-secure-store` for device-secure storage.
+1. Web: authenticated sessions use `HttpOnly` secure cookies set by SLOMS. The frontend does not persist access tokens in browser storage.
+2. Mobile: `expo-secure-store` persists the access token returned in the login JSON body.
 
 Security notes:
 1. JWT payload is decoded client-side for identity/role bootstrap.
 2. Backend remains source of truth; `/api/auth/me` is used to validate active session identity.
-3. All protected requests are made with Authorization header Bearer token via shared API utility.
+3. Web requests rely on browser-managed cookies; mobile protected requests use Authorization header Bearer tokens via the shared API utility.
 4. API base URL validation blocks insecure HTTP origins in production builds; dev-only HTTP is limited to localhost.
 
 ### 6. API Integration Pattern

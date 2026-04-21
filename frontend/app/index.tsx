@@ -4,10 +4,12 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { ApiError, apiRequest } from '@utils/api';
+import { usesCookieAuth } from '@utils/auth';
 import { ENDPOINTS } from '@utils/config';
 
 interface LoginResponse {
-  accessToken: string;
+  accessToken?: string;
+  token?: string;
   mustChangePassword?: boolean;
 }
 
@@ -42,11 +44,12 @@ export default function LoginScreen() {
         body: {
           username: username.trim(),
           password,
+          clientType: usesCookieAuth() ? 'web' : 'mobile',
         },
       });
 
       await signIn({
-        accessToken: response.accessToken,
+        accessToken: response.accessToken ?? response.token,
         mustChangePassword: response.mustChangePassword,
       });
     } catch (err) {

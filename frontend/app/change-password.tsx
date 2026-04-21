@@ -4,10 +4,12 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { ApiError, apiRequest } from '@utils/api';
+import { usesCookieAuth } from '@utils/auth';
 import { ENDPOINTS } from '@utils/config';
 
 interface ChangePasswordResponse {
-  accessToken: string;
+  accessToken?: string;
+  token?: string;
 }
 
 export default function ChangePasswordScreen() {
@@ -23,7 +25,7 @@ export default function ChangePasswordScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!token) {
+    if (!token && !usesCookieAuth()) {
       setError('Missing change-password token. Please sign in again.');
       return;
     }
@@ -45,13 +47,13 @@ export default function ChangePasswordScreen() {
       const response = await apiRequest<ChangePasswordResponse>(ENDPOINTS.auth.changePassword, {
         method: 'POST',
         requireAuth: true,
-        token,
+        token: usesCookieAuth() ? undefined : (token ?? undefined),
         body: {
           newPassword,
         },
       });
 
-      await completePasswordChange(response.accessToken);
+      await completePasswordChange(response.accessToken ?? response.token ?? null);
     } catch (err) {
       if (isMountedRef.current) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {

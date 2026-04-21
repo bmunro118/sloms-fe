@@ -9,6 +9,7 @@ import {
   getStoredAccessToken,
   getStoredAccessTokenSnapshot,
   persistAccessToken,
+  usesCookieAuth,
 } from '@utils/auth';
 
 export type UserRole = 'Admin' | 'Manager' | 'Operative' | 'ReadOnly' | 'Customer';
@@ -21,7 +22,7 @@ export interface AuthUser {
 }
 
 interface SignInPayload {
-  accessToken: string;
+  accessToken?: string | null;
   mustChangePassword?: boolean;
 }
 
@@ -37,7 +38,7 @@ type AuthContextValue = {
   canMutate: boolean;
   hydrateSession: () => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
-  completePasswordChange: (accessToken: string) => Promise<void>;
+  completePasswordChange: (accessToken?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -79,6 +80,15 @@ function mapPayloadUser(payload: JwtPayload): AuthUser {
 }
 
 function getInitialAuthSnapshot(): InitialAuthSnapshot {
+  if (usesCookieAuth()) {
+    return {
+      isLoading: true,
+      token: null,
+      user: null,
+      mustChangePassword: false,
+    };
+  }
+
   const token = getStoredAccessTokenSnapshot();
 
   // Native storage is async only, so bootstrap waits for hydrateSession once.
@@ -133,20 +143,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hydrateSession = useCallback(async () => {
     try {
       const storedToken = await getStoredAccessToken();
-      if (!storedToken) {
+      if (!storedToken && !usesCookieAuth()) {
         setSignedOutState();
         return;
       }
 
-      const payload = decodeJwt(storedToken);
-      if (!payload) {
+      const payload = storedToken ? decodeJwt(storedToken) : null;
+      if (storedToken && !payload) {
         await clearAccessToken();
         setSignedOutState();
         return;
       }
 
       // If token is scoped for forced password change, block app access.
-      if (payload.scope === 'password_change') {
+      if (payload?.scope === 'password_change') {
         setAuthState({
           isLoading: false,
           token: storedToken,
@@ -160,17 +170,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const me = await apiRequest<{ userId: number; username: string; role: string }>(ENDPOINTS.auth.me, {
         method: 'GET',
         requireAuth: true,
-        token: storedToken,
+        token: usesCookieAuth() ? undefined : (storedToken ?? undefined),
       });
 
       setAuthState({
         isLoading: false,
         token: storedToken,
         user: {
-          userId: Number(me.userId ?? payload.userId),
-          username: me.username ?? payload.username,
-          fullName: payload.fullName ?? me.username,
-          role: mapRole(me.role ?? payload.role),
+          userId: Number(me.userId ?? payload?.userId),
+          username: me.username ?? payload?.username ?? '',
+          fullName: payload?.fullName ?? me.username,
+          role: mapRole(me.role ?? payload?.role),
         },
         mustChangePassword: false,
       });
@@ -188,24 +198,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async ({ accessToken, mustChangePassword: mustChange = false }: SignInPayload) => {
       await persistAccessToken(accessToken);
 
-      const payload = decodeJwt(accessToken);
-      if (!payload) {
+      const payload = accessToken ? decodeJwt(accessToken) : null;
+      if (accessToken && !payload) {
         throw new Error('Invalid access token received from API.');
       }
 
-      if (mustChange || payload.scope === 'password_change') {
+      if (mustChange || payload?.scope === 'password_change') {
         setAuthState({
           isLoading: false,
-          token: accessToken,
+          token: accessToken ?? null,
           user: null,
           mustChangePassword: true,
         });
         return;
       }
 
+      if (!payload) {
+        await hydrateSession();
+        return;
+      }
+
       setAuthState({
         isLoading: false,
-        token: accessToken,
+        token: accessToken ?? null,
         user: {
           userId: Number(payload.userId),
           username: payload.username,
@@ -215,11 +230,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword: false,
       });
     },
-    []
+    [hydrateSession]
   );
 
   const completePasswordChange = useCallback(
-    async (newAccessToken: string) => {
+    async (newAccessToken?: string | null) => {
+      if (!newAccessToken) {
+        await hydrateSession();
+        return;
+      }
+
       await persistAccessToken(newAccessToken);
       const payload = decodeJwt(newAccessToken);
       if (!payload) {
@@ -238,7 +258,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword: false,
       });
     },
-    []
+    [hydrateSession]
   );
 
   const signOut = useCallback(async () => {
@@ -256,7 +276,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       isLoading,
-      isAuthenticated: Boolean(token) && !mustChangePassword,
+      isAuthenticated: user !== null && !mustChangePassword,
       mustChangePassword,
       role,
       user,

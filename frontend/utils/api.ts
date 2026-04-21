@@ -1,4 +1,4 @@
-import { getStoredAccessToken } from '@utils/auth';
+import { getStoredAccessToken, usesCookieAuth } from '@utils/auth';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -73,7 +73,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
   } = options;
 
   let authToken: string | null = explicitToken ?? null;
-  if (requireAuth && !authToken) {
+  if (requireAuth && !authToken && !usesCookieAuth()) {
     authToken = await getStoredAccessToken();
   }
 
@@ -90,6 +90,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
   const response = await fetch(url, {
     method,
     signal,
+    credentials: usesCookieAuth() ? 'include' : 'omit',
     headers: requestHeaders,
     body: hasBody ? JSON.stringify(body) : undefined,
   });
