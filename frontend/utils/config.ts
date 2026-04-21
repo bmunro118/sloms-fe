@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
 
 const RAW_API_BASE_URL: string =
+  process.env.EXPO_PUBLIC_API_URL ??
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
-  'https://slomsapi.wonderfulsky-1907992c.uksouth.azurecontainerapps.io';
+  '';
 
 function assertValidApiBaseUrl(url: string): string {
   let parsedUrl: URL;
@@ -11,7 +12,9 @@ function assertValidApiBaseUrl(url: string): string {
   try {
     parsedUrl = new URL(url);
   } catch {
-    throw new Error('API base URL is invalid. Provide a full URL including protocol.');
+    throw new Error(
+      'API base URL is invalid or missing. Set EXPO_PUBLIC_API_URL to a full URL including protocol.'
+    );
   }
 
   const protocol = parsedUrl.protocol.toLowerCase();
