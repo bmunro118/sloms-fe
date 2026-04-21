@@ -111,6 +111,12 @@ The authenticated shell is role-driven:
 2. Staff and customer experiences share one structural shell.
 3. Route transitions are handled with explicit router navigation handlers.
 
+Layout profile and shell mode resolution:
+1. Platform class is derived from runtime OS (`web`, `ios`, `android`) and a device-type signal (`phone` vs `tablet`), not from viewport width alone.
+2. Device-type signal must use device-specific detection (`Platform.isPad` on iOS and equivalent Android/native tablet detection) so large phones in landscape are not misclassified as tablets.
+3. Viewport dimensions (width/height) are then used to choose shell presentation mode (`sidebar`, `sidebar-collapsed`, `drawer`) within the resolved platform/device profile.
+4. Web continues to use desktop/compact profile breakpoints, while native layout decisions require both device type and viewport state.
+
 ### 9. Theme & Styling System
 Styling in v2 is centralized around semantic theme tokens and reusable UI primitives.
 
