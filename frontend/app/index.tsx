@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
@@ -77,8 +77,12 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>SLOMS Frontend</Text>
-      <Text style={styles.subtitle}>Login with your API credentials</Text>
+      <Image
+        source={require('@assets/images/branding/Sonic-Labs-logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <Text style={styles.subtitle}>PORTAL</Text>
 
       <ThemedInput
         autoCapitalize="none"
@@ -120,16 +124,17 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.background,
       paddingHorizontal: 24,
     },
-    title: {
-      fontSize: 30,
-      fontWeight: '800',
-      color: theme.colors.textPrimary,
-      marginBottom: 8,
+    logo: {
+      width: 200,
+      height: 120,
+      marginBottom: -27,
     },
     subtitle: {
       fontSize: 16,
+      fontWeight: '600',
       color: theme.colors.textMuted,
       marginBottom: 24,
+      letterSpacing: 2,
     },
     formInput: {
       width: '100%',
