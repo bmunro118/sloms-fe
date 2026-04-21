@@ -1,8 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -20,6 +25,7 @@ type OrdersResponse = {
 export default function OrdersListScreen() {
   const router = useRouter();
   const { canMutate, isStaff } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,9 +60,7 @@ export default function OrdersListScreen() {
       <View style={styles.headerRow}>
         <Text style={styles.title}>Orders</Text>
         {isStaff && canMutate ? (
-          <Pressable style={styles.primaryButton} onPress={() => router.push('/(app)/orders/create')}>
-            <Text style={styles.primaryButtonText}>Create order</Text>
-          </Pressable>
+          <ThemedButton label="Create order" onPress={() => router.push('/(app)/orders/create')} style={styles.primaryButton} />
         ) : null}
       </View>
 
@@ -66,7 +70,7 @@ export default function OrdersListScreen() {
       {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
 
       {orders.map((order) => (
-        <Pressable
+        <ThemedCard
           key={`${order.orderNumber}-${order.orderBatch}`}
           style={styles.card}
           onPress={() => router.push(`/(app)/orders/${order.orderNumber}/${order.orderBatch}` as never)}
@@ -76,52 +80,21 @@ export default function OrdersListScreen() {
           {typeof order.customerAccount === 'number' ? (
             <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
           ) : null}
-        </Pressable>
+        </ThemedCard>
       ))}
     </ScreenContent>
   );
 }
 
-const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  primaryButton: {
-    borderRadius: 10,
-    backgroundColor: '#0f766e',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  muted: {
-    color: '#64748b',
-  },
-  error: {
-    color: '#b91c1c',
-  },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 12,
-  },
-  cardTitle: {
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  cardMeta: {
-    color: '#475569',
-    marginTop: 4,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+  });
+}

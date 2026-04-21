@@ -1,8 +1,12 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -16,6 +20,7 @@ type CustomerDetails = {
 
 export default function CustomerDetailScreen() {
   const { isStaff } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const params = useLocalSearchParams<{ id: string }>();
   const customerId = Number(params.id);
 
@@ -61,39 +66,27 @@ export default function CustomerDetailScreen() {
       {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && customer ? (
-        <View style={styles.card}>
+        <ThemedCard style={styles.card}>
           <Text style={styles.item}>ID: {customer.id}</Text>
           <Text style={styles.item}>Company: {customer.companyName ?? 'N/A'}</Text>
           <Text style={styles.item}>Account: {customer.accountNumber ?? 'N/A'}</Text>
           <Text style={styles.item}>Contact: {customer.contactName ?? 'N/A'}</Text>
           <Text style={styles.item}>Email: {customer.contactEmail ?? 'N/A'}</Text>
-        </View>
+        </ThemedCard>
       ) : null}
     </ScreenContent>
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  muted: {
-    color: '#64748b',
-  },
-  error: {
-    color: '#b91c1c',
-  },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 12,
-    gap: 6,
-  },
-  item: {
-    color: '#0f172a',
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+    card: {
+      ...common.card,
+      gap: 6,
+    },
+    item: common.cardItem,
+  });
+}

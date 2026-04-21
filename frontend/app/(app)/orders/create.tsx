@@ -1,15 +1,21 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
   const { isStaff, canMutate } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
   const [customerAccount, setCustomerAccount] = useState('');
@@ -60,14 +66,14 @@ export default function CreateOrderScreen() {
     <ScreenContent gap={10}>
       <Text style={styles.title}>Create Order</Text>
 
-      <TextInput
+      <ThemedInput
         keyboardType="number-pad"
         placeholder="Order number"
         style={styles.input}
         value={orderNumber}
         onChangeText={setOrderNumber}
       />
-      <TextInput
+      <ThemedInput
         keyboardType="number-pad"
         placeholder="Customer account"
         style={styles.input}
@@ -77,43 +83,28 @@ export default function CreateOrderScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <Pressable onPress={handleCreate} style={[styles.button, isSaving ? styles.disabled : null]} disabled={isSaving}>
-        <Text style={styles.buttonText}>{isSaving ? 'Saving...' : 'Create'}</Text>
-      </Pressable>
+      <ThemedButton
+        label={isSaving ? 'Saving...' : 'Create'}
+        onPress={handleCreate}
+        disabled={isSaving}
+        style={styles.button}
+      />
     </ScreenContent>
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  button: {
-    marginTop: 4,
-    borderRadius: 10,
-    backgroundColor: '#0f766e',
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  error: {
-    color: '#b91c1c',
-  },
-  disabled: {
-    opacity: 0.65,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+    title: {
+      ...common.title,
+      marginBottom: 4,
+    },
+    button: {
+      marginTop: 4,
+      paddingVertical: 11,
+    },
+  });
+}

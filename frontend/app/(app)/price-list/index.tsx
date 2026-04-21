@@ -1,8 +1,12 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -14,6 +18,7 @@ type PriceListRow = {
 
 export default function PriceListScreen() {
   const { isStaff } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const [rows, setRows] = useState<PriceListRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,41 +64,20 @@ export default function PriceListScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && rows.length === 0 ? <Text style={styles.muted}>No price list items found.</Text> : null}
       {rows.map((row, index) => (
-        <View key={`${row.itemId ?? 'item'}-${index}`} style={styles.card}>
+        <ThemedCard key={`${row.itemId ?? 'item'}-${index}`} style={styles.card}>
           <Text style={styles.cardTitle}>{row.itemId ?? 'Unnamed item'}</Text>
           <Text style={styles.cardMeta}>Category: {row.category ?? 'N/A'}</Text>
           <Text style={styles.cardMeta}>{row.description ?? 'No description'}</Text>
-        </View>
+        </ThemedCard>
       ))}
     </ScreenContent>
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  muted: {
-    color: '#64748b',
-  },
-  error: {
-    color: '#b91c1c',
-  },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 12,
-  },
-  cardTitle: {
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  cardMeta: {
-    color: '#475569',
-    marginTop: 4,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+  });
+}

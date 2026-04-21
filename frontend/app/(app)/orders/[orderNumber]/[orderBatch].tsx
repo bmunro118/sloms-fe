@@ -1,9 +1,14 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -18,6 +23,7 @@ type OrderDetails = {
 export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
   const { canMutate } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
@@ -100,21 +106,20 @@ export default function OrderDetailScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {!isLoading && order ? (
-        <View style={styles.card}>
+        <ThemedCard style={styles.card}>
           <Text style={styles.cardItem}>Status: {order.status ?? 'Unknown'}</Text>
           <Text style={styles.cardItem}>Customer: {order.customerAccount ?? 'N/A'}</Text>
           <Text style={styles.cardItem}>Ref: {order.customerRef ?? 'N/A'}</Text>
-        </View>
+        </ThemedCard>
       ) : null}
 
       {canMutate ? (
-        <Pressable
-          style={[styles.button, isDispatching ? styles.disabled : null]}
+        <ThemedButton
+          style={styles.button}
           onPress={handleDispatch}
+          label={isDispatching ? 'Dispatching...' : 'Mark as dispatched'}
           disabled={isDispatching}
-        >
-          <Text style={styles.buttonText}>{isDispatching ? 'Dispatching...' : 'Mark as dispatched'}</Text>
-        </Pressable>
+        />
       ) : (
         <Text style={styles.muted}>Read-only role: dispatch action hidden.</Text>
       )}
@@ -122,44 +127,18 @@ export default function OrderDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  meta: {
-    color: '#334155',
-  },
-  muted: {
-    color: '#64748b',
-  },
-  error: {
-    color: '#b91c1c',
-  },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 12,
-    gap: 6,
-  },
-  cardItem: {
-    color: '#0f172a',
-  },
-  button: {
-    marginTop: 4,
-    borderRadius: 10,
-    backgroundColor: '#0f766e',
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  disabled: {
-    opacity: 0.65,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+    card: {
+      ...common.card,
+      gap: 6,
+    },
+    button: {
+      marginTop: 4,
+      paddingVertical: 11,
+    },
+  });
+}

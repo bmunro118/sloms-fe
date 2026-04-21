@@ -1,8 +1,12 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
@@ -18,6 +22,7 @@ type SettingsResponse = {
 
 export default function SettingsScreen() {
   const { isAdmin } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const [settings, setSettings] = useState<SettingRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,41 +67,20 @@ export default function SettingsScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && settings.length === 0 ? <Text style={styles.muted}>No settings found.</Text> : null}
       {settings.map((entry) => (
-        <View key={entry.key} style={styles.card}>
+        <ThemedCard key={entry.key} style={styles.card}>
           <Text style={styles.cardTitle}>{entry.key}</Text>
           <Text style={styles.cardMeta}>Value: {entry.val ?? 'N/A'}</Text>
           <Text style={styles.cardMeta}>{entry.description ?? 'No description'}</Text>
-        </View>
+        </ThemedCard>
       ))}
     </ScreenContent>
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  muted: {
-    color: '#64748b',
-  },
-  error: {
-    color: '#b91c1c',
-  },
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 12,
-  },
-  cardTitle: {
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  cardMeta: {
-    color: '#475569',
-    marginTop: 4,
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+  });
+}

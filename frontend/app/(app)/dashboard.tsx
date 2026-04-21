@@ -1,9 +1,14 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
+import { useAppTheme } from '@theme/ThemeProvider';
+import { AppTheme } from '@theme/types';
 
 export default function DashboardScreen() {
   const { user, role } = useAuth();
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <ScreenContent gap={8}>
@@ -15,18 +20,20 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#334155',
-  },
-  body: {
-    fontSize: 14,
-    color: '#475569',
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: theme.colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.colors.textSecondary,
+    },
+    body: {
+      fontSize: 14,
+      color: theme.colors.textMuted,
+    },
+  });
+}

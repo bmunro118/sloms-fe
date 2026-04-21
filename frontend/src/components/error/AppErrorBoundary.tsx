@@ -1,5 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 
 interface AppErrorBoundaryProps {
   children: React.ReactNode;
@@ -9,8 +11,18 @@ interface AppErrorBoundaryState {
   hasError: boolean;
 }
 
-export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
-  constructor(props: AppErrorBoundaryProps) {
+export function AppErrorBoundary({ children }: AppErrorBoundaryProps) {
+  const styles = useThemedStyles(createStyles);
+
+  return <AppErrorBoundaryInner styles={styles}>{children}</AppErrorBoundaryInner>;
+}
+
+interface AppErrorBoundaryInnerProps extends AppErrorBoundaryProps {
+  styles: ReturnType<typeof createStyles>;
+}
+
+class AppErrorBoundaryInner extends React.Component<AppErrorBoundaryInnerProps, AppErrorBoundaryState> {
+  constructor(props: AppErrorBoundaryInnerProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -32,6 +44,8 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
 
   render() {
     if (this.state.hasError) {
+      const { styles } = this.props;
+
       return (
         <View style={styles.root}>
           <Text style={styles.title}>Something went wrong</Text>
@@ -47,33 +61,35 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
   }
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: '#f8fafc',
-    gap: 10,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#334155',
-  },
-  button: {
-    marginTop: 8,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#0f766e',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+      backgroundColor: theme.colors.background,
+      gap: 10,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: theme.colors.textPrimary,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+    },
+    button: {
+      marginTop: 8,
+      borderRadius: theme.radii.md,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: theme.colors.accent,
+    },
+    buttonText: {
+      color: theme.colors.accentText,
+      fontWeight: '700',
+    },
+  });
+}

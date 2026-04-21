@@ -1,13 +1,19 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 export default function AccountScreen() {
   const { user, signOut } = useAuth();
+  const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -48,14 +54,14 @@ export default function AccountScreen() {
       <Text style={styles.meta}>Role: {user?.role ?? 'Unknown'}</Text>
 
       <Text style={styles.sectionTitle}>Change Password</Text>
-      <TextInput
+      <ThemedInput
         secureTextEntry
         placeholder="Current password"
         style={styles.input}
         value={currentPassword}
         onChangeText={setCurrentPassword}
       />
-      <TextInput
+      <ThemedInput
         secureTextEntry
         placeholder="New password"
         style={styles.input}
@@ -64,63 +70,23 @@ export default function AccountScreen() {
       />
       {status ? <Text style={styles.status}>{status}</Text> : null}
 
-      <Pressable onPress={handlePasswordChange} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>Update password</Text>
-      </Pressable>
+      <ThemedButton label="Update password" onPress={handlePasswordChange} style={styles.primaryButton} />
 
-      <Pressable onPress={signOut} style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Sign out</Text>
-      </Pressable>
+      <ThemedButton label="Sign out" variant="secondary" onPress={signOut} style={styles.secondaryButton} />
     </ScreenContent>
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  meta: {
-    color: '#334155',
-  },
-  sectionTitle: {
-    marginTop: 8,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  status: {
-    color: '#334155',
-  },
-  primaryButton: {
-    borderRadius: 10,
-    backgroundColor: '#0f766e',
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#fff',
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#334155',
-    fontWeight: '700',
-  },
-});
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+    primaryButton: {
+      paddingVertical: 11,
+    },
+    secondaryButton: {
+      paddingVertical: 11,
+    },
+  });
+}

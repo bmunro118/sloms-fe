@@ -1,5 +1,6 @@
 import { PropsWithChildren } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { useAppTheme } from '@theme/ThemeProvider';
 
 type ScreenContentProps = PropsWithChildren<{
   gap?: number;
@@ -7,13 +8,14 @@ type ScreenContentProps = PropsWithChildren<{
 }>;
 
 export function ScreenContent({ gap = 12, style, children }: ScreenContentProps) {
-  return <View style={[styles.base, { gap }, style]}>{children}</View>;
+  const { layout } = useAppTheme();
+
+  return <View style={[styles.base, { gap, maxWidth: layout.contentMaxWidth }, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
   base: {
     width: '100%',
-    maxWidth: 1080,
     alignSelf: 'center',
   },
 });

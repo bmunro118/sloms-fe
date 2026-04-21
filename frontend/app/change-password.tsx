@@ -1,8 +1,12 @@
 import { Redirect } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useAppTheme } from '@theme/ThemeProvider';
+import { AppTheme } from '@theme/types';
 import { ApiError, apiRequest } from '@utils/api';
 import { usesCookieAuth } from '@utils/auth';
 import { ENDPOINTS } from '@utils/config';
@@ -15,6 +19,8 @@ interface ChangePasswordResponse {
 export default function ChangePasswordScreen() {
   const { mustChangePassword, token, completePasswordChange, signOut } = useAuth();
   const isMountedRef = useIsMountedRef();
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,108 +82,88 @@ export default function ChangePasswordScreen() {
       <Text style={styles.title}>Password Update Required</Text>
       <Text style={styles.subtitle}>Set a new password to continue.</Text>
 
-      <TextInput
+      <ThemedInput
         secureTextEntry
         placeholder="New password"
-        placeholderTextColor="#94a3b8"
-        style={styles.input}
+        style={styles.formInput}
         value={newPassword}
         onChangeText={setNewPassword}
       />
-      <TextInput
+      <ThemedInput
         secureTextEntry
         placeholder="Confirm new password"
-        placeholderTextColor="#94a3b8"
-        style={styles.input}
+        style={styles.formInput}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Pressable
-        style={[styles.primaryButton, isSubmitting ? styles.disabled : null]}
+      <ThemedButton
+        label={isSubmitting ? 'Updating...' : 'Update password'}
         disabled={isSubmitting}
         onPress={handleSubmit}
-      >
-        <Text style={styles.primaryButtonText}>{isSubmitting ? 'Updating...' : 'Update password'}</Text>
-      </Pressable>
+        style={styles.primaryButton}
+        textStyle={styles.primaryButtonText}
+      />
 
-      <Pressable style={styles.secondaryButton} onPress={signOut}>
-        <Text style={styles.secondaryButtonText}>Cancel and sign out</Text>
-      </Pressable>
+      <ThemedButton
+        label="Cancel and sign out"
+        variant="secondary"
+        onPress={signOut}
+        style={styles.secondaryButton}
+        textStyle={styles.secondaryButtonText}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: '#475569',
-    marginBottom: 20,
-  },
-  input: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
-    fontSize: 15,
-    color: '#0f172a',
-  },
-  errorText: {
-    color: '#b91c1c',
-    marginBottom: 10,
-    maxWidth: 360,
-    textAlign: 'center',
-  },
-  primaryButton: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#0f766e',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
-  },
-  secondaryButtonText: {
-    color: '#334155',
-    fontWeight: '600',
-  },
-  disabled: {
-    opacity: 0.65,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 24,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: theme.colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 15,
+      color: theme.colors.textMuted,
+      marginBottom: 20,
+    },
+    formInput: {
+      width: '100%',
+      maxWidth: 360,
+      marginBottom: 10,
+      fontSize: 15,
+    },
+    errorText: {
+      color: theme.colors.danger,
+      marginBottom: 10,
+      maxWidth: 360,
+      textAlign: 'center',
+    },
+    primaryButton: {
+      width: '100%',
+      maxWidth: 360,
+      marginBottom: 10,
+    },
+    primaryButtonText: {
+      fontSize: 14,
+    },
+    secondaryButton: {
+      width: '100%',
+      maxWidth: 360,
+    },
+    secondaryButtonText: {
+      fontWeight: '600',
+    },
+  });
+}

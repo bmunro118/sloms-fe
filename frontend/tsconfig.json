@@ -4,6 +4,7 @@
     "strict": true,
     "paths": {
       "@src/*": ["./src/*"],
+      "@theme/*": ["./src/theme/*"],
       "@context/*": ["./src/context/*"],
       "@components/*": ["./src/components/*"],
       "@utils/*": ["./utils/*"]

@@ -1,8 +1,12 @@
 import { Redirect } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useAppTheme } from '@theme/ThemeProvider';
+import { AppTheme } from '@theme/types';
 import { ApiError, apiRequest } from '@utils/api';
 import { usesCookieAuth } from '@utils/auth';
 import { ENDPOINTS } from '@utils/config';
@@ -16,6 +20,8 @@ interface LoginResponse {
 export default function LoginScreen() {
   const { isAuthenticated, mustChangePassword, signIn } = useAuth();
   const isMountedRef = useIsMountedRef();
+  const theme = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,92 +80,80 @@ export default function LoginScreen() {
       <Text style={styles.title}>SLOMS Frontend</Text>
       <Text style={styles.subtitle}>Login with your API credentials</Text>
 
-      <TextInput
+      <ThemedInput
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="Username"
-        placeholderTextColor="#94a3b8"
-        style={styles.input}
+        style={styles.formInput}
         value={username}
         onChangeText={setUsername}
       />
-      <TextInput
+      <ThemedInput
         autoCapitalize="none"
         autoCorrect={false}
         secureTextEntry
         placeholder="Password"
-        placeholderTextColor="#94a3b8"
-        style={styles.input}
+        style={styles.formInput}
         value={password}
         onChangeText={setPassword}
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Pressable
-        style={[styles.button, isSubmitting ? styles.buttonDisabled : null]}
+      <ThemedButton
+        label={isSubmitting ? 'Signing in...' : 'Sign in'}
         disabled={isSubmitting}
         onPress={handleLogin}
-      >
-        <Text style={styles.buttonText}>{isSubmitting ? 'Signing in...' : 'Sign in'}</Text>
-      </Pressable>
+        style={styles.button}
+        textStyle={styles.buttonText}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 24,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#0f172a',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#475569',
-    marginBottom: 24,
-  },
-  input: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
-    fontSize: 15,
-    color: '#0f172a',
-  },
-  errorText: {
-    color: '#b91c1c',
-    marginBottom: 10,
-    maxWidth: 360,
-    textAlign: 'center',
-  },
-  button: {
-    minWidth: 220,
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    marginBottom: 12,
-    backgroundColor: '#0f766e',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#ffffff',
-    textAlign: 'center',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.background,
+      paddingHorizontal: 24,
+    },
+    title: {
+      fontSize: 30,
+      fontWeight: '800',
+      color: theme.colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: theme.colors.textMuted,
+      marginBottom: 24,
+    },
+    formInput: {
+      width: '100%',
+      maxWidth: 360,
+      marginBottom: 10,
+      fontSize: 15,
+    },
+    errorText: {
+      color: theme.colors.danger,
+      marginBottom: 10,
+      maxWidth: 360,
+      textAlign: 'center',
+    },
+    button: {
+      minWidth: 220,
+      borderRadius: theme.radii.lg,
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+      marginBottom: 12,
+      backgroundColor: theme.colors.accent,
+    },
+    buttonText: {
+      textAlign: 'center',
+      fontSize: 15,
+    },
+  });
+}

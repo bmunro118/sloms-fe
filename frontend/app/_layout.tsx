@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@components/error/AppErrorBoundary';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { AppShellProvider } from '@src/features/app-shell';
+import { AppThemeProvider } from '@theme/ThemeProvider';
 
 /**
  * AuthGuard lives inside AuthProvider so it can read auth state.
@@ -37,14 +38,16 @@ function AuthGuard() {
 
 export default function RootLayout() {
   return (
-    <AppErrorBoundary>
-      <SafeAreaProvider>
-        <AppShellProvider>
-          <AuthProvider>
-            <AuthGuard />
-          </AuthProvider>
-        </AppShellProvider>
-      </SafeAreaProvider>
-    </AppErrorBoundary>
+    <SafeAreaProvider>
+      <AppThemeProvider>
+        <AppErrorBoundary>
+          <AppShellProvider>
+            <AuthProvider>
+              <AuthGuard />
+            </AuthProvider>
+          </AppShellProvider>
+        </AppErrorBoundary>
+      </AppThemeProvider>
+    </SafeAreaProvider>
   );
 }
