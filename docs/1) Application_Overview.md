@@ -141,7 +141,15 @@ Theme behavior:
 1. App config uses `userInterfaceStyle: automatic` so the app follows OS light/dark preference.
 2. Android dev-build support for appearance switching is enabled with `expo-system-ui`.
 
-### 10. Operational Status (Current)
+### 10. Icon Packages
+Two icon libraries are installed and available across the app:
+
+1. **`@expo/vector-icons`** — wraps popular icon sets (Ionicons, MaterialIcons, FontAwesome, etc.) and is included in the Expo SDK. Best for navigational chrome, tab bars, and UI controls where a broad named-icon vocabulary is needed.
+2. **`lucide-react-native`** — a consistent, stroke-based icon set rendered via `react-native-svg`. Best for content-area icons, feature icons, and anywhere visual consistency across icon instances matters.
+
+> **Note:** The preferred primary package for each specific use context (navigation, actions, status indicators, etc.) will be defined as those screens are built out.
+
+### 11. Operational Status (Current)
 Current baseline after latest migration and fixes:
 1. Unified `/(app)` structure implemented.
 2. Legacy split route groups removed in active v2 app.
