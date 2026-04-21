@@ -33,7 +33,10 @@ Role controls display and actions, not route tree duplication.
 Authentication is JWT-based and integrated with SLOMS auth endpoints.
 
 Flow summary:
-1. Login via `POST /api/auth/login` with `clientType` set to `web` or `mobile`.
+1. Login via `POST /api/auth/login` with `clientType` derived from active auth transport.
+	- Production web always sends `clientType=web` and uses cookie auth.
+	- Native mobile sends `clientType=mobile` and uses bearer token auth.
+	- Localhost web development may temporarily send `clientType=mobile` only when strict local fallback conditions are met.
 2. If `mustChangePassword=true` (or JWT `scope=password_change`), user is routed to forced password-change screen.
 3. Password update via `POST /api/auth/change-password` returns full-access token.
 4. Normal session hydration validates token via `GET /api/auth/me`.
@@ -55,6 +58,12 @@ Derived permission helpers:
 Token handling is platform-specific:
 1. Web: authenticated sessions use `HttpOnly` secure cookies set by SLOMS. The frontend does not persist access tokens in browser storage.
 2. Mobile: `expo-secure-store` persists the access token returned in the login JSON body.
+3. Local web fallback (development-only): when running on localhost in `__DEV__` and the API origin differs from the app origin, web can fall back to token auth and `sessionStorage` to avoid credentialed CORS failures during local testing.
+
+Web fallback guardrails:
+1. Disabled in production builds.
+2. Disabled for non-localhost browser hosts.
+3. Cookie auth remains the default and required mode for production web deployments.
 
 Security notes:
 1. JWT payload is decoded client-side for identity/role bootstrap.
@@ -62,7 +71,26 @@ Security notes:
 3. Web requests rely on browser-managed cookies; mobile protected requests use Authorization header Bearer tokens via the shared API utility.
 4. API base URL validation blocks insecure HTTP origins in production builds; dev-only HTTP is limited to localhost.
 
-### 6. API Integration Pattern
+### 6. Runtime Environment Configuration
+The Expo frontend reads environment-specific runtime values from `frontend/.env`.
+
+Rules:
+1. Frontend-exposed variables must use the `EXPO_PUBLIC_` prefix so Expo can statically replace them in the bundle.
+2. Access environment variables directly as `process.env.EXPO_PUBLIC_...`; do not destructure `process.env`.
+3. `.env`, `.env.local`, and `.env.*` are gitignored and must not be committed with secrets or environment-specific overrides.
+
+Current variables:
+1. `EXPO_PUBLIC_API_URL`
+	- Primary SLOMS API base URL used by `frontend/utils/config.ts`.
+	- Must be a full URL including protocol.
+	- Production requires HTTPS; dev-only HTTP is allowed only for localhost origins.
+2. `EXPO_PUBLIC_WEB_AUTH_MODE`
+	- Optional local web development override for auth transport resolution.
+	- Accepted values are `cookie` and `token`.
+	- Only applies on web in `__DEV__` when the app is running on localhost.
+	- When empty, the app auto-detects the mode by comparing the app origin with the configured API origin.
+
+### 7. API Integration Pattern
 All network operations route through centralized utilities:
 1. `frontend/utils/config.ts` defines API base URL and endpoint registry.
 2. `frontend/utils/api.ts` handles request construction, auth header injection, and JSON handling.
@@ -77,32 +105,59 @@ Configured SLOMS endpoint domains in v2 include:
 6. settings
 7. vat-rates
 
-### 7. UI Shell & Navigation
+### 8. UI Shell & Navigation
 The authenticated shell is role-driven:
 1. Single navigation component renders different item sets based on role.
 2. Staff and customer experiences share one structural shell.
 3. Route transitions are handled with explicit router navigation handlers.
 
-### 8. Operational Status (Current)
+### 9. Theme & Styling System
+Styling in v2 is centralized around semantic theme tokens and reusable UI primitives.
+
+Theme architecture:
+1. `frontend/src/theme/themes.ts` defines light and dark semantic color sets.
+2. `frontend/src/theme/tokens.ts` defines shared spacing, radii, and layout values.
+3. `frontend/src/theme/ThemeProvider.tsx` resolves active mode from system color scheme and exposes typed theme context.
+4. `frontend/src/theme/types.ts` defines shared app theme contracts.
+5. Root wiring mounts `AppThemeProvider` in `frontend/app/_layout.tsx`, so all routes use one theme source.
+
+Screen styling conventions:
+1. Shared screen-level definitions live in `frontend/src/theme/stylePresets.ts` for repeated title/meta/card/form/button patterns.
+2. `frontend/src/theme/useThemedStyles.ts` generates memoized style objects from the current theme.
+3. App screens should use semantic style values (for example textPrimary, border, accent) instead of raw color literals.
+
+Reusable UI primitives:
+1. `frontend/src/components/ui/ThemedButton.tsx`
+2. `frontend/src/components/ui/ThemedInput.tsx`
+3. `frontend/src/components/ui/ThemedCard.tsx`
+
+Theme behavior:
+1. App config uses `userInterfaceStyle: automatic` so the app follows OS light/dark preference.
+2. Android dev-build support for appearance switching is enabled with `expo-system-ui`.
+
+### 10. Operational Status (Current)
 Current baseline after latest migration and fixes:
 1. Unified `/(app)` structure implemented.
 2. Legacy split route groups removed in active v2 app.
 3. Login redirect mismatch fixed to concrete route targets.
 4. Web runtime issue related to route-link style forwarding mitigated by explicit navigation handlers.
 5. Expo dependency health validated with full pass in expo-doctor.
+6. Centralized theming and reusable UI primitives are wired across auth and app module screens.
+7. API base URL and local web auth override are now environment-driven via `frontend/.env`.
 
-### 9. Runtime & Dependency Baseline
+### 11. Runtime & Dependency Baseline
 The v2 frontend currently runs with:
 1. expo `~54.0.33`
 2. expo-router `~6.0.23`
 3. expo-secure-store `~15.0.8`
 4. expo-constants `~18.0.13`
 5. expo-linking `~8.0.11`
-6. react-native-safe-area-context `~5.6.0`
-7. react-native-screens `~4.16.0`
-8. @types/react `~19.1.10`
+6. expo-system-ui `~6.0.9`
+7. react-native-safe-area-context `~5.6.0`
+8. react-native-screens `~4.16.0`
+9. @types/react `~19.1.10`
 
-### 10. Scope Boundaries
+### 12. Scope Boundaries
 Out of scope for this repository layer:
 1. Backend data persistence and transactional rules.
 2. Server-side authorization policy definitions.

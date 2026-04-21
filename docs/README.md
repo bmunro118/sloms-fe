@@ -21,6 +21,19 @@ This folder contains the active project docs for `sonic_app_v2`.
 3. Auth flow: login, forced password change, session hydration via `/api/auth/me`.
 4. API integration: centralized endpoint registry and request utility in `frontend/utils/`.
 
+## Environment Configuration
+
+1. Frontend runtime env file location: `frontend/.env`.
+2. Frontend-exposed variables must be prefixed with `EXPO_PUBLIC_`.
+3. Current runtime variables:
+	1. `EXPO_PUBLIC_API_URL` (required API base URL)
+	2. `EXPO_PUBLIC_WEB_AUTH_MODE` (optional web localhost auth override: `cookie` or `token`)
+4. A safe template is provided at `frontend/.env.example`.
+5. Local env files are gitignored; do not commit real environment values.
+
+Related detail:
+1. See `1) Application_Overview.md` for runtime behavior and auth mode resolution rules.
+
 ## Directory Context
 
 1. `frontend/app/` contains public routes and the unified authenticated app routes.

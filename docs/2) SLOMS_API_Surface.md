@@ -64,6 +64,11 @@ Authenticates a user and issues a platform-appropriate session credential on suc
 1. `web`: returns auth via `Set-Cookie`; token is not included in the JSON body.
 2. `mobile`: returns `accessToken` in the JSON body for secure device storage.
 
+Frontend behavior notes:
+1. Production web clients default to `clientType=web` and rely on HttpOnly cookies.
+2. A localhost-only development fallback may temporarily use `clientType=mobile` and bearer tokens to bypass credentialed CORS limitations in local cross-origin setups.
+3. This fallback is gated to `__DEV__` localhost hosts and should not be active in production web builds.
+
 **Response 200:** Login successful — returns session metadata, and for mobile also returns `accessToken`, `userId`, `username`, `role`, `fullName`.
 
 > If `mustChangePassword` is `true`, the response returns a short-lived `password_change`-scoped token. Pass it to `POST /api/auth/change-password` before any other request.
