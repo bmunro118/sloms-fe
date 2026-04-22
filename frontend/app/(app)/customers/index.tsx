@@ -12,7 +12,7 @@ import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 type Customer = {
-  id: number;
+  customerId: number;
   companyName?: string;
   accountNumber?: string;
 };
@@ -26,8 +26,8 @@ type CustomersResponse = {
 };
 
 function resolveCustomerKeyBase(customer: Customer): string {
-  if (typeof customer.id === 'number' && Number.isFinite(customer.id)) {
-    return `id:${customer.id}`;
+  if (typeof customer.customerId === 'number' && Number.isFinite(customer.customerId)) {
+    return `id:${customer.customerId}`;
   }
 
   if (customer.accountNumber?.trim()) {
@@ -79,7 +79,13 @@ export default function CustomersListScreen() {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
+          console.log('[CustomersListScreen] API response:', response);
+          if (response?.data && response.data.length > 0) {
+            console.log('[CustomersListScreen] First customer object keys:', Object.keys(response.data[0]));
+            console.log('[CustomersListScreen] First customer object:', response.data[0]);
+          }
           const normalized = normalizeCustomers(Array.isArray(response?.data) ? response.data : []);
+          console.log('[CustomersListScreen] Normalized customers:', normalized);
           setCustomers(normalized);
         }
       } catch (err) {
@@ -108,9 +114,18 @@ export default function CustomersListScreen() {
         <ThemedCard
           key={customer.renderKey}
           style={styles.card}
-          onPress={() => router.push(`/(app)/customers/${customer.id}` as never)}
+          onPress={() => {
+            const route = `/(app)/customers/${customer.customerId}`;
+            console.log('[CustomersListScreen] Navigating to customer:', {
+              customer,
+              route,
+              customerId: customer.customerId,
+              customerIdType: typeof customer.customerId,
+            });
+            router.push(route as never);
+          }}
         >
-          <Text style={styles.cardTitle}>{customer.companyName ?? `Customer #${customer.id}`}</Text>
+          <Text style={styles.cardTitle}>{customer.companyName ?? `Customer #${customer.customerId}`}</Text>
           <Text style={styles.cardMeta}>Account: {customer.accountNumber ?? 'N/A'}</Text>
         </ThemedCard>
       ))}
