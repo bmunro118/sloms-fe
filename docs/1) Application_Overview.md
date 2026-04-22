@@ -116,8 +116,8 @@ Layout profile and shell mode resolution:
 2. Device-type signal must use device-specific detection (`Platform.isPad` on iOS and equivalent Android/native tablet detection) so large phones in landscape are not misclassified as tablets.
 3. Viewport dimensions (width/height) are then used to choose shell presentation mode (`sidebar`, `sidebar-collapsed`, `drawer`) within the resolved platform/device profile.
 4. Web continues to use desktop/compact profile breakpoints, while native layout decisions require both device type and viewport state.
-5. Native phone drawer layouts use a `TopBar` (title only) at the top and a bottom navigation bar with `Back` and `Menu` actions; `Menu` opens the navigation drawer and sign-out remains inside the drawer panel.
-6. Compact web layouts render a `TopBar` that contains a left-aligned `Menu` button and the current page title; pressing `Menu` opens the compact navigation drawer.
+5. Native phone drawer layouts use a `TopBar` (title only) at the top and a bottom navigation bar with `Back` and menu icon actions; the menu icon opens the navigation drawer and sign-out remains inside the drawer panel.
+6. Compact web layouts render a `TopBar` that contains a left-aligned menu icon button and the current page title; pressing the icon opens the compact navigation drawer.
 7. Desktop and tablet sidebar layouts render a `TopBar` (title only) above the scrollable content column, to the right of the sidebar.
 
 Navigation shell components:
@@ -130,6 +130,33 @@ Screen title propagation:
 1. `ScreenTitleContext` (`src/context/ScreenTitleContext.tsx`) holds the active page title string and `setTitle` setter; `ScreenTitleProvider` wraps `NavLayout` in `app/(app)/_layout.tsx`.
 2. Each screen calls `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) to register its title; the hook sets the context value on mount and clears it on unmount.
 3. Screen content does not contain a title `Text` element; the title is rendered exclusively by `TopBar`.
+
+UI terminology dictionary (canonical naming):
+
+| Term | Canonical meaning in v2 | Where it appears |
+|---|---|---|
+| `App Shell` | The authenticated chrome that wraps all `app/(app)` screens and provides navigation + title area. | `NavLayout` and delegated variants |
+| `Platform Profile` | Runtime profile classification: `web-desktop`, `web-compact`, `native-tablet`, `native-phone`. | App-shell mode resolution |
+| `Shell Mode` | Presentation mode inside a profile: `sidebar`, `sidebar-collapsed`, `drawer`. | `useAppShell()` output |
+| `TopBar` | Shared top title region at the top of content; renders page title and optional compact menu button. | All shell variants |
+| `Page Title` | Current screen title text shown in `TopBar`; sourced from `useScreenTitle(...)`. | All authenticated screens |
+| `Sidebar` | Persistent left navigation rail used in desktop/tablet sidebar modes. | `NavLayout` |
+| `Collapsed Sidebar` | Narrow sidebar variant using short nav labels in compact sidebar mode. | `NavLayout` when `shellMode=sidebar-collapsed` |
+| `Drawer` | Overlay navigation pattern used for compact web and native phone flows. | `CompactWebNavLayout`, `MobileNavLayout` |
+| `Drawer Panel` | The visible navigation panel containing nav items and sign-out control. | Inside drawer overlay |
+| `Drawer Backdrop` | The translucent overlay area outside the panel that closes the drawer on press. | Drawer variants |
+| `Bottom Bar` | Fixed bottom action bar on native phone with navigation controls. | `MobileNavLayout` |
+| `Menu Button` | Icon-only control (lucide `Menu`) that opens the drawer (`TopBar` on compact web, bottom bar on native phone). | Compact web and native phone |
+| `Back Button` | Native-phone bottom bar action that triggers router back navigation. | `MobileNavLayout` |
+| `Nav Item` | Role-filtered route entry in sidebar/drawer navigation list. | All nav variants |
+| `Sign out Button` | Session termination action placed at the end of sidebar/drawer navigation. | All nav variants |
+| `Content Column` | Main right-side area in sidebar layouts that contains `TopBar` + scrollable content. | `NavLayout` sidebar modes |
+| `Screen Content` | Scrollable module body rendered below `TopBar` (screen-specific forms/cards/lists). | Feature screens |
+
+Terminology guidance:
+1. Use `TopBar` instead of generic alternatives like "header" when referencing this component in code tasks and tickets.
+2. Use `Drawer` for overlay navigation variants; reserve `Sidebar` for persistent desktop/tablet nav rails.
+3. Use `Page Title` for module titles and avoid rendering title text inside screen content containers.
 
 ### 9. Theme & Styling System
 Styling in v2 is centralized around semantic theme tokens and reusable UI primitives.

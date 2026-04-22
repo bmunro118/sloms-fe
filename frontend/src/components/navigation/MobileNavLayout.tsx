@@ -1,6 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Menu as MenuIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -14,7 +15,9 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [bottomBarHeight, setBottomBarHeight] = useState(0);
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const drawerBottomInset = Math.max(bottomBarHeight, insets.bottom + 64);
 
   const navigationItems = useMemo(() => {
     return items.map((item) => ({
@@ -52,7 +55,7 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
       </ScrollView>
 
       {drawerOpen ? (
-        <View style={styles.drawerOverlay}>
+        <View style={[styles.drawerOverlay, { bottom: drawerBottomInset }]}>
           <Pressable style={styles.drawerBackdrop} onPress={closeDrawer} />
           <View
             style={[
@@ -90,12 +93,13 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
             paddingBottom: insets.bottom + 10,
           },
         ]}
+        onLayout={(event) => setBottomBarHeight(event.nativeEvent.layout.height)}
       >
         <Pressable style={styles.bottomBarButton} onPress={goBack}>
           <Text style={styles.bottomBarButtonText}>Back</Text>
         </Pressable>
         <Pressable style={styles.bottomBarButton} onPress={openDrawer}>
-          <Text style={styles.bottomBarButtonText}>Menu</Text>
+          <MenuIcon size={18} color={theme.colors.navTextStrong} />
         </Pressable>
       </View>
     </View>
@@ -141,7 +145,10 @@ function createStyles(theme: AppTheme) {
       fontWeight: '700',
     },
     drawerOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      left: 0,
       zIndex: 10,
       flexDirection: 'row',
     },

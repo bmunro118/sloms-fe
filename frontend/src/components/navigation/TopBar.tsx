@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Menu as MenuIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -19,7 +20,7 @@ export function TopBar({ onMenuPress }: TopBarProps) {
     <View style={[styles.bar, { paddingTop: insets.top + 12 }]}>
       {onMenuPress ? (
         <Pressable style={styles.menuButton} onPress={onMenuPress}>
-          <Text style={styles.menuButtonText}>Menu</Text>
+          <MenuIcon size={18} color={theme.colors.navTextStrong} />
         </Pressable>
       ) : null}
       <Text style={styles.title} numberOfLines={1}>
@@ -52,11 +53,6 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.navBackground,
       paddingHorizontal: 12,
       paddingVertical: 8,
-    },
-    menuButtonText: {
-      color: theme.colors.navTextStrong,
-      fontWeight: '600',
-      fontSize: 13,
     },
   });
 }
