@@ -83,6 +83,18 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     );
   }
 
+  if (platformProfile === 'native-tablet') {
+    return (
+      <View style={[styles.root, styles.rootColumn]}>
+        <TopBar />
+        <View style={styles.contentRow}>
+          {renderSidebar(isCollapsed)}
+          <ScrollView contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       {renderSidebar(isCollapsed)}
@@ -100,6 +112,13 @@ function createStyles(theme: AppTheme) {
       flex: 1,
       flexDirection: 'row',
       backgroundColor: theme.colors.background,
+    },
+    rootColumn: {
+      flexDirection: 'column',
+    },
+    contentRow: {
+      flex: 1,
+      flexDirection: 'row',
     },
     contentColumn: {
       flex: 1,

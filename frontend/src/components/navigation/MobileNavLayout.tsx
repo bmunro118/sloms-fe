@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Menu as MenuIcon } from 'lucide-react-native';
+import { ChevronLeft as BackIcon, Menu as MenuIcon, X as CloseIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -96,10 +96,12 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
         onLayout={(event) => setBottomBarHeight(event.nativeEvent.layout.height)}
       >
         <Pressable style={styles.bottomBarButton} onPress={goBack}>
-          <Text style={styles.bottomBarButtonText}>Back</Text>
+          <BackIcon size={18} color={theme.colors.navTextStrong} />
         </Pressable>
-        <Pressable style={styles.bottomBarButton} onPress={openDrawer}>
-          <MenuIcon size={18} color={theme.colors.navTextStrong} />
+        <Pressable style={styles.bottomBarButton} onPress={drawerOpen ? closeDrawer : openDrawer}>
+          {drawerOpen
+            ? <CloseIcon size={18} color={theme.colors.navTextStrong} />
+            : <MenuIcon size={18} color={theme.colors.navTextStrong} />}
         </Pressable>
       </View>
     </View>

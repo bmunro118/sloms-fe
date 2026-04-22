@@ -13,7 +13,7 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
   const pathname = usePathname();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const navigationItems = useMemo(() => {
@@ -23,30 +23,23 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
     }));
   }, [items, pathname]);
 
-  const openDrawer = useCallback(() => setDrawerOpen(true), []);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
 
   const createNavigateHandler = useCallback(
     (href: (typeof items)[number]['href']) => () => {
       router.push(href as never);
-      closeDrawer();
     },
-    [closeDrawer, router]
+    [router]
   );
 
   return (
     <View style={styles.root}>
-      <TopBar onMenuPress={openDrawer} />
-
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {children}
-      </ScrollView>
-
-      {drawerOpen ? (
-        <View style={styles.drawerOverlay}>
+      <TopBar onMenuPress={toggleSidebar} sidebarOpen={sidebarOpen} />
+      <View style={styles.contentRow}>
+        {sidebarOpen ? (
           <View
             style={[
-              styles.drawerPanel,
+              styles.sidebarPanel,
               {
                 paddingTop: insets.top + 20,
                 paddingBottom: insets.bottom + 20,
@@ -70,9 +63,11 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
               <Text style={styles.signOutButtonText}>Sign out</Text>
             </Pressable>
           </View>
-          <Pressable style={styles.drawerBackdrop} onPress={closeDrawer} />
-        </View>
-      ) : null}
+        ) : null}
+        <ScrollView contentContainerStyle={styles.contentContainer}>
+          {children}
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -83,26 +78,21 @@ function createStyles(theme: AppTheme) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    contentRow: {
+      flex: 1,
+      flexDirection: 'row',
+    },
     contentContainer: {
       flexGrow: 1,
       padding: 20,
     },
-    drawerOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      zIndex: 10,
-      flexDirection: 'row',
-    },
-    drawerPanel: {
+    sidebarPanel: {
       width: theme.layout.drawerWidth,
       backgroundColor: theme.colors.navBackground,
       paddingHorizontal: 14,
       paddingVertical: 20,
       borderRightWidth: 1,
       borderRightColor: theme.colors.navBorder,
-    },
-    drawerBackdrop: {
-      flex: 1,
-      backgroundColor: theme.colors.overlay,
     },
     navList: {
       gap: 8,
