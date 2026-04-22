@@ -1,6 +1,6 @@
 import { usePathname, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft as BackIcon, Menu as MenuIcon, X as CloseIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
@@ -16,9 +16,30 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [topBarHeight, setTopBarHeight] = useState(0);
   const [bottomBarHeight, setBottomBarHeight] = useState(0);
+  const drawerAnimation = useRef(new Animated.Value(0)).current;
+  const backdropAnimation = useRef(new Animated.Value(0)).current;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const drawerBottomInset = Math.max(bottomBarHeight, insets.bottom + 64);
+  const drawerAnimatedStyle = useMemo(
+    () => ({
+      opacity: drawerAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.96, 1],
+      }),
+      transform: [
+        {
+          translateX: drawerAnimation.interpolate({
+            inputRange: [0, 1],
+            outputRange: [theme.layout.drawerWidth, 0],
+          }),
+        },
+      ],
+    }),
+    [drawerAnimation, theme.layout.drawerWidth]
+  );
 
   const navigationItems = useMemo(() => {
     return items.map((item) => ({
@@ -27,8 +48,50 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
     }));
   }, [items, pathname]);
 
-  const openDrawer = useCallback(() => setDrawerOpen(true), []);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const openDrawer = useCallback(() => {
+    setDrawerVisible(true);
+    setDrawerOpen(true);
+    drawerAnimation.stopAnimation();
+    backdropAnimation.stopAnimation();
+    Animated.parallel([
+      Animated.timing(drawerAnimation, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnimation, {
+        toValue: 1,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [backdropAnimation, drawerAnimation]);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    drawerAnimation.stopAnimation();
+    backdropAnimation.stopAnimation();
+    Animated.parallel([
+      Animated.timing(drawerAnimation, {
+        toValue: 0,
+        duration: 160,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnimation, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setDrawerVisible(false);
+      }
+    });
+  }, [backdropAnimation, drawerAnimation]);
   const goBack = useCallback(() => {
     router.back();
   }, [router]);
@@ -43,7 +106,9 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
 
   return (
     <View style={styles.root}>
-      <TopBar />
+      <View onLayout={(event) => setTopBarHeight(event.nativeEvent.layout.height)}>
+        <TopBar />
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.contentContainer,
@@ -55,27 +120,33 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
         {children}
       </ScrollView>
 
-      {drawerOpen ? (
-        <View style={[styles.drawerOverlay, { bottom: drawerBottomInset }]}>
-          <Pressable style={styles.drawerBackdrop} onPress={closeDrawer} />
-          <View
+      {drawerVisible ? (
+        <View style={[styles.drawerOverlay, { top: topBarHeight, bottom: drawerBottomInset }]}> 
+          <Animated.View style={[styles.drawerBackdrop, { opacity: backdropAnimation }]}>
+            <Pressable style={styles.drawerBackdropPressable} onPress={closeDrawer} />
+          </Animated.View>
+          <Animated.View
             style={[
               styles.drawerPanel,
               {
-                paddingTop: insets.top + 20,
-                paddingBottom: insets.bottom + 20,
+                paddingTop: 20,
+                paddingBottom: 20,
               },
+              drawerAnimatedStyle,
             ]}
           >
             <View style={styles.navList}>
               {navigationItems.map((item) => (
                 <Pressable
                   key={item.id}
-                  style={({ hovered }) => [
-                    styles.navItem,
-                    item.active ? styles.navItemActive : null,
-                    hovered && !item.active ? styles.navItemHover : null,
-                  ]}
+                  style={(state) => {
+                    const hovered = (state as { hovered?: boolean }).hovered;
+                    return [
+                      styles.navItem,
+                      item.active ? styles.navItemActive : null,
+                      hovered && !item.active ? styles.navItemHover : null,
+                    ];
+                  }}
                   onPress={createNavigateHandler(item.href)}
                 >
                   <View style={styles.navItemContent}>
@@ -89,12 +160,15 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
               ))}
             </View>
             <Pressable
-              style={({ hovered }) => [styles.signOutButton, hovered ? styles.signOutButtonHover : null]}
+              style={(state) => {
+                const hovered = (state as { hovered?: boolean }).hovered;
+                return [styles.signOutButton, hovered ? styles.signOutButtonHover : null];
+              }}
               onPress={onSignOut}
             >
               <Text style={styles.signOutButtonText}>Sign out</Text>
             </Pressable>
-          </View>
+          </Animated.View>
         </View>
       ) : null}
 
@@ -164,17 +238,22 @@ function createStyles(theme: AppTheme) {
     },
     drawerOverlay: {
       position: 'absolute',
-      top: 0,
       right: 0,
       left: 0,
       zIndex: 10,
-      flexDirection: 'row',
     },
     drawerBackdrop: {
-      flex: 1,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: theme.colors.overlay,
     },
+    drawerBackdropPressable: {
+      flex: 1,
+    },
     drawerPanel: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
       width: theme.layout.drawerWidth,
       backgroundColor: theme.colors.navBackground,
       paddingHorizontal: 14,

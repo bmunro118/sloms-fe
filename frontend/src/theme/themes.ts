@@ -26,7 +26,7 @@ const lightColors: ThemeColors = {
   navTextStrong: '#686868',
   navItemBackground: '#F2F7FA',
   navItemHoverBackground: '#e3edf3',
-  navItemActiveBackground: '#a9c0f7',
+  navItemActiveBackground: '#b4bcd8',
   navItemText: '#686868',
   navItemTextActive: '#ffffff',
   buttonSecondaryBackground: '#ffffff',
