@@ -135,6 +135,16 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
               drawerAnimatedStyle,
             ]}
           >
+            <Pressable
+              style={(state) => {
+                const hovered = (state as { hovered?: boolean }).hovered;
+                return [styles.signOutButton, hovered ? styles.signOutButtonHover : null];
+              }}
+              onPress={onSignOut}
+            >
+              <Text style={styles.signOutButtonText}>Sign out</Text>
+            </Pressable>
+            <View style={styles.drawerSpacer} />
             <View style={styles.navList}>
               {navigationItems.map((item) => (
                 <Pressable
@@ -159,15 +169,6 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
                 </Pressable>
               ))}
             </View>
-            <Pressable
-              style={(state) => {
-                const hovered = (state as { hovered?: boolean }).hovered;
-                return [styles.signOutButton, hovered ? styles.signOutButtonHover : null];
-              }}
-              onPress={onSignOut}
-            >
-              <Text style={styles.signOutButtonText}>Sign out</Text>
-            </Pressable>
           </Animated.View>
         </View>
       ) : null}
@@ -255,6 +256,7 @@ function createStyles(theme: AppTheme) {
       right: 0,
       bottom: 0,
       width: theme.layout.drawerWidth,
+      justifyContent: 'flex-start',
       backgroundColor: theme.colors.navBackground,
       paddingHorizontal: 14,
       paddingVertical: 20,
@@ -263,6 +265,10 @@ function createStyles(theme: AppTheme) {
     },
     navList: {
       gap: 8,
+    },
+    drawerSpacer: {
+      flex: 1,
+      minHeight: 12,
     },
     navItem: {
       borderRadius: 10,
@@ -292,7 +298,6 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.navItemTextActive,
     },
     signOutButton: {
-      marginTop: 16,
       borderRadius: 10,
       paddingVertical: 10,
       paddingHorizontal: 12,

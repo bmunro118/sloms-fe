@@ -119,6 +119,7 @@ Layout profile and shell mode resolution:
 5. Native phone drawer layouts use a `TopBar` (title only) at the top and a bottom navigation bar with `Back` and menu icon actions; the menu icon opens the navigation drawer and sign-out remains inside the drawer panel.
 6. Compact web layouts render a `TopBar` that contains a left-aligned menu icon button and the current page title; pressing the icon opens the compact navigation drawer.
 7. Desktop and tablet sidebar layouts render a `TopBar` (title only) above the scrollable content column, to the right of the sidebar.
+8. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
 
 Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.

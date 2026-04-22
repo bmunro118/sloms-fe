@@ -18,15 +18,50 @@ type UserRow = {
   fullName?: string;
 };
 
+type UserCardRow = UserRow & {
+  renderKey: string;
+};
+
 type UsersResponse = {
   data?: UserRow[];
 };
+
+function resolveUserKeyBase(entry: UserRow): string {
+  if (typeof entry.id === 'number' && Number.isFinite(entry.id)) {
+    return `id:${entry.id}`;
+  }
+
+  if (entry.username?.trim()) {
+    return `username:${entry.username.trim().toLowerCase()}`;
+  }
+
+  if (entry.fullName?.trim()) {
+    return `fullname:${entry.fullName.trim().toLowerCase()}`;
+  }
+
+  return 'unknown-user';
+}
+
+function normalizeUserRows(rows: UserRow[]): UserCardRow[] {
+  const keyCounts = new Map<string, number>();
+
+  return rows.map((entry) => {
+    const baseKey = resolveUserKeyBase(entry);
+    const nextCount = (keyCounts.get(baseKey) ?? 0) + 1;
+    keyCounts.set(baseKey, nextCount);
+
+    return {
+      ...entry,
+      renderKey: nextCount === 1 ? baseKey : `${baseKey}#${nextCount}`,
+    };
+  });
+}
 
 export default function UsersScreen() {
   const { isAdmin } = useAuth();
   const styles = useThemedStyles(createStyles);
   useScreenTitle('Users');
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [users, setUsers] = useState<UserCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +79,8 @@ export default function UsersScreen() {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
-          setUsers(Array.isArray(response?.data) ? response.data : []);
+          const normalized = normalizeUserRows(Array.isArray(response?.data) ? response.data : []);
+          setUsers(normalized);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -69,7 +105,10 @@ export default function UsersScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && users.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}
       {users.map((entry) => (
-        <ThemedCard key={entry.id} style={styles.card}>
+        <ThemedCard
+          key={entry.renderKey}
+          style={styles.card}
+        >
           <Text style={styles.cardTitle}>{entry.fullName ?? entry.username ?? `User #${entry.id}`}</Text>
           <Text style={styles.cardMeta}>Role: {entry.role ?? 'Unknown'}</Text>
         </ThemedCard>

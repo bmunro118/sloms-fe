@@ -17,16 +17,51 @@ type Customer = {
   accountNumber?: string;
 };
 
+type CustomerCardRow = Customer & {
+  renderKey: string;
+};
+
 type CustomersResponse = {
   data?: Customer[];
 };
+
+function resolveCustomerKeyBase(customer: Customer): string {
+  if (typeof customer.id === 'number' && Number.isFinite(customer.id)) {
+    return `id:${customer.id}`;
+  }
+
+  if (customer.accountNumber?.trim()) {
+    return `account:${customer.accountNumber.trim().toLowerCase()}`;
+  }
+
+  if (customer.companyName?.trim()) {
+    return `company:${customer.companyName.trim().toLowerCase()}`;
+  }
+
+  return 'unknown-customer';
+}
+
+function normalizeCustomers(rows: Customer[]): CustomerCardRow[] {
+  const keyCounts = new Map<string, number>();
+
+  return rows.map((customer) => {
+    const baseKey = resolveCustomerKeyBase(customer);
+    const nextCount = (keyCounts.get(baseKey) ?? 0) + 1;
+    keyCounts.set(baseKey, nextCount);
+
+    return {
+      ...customer,
+      renderKey: nextCount === 1 ? baseKey : `${baseKey}#${nextCount}`,
+    };
+  });
+}
 
 export default function CustomersListScreen() {
   const router = useRouter();
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
   useScreenTitle('Customers');
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +79,8 @@ export default function CustomersListScreen() {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
-          setCustomers(Array.isArray(response?.data) ? response.data : []);
+          const normalized = normalizeCustomers(Array.isArray(response?.data) ? response.data : []);
+          setCustomers(normalized);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -68,13 +104,9 @@ export default function CustomersListScreen() {
       {isLoading ? <Text style={styles.muted}>Loading customers...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && customers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
-      {customers.map((customer, index) => (
+      {customers.map((customer) => (
         <ThemedCard
-          key={
-            customer.id != null
-              ? `customer-${customer.id}`
-              : `customer-${customer.accountNumber ?? 'unknown'}-${index}`
-          }
+          key={customer.renderKey}
           style={styles.card}
           onPress={() => router.push(`/(app)/customers/${customer.id}` as never)}
         >

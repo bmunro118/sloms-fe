@@ -17,11 +17,42 @@ type PriceListRow = {
   category?: string;
 };
 
+type PriceListCardRow = PriceListRow & {
+  renderKey: string;
+};
+
+function resolvePriceListKeyBase(row: PriceListRow): string {
+  if (row.itemId?.trim()) {
+    return `item:${row.itemId.trim().toLowerCase()}`;
+  }
+
+  if (row.description?.trim()) {
+    return `description:${row.description.trim().toLowerCase()}`;
+  }
+
+  return 'unknown-item';
+}
+
+function normalizePriceListRows(rows: PriceListRow[]): PriceListCardRow[] {
+  const keyCounts = new Map<string, number>();
+
+  return rows.map((row) => {
+    const baseKey = resolvePriceListKeyBase(row);
+    const nextCount = (keyCounts.get(baseKey) ?? 0) + 1;
+    keyCounts.set(baseKey, nextCount);
+
+    return {
+      ...row,
+      renderKey: nextCount === 1 ? baseKey : `${baseKey}#${nextCount}`,
+    };
+  });
+}
+
 export default function PriceListScreen() {
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
   useScreenTitle('Price List');
-  const [rows, setRows] = useState<PriceListRow[]>([]);
+  const [rows, setRows] = useState<PriceListCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +71,7 @@ export default function PriceListScreen() {
         });
         if (!controller.signal.aborted) {
           const items = Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : [];
-          setRows(items);
+          setRows(normalizePriceListRows(items));
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -64,8 +95,8 @@ export default function PriceListScreen() {
       {isLoading ? <Text style={styles.muted}>Loading price list...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && rows.length === 0 ? <Text style={styles.muted}>No price list items found.</Text> : null}
-      {rows.map((row, index) => (
-        <ThemedCard key={`${row.itemId ?? 'item'}-${index}`} style={styles.card}>
+      {rows.map((row) => (
+        <ThemedCard key={row.renderKey} style={styles.card}>
           <Text style={styles.cardTitle}>{row.itemId ?? 'Unnamed item'}</Text>
           <Text style={styles.cardMeta}>Category: {row.category ?? 'N/A'}</Text>
           <Text style={styles.cardMeta}>{row.description ?? 'No description'}</Text>
