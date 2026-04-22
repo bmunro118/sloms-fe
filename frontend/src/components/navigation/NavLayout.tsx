@@ -9,7 +9,7 @@ import { MobileNavLayout } from './MobileNavLayout';
 import { NavLayoutProps } from './navigationTypes';
 import { TopBar } from './TopBar';
 
-export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLayoutProps) {
+export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { platformProfile, shellMode } = useAppShell();
@@ -57,7 +57,6 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
     (compact: boolean) => {
       return (
         <View style={[styles.sidebar, { width: compact ? 84 : sidebarWidth }]}> 
-          <Text style={[styles.brand, compact ? styles.brandCompact : null]}>{compact ? title.slice(0, 1) : title}</Text>
           <View style={styles.navList}>{renderNavItems(compact)}</View>
           <Pressable style={[styles.signOutButton, compact ? styles.navItemCompact : null]} onPress={onSignOut}>
             <Text style={styles.signOutButtonText}>{compact ? 'Out' : 'Sign out'}</Text>
@@ -65,20 +64,20 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
         </View>
       );
     },
-    [onSignOut, renderNavItems, sidebarWidth, title]
+    [onSignOut, renderNavItems, sidebarWidth]
   );
 
   if (showDrawer) {
     if (platformProfile === 'web-compact') {
       return (
-        <CompactWebNavLayout title={title} items={items} onSignOut={onSignOut}>
+        <CompactWebNavLayout items={items} onSignOut={onSignOut}>
           {children}
         </CompactWebNavLayout>
       );
     }
 
     return (
-      <MobileNavLayout title={title} items={items} onSignOut={onSignOut}>
+      <MobileNavLayout items={items} onSignOut={onSignOut}>
         {children}
       </MobileNavLayout>
     );
@@ -111,12 +110,6 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 20,
       borderRightWidth: 1,
       borderRightColor: theme.colors.navBorder,
-    },
-    brand: {
-      color: theme.colors.navTextStrong,
-      fontSize: 21,
-      fontWeight: '800',
-      marginBottom: 16,
     },
     navList: {
       gap: 8,
@@ -158,9 +151,6 @@ function createStyles(theme: AppTheme) {
     contentContainer: {
       flexGrow: 1,
       padding: 20,
-    },
-    brandCompact: {
-      textAlign: 'center',
     },
   });
 }

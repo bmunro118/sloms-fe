@@ -8,7 +8,7 @@ import { AppTheme } from '@theme/types';
 import { NavLayoutProps } from './navigationTypes';
 import { TopBar } from './TopBar';
 
-export function MobileNavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLayoutProps) {
+export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAppTheme();
@@ -63,7 +63,6 @@ export function MobileNavLayout({ title = 'SLOMS', items, onSignOut, children }:
               },
             ]}
           >
-            <Text style={styles.brand}>{title}</Text>
             <View style={styles.navList}>
               {navigationItems.map((item) => (
                 <Pressable
@@ -157,12 +156,6 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 20,
       borderLeftWidth: 1,
       borderLeftColor: theme.colors.navBorder,
-    },
-    brand: {
-      color: theme.colors.navTextStrong,
-      fontSize: 21,
-      fontWeight: '800',
-      marginBottom: 16,
     },
     navList: {
       gap: 8,

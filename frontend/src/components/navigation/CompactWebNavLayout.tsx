@@ -8,7 +8,7 @@ import { AppTheme } from '@theme/types';
 import { NavLayoutProps } from './navigationTypes';
 import { TopBar } from './TopBar';
 
-export function CompactWebNavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLayoutProps) {
+export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAppTheme();
@@ -53,7 +53,6 @@ export function CompactWebNavLayout({ title = 'SLOMS', items, onSignOut, childre
               },
             ]}
           >
-            <Text style={styles.brand}>{title}</Text>
             <View style={styles.navList}>
               {navigationItems.map((item) => (
                 <Pressable
@@ -104,12 +103,6 @@ function createStyles(theme: AppTheme) {
     drawerBackdrop: {
       flex: 1,
       backgroundColor: theme.colors.overlay,
-    },
-    brand: {
-      color: theme.colors.navTextStrong,
-      fontSize: 21,
-      fontWeight: '800',
-      marginBottom: 16,
     },
     navList: {
       gap: 8,
