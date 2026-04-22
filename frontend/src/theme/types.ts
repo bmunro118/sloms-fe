@@ -23,6 +23,7 @@ export interface ThemeColors {
   navBorder: string;
   navTextStrong: string;
   navItemBackground: string;
+  navItemHoverBackground: string;
   navItemActiveBackground: string;
   navItemText: string;
   navItemTextActive: string;

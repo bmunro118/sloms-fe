@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
+import { NavItemIcon } from './NavItemIcon';
 import { NavLayoutProps } from './navigationTypes';
 import { TopBar } from './TopBar';
 
@@ -50,16 +51,27 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
               {navigationItems.map((item) => (
                 <Pressable
                   key={item.id}
-                  style={[styles.navItem, item.active ? styles.navItemActive : null]}
+                  style={({ hovered }) => [
+                    styles.navItem,
+                    item.active ? styles.navItemActive : null,
+                    hovered && !item.active ? styles.navItemHover : null,
+                  ]}
                   onPress={createNavigateHandler(item.href)}
                 >
-                  <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>
-                    {item.label}
-                  </Text>
+                  <View style={styles.navItemContent}>
+                    <NavItemIcon
+                      icon={item.icon}
+                      color={item.active ? theme.colors.navItemTextActive : theme.colors.navItemText}
+                    />
+                    <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>{item.label}</Text>
+                  </View>
                 </Pressable>
               ))}
             </View>
-            <Pressable style={styles.signOutButton} onPress={onSignOut}>
+            <Pressable
+              style={({ hovered }) => [styles.signOutButton, hovered ? styles.signOutButtonHover : null]}
+              onPress={onSignOut}
+            >
               <Text style={styles.signOutButtonText}>Sign out</Text>
             </Pressable>
           </View>
@@ -102,6 +114,16 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 10,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.navItemBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+    },
+    navItemContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    navItemHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
     },
     navItemActive: {
       backgroundColor: theme.colors.navItemActiveBackground,
@@ -120,6 +142,11 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 10,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+    },
+    signOutButtonHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
     },
     signOutButtonText: {
       color: theme.colors.textPrimary,

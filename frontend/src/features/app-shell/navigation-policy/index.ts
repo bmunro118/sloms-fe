@@ -14,7 +14,18 @@ export interface AppShellNavItem {
   id: string;
   label: string;
   href: AppRoutePath;
+  icon: AppShellNavIcon;
 }
+
+export type AppShellNavIcon =
+  | 'layout-dashboard'
+  | 'package'
+  | 'users'
+  | 'user-cog'
+  | 'file-text'
+  | 'tags'
+  | 'settings'
+  | 'circle-user';
 
 interface NavPolicyItem extends AppShellNavItem {
   visibleTo: UserRole[];
@@ -25,48 +36,56 @@ const NAV_POLICY: NavPolicyItem[] = [
     id: 'dashboard',
     label: 'Dashboard',
     href: '/(app)/dashboard',
+    icon: 'layout-dashboard',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
   },
   {
     id: 'orders',
     label: 'Orders',
     href: '/(app)/orders',
+    icon: 'package',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
   },
   {
     id: 'customers',
     label: 'Customers',
     href: '/(app)/customers',
+    icon: 'users',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly'],
   },
   {
     id: 'users',
     label: 'Users',
     href: '/(app)/users',
+    icon: 'user-cog',
     visibleTo: ['Admin'],
   },
   {
     id: 'documents',
     label: 'Documents',
     href: '/(app)/documents',
+    icon: 'file-text',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
   },
   {
     id: 'price-list',
     label: 'Price List',
     href: '/(app)/price-list',
+    icon: 'tags',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly'],
   },
   {
     id: 'settings',
     label: 'Settings',
     href: '/(app)/settings',
+    icon: 'settings',
     visibleTo: ['Admin', 'Manager'],
   },
   {
     id: 'account',
     label: 'Account',
     href: '/(app)/account',
+    icon: 'circle-user',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
   },
 ];
@@ -76,10 +95,11 @@ export function resolveNavItemsForRole(role: UserRole | null): AppShellNavItem[]
     return [];
   }
 
-  return NAV_POLICY.filter((item) => item.visibleTo.includes(role)).map(({ id, label, href }) => ({
+  return NAV_POLICY.filter((item) => item.visibleTo.includes(role)).map(({ id, label, href, icon }) => ({
     id,
     label,
     href,
+    icon,
   }));
 }
 

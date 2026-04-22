@@ -6,6 +6,7 @@ import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { CompactWebNavLayout } from './CompactWebNavLayout';
 import { MobileNavLayout } from './MobileNavLayout';
+import { NavItemIcon } from './NavItemIcon';
 import { NavLayoutProps } from './navigationTypes';
 import { TopBar } from './TopBar';
 
@@ -24,7 +25,6 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     return items.map((item) => ({
       ...item,
       active: isRouteMatch(pathname, item.href),
-      shortLabel: item.label.slice(0, 1).toUpperCase(),
     }));
   }, [items, pathname]);
 
@@ -41,16 +41,27 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       return navigationItems.map((item) => (
         <Pressable
           key={item.id}
-          style={[styles.navItem, item.active ? styles.navItemActive : null, compact ? styles.navItemCompact : null]}
+          style={({ hovered }) => [
+            styles.navItem,
+            item.active ? styles.navItemActive : null,
+            hovered && !item.active ? styles.navItemHover : null,
+            compact ? styles.navItemCompact : null,
+          ]}
           onPress={createNavigateHandler(item.href, onNavigate)}
         >
-          <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>
-            {compact ? item.shortLabel : item.label}
-          </Text>
+          <View style={styles.navItemContent}>
+            <NavItemIcon
+              icon={item.icon}
+              color={item.active ? theme.colors.navItemTextActive : theme.colors.navItemText}
+            />
+            {!compact ? (
+              <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>{item.label}</Text>
+            ) : null}
+          </View>
         </Pressable>
       ));
     },
-    [createNavigateHandler, navigationItems]
+    [createNavigateHandler, navigationItems, theme.colors.navItemText, theme.colors.navItemTextActive]
   );
 
   const renderSidebar = useCallback(
@@ -58,7 +69,14 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       return (
         <View style={[styles.sidebar, { width: compact ? 84 : sidebarWidth }]}> 
           <View style={styles.navList}>{renderNavItems(compact)}</View>
-          <Pressable style={[styles.signOutButton, compact ? styles.navItemCompact : null]} onPress={onSignOut}>
+          <Pressable
+            style={({ hovered }) => [
+              styles.signOutButton,
+              hovered ? styles.signOutButtonHover : null,
+              compact ? styles.navItemCompact : null,
+            ]}
+            onPress={onSignOut}
+          >
             <Text style={styles.signOutButtonText}>{compact ? 'Out' : 'Sign out'}</Text>
           </Pressable>
         </View>
@@ -138,6 +156,16 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 10,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.navItemBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+    },
+    navItemContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    navItemHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
     },
     navItemCompact: {
       alignItems: 'center',
@@ -161,6 +189,11 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 10,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.surfaceMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+    },
+    signOutButtonHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
     },
     signOutButtonText: {
       color: theme.colors.textPrimary,

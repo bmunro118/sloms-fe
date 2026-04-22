@@ -68,9 +68,13 @@ export default function CustomersListScreen() {
       {isLoading ? <Text style={styles.muted}>Loading customers...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && customers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
-      {customers.map((customer) => (
+      {customers.map((customer, index) => (
         <ThemedCard
-          key={customer.id}
+          key={
+            customer.id != null
+              ? `customer-${customer.id}`
+              : `customer-${customer.accountNumber ?? 'unknown'}-${index}`
+          }
           style={styles.card}
           onPress={() => router.push(`/(app)/customers/${customer.id}` as never)}
         >

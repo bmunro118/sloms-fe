@@ -54,6 +54,8 @@ function createStyles(theme: AppTheme) {
     menuButton: {
       borderRadius: 10,
       backgroundColor: theme.colors.navBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
