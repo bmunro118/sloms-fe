@@ -4,15 +4,16 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 
 export default function DashboardScreen() {
   const { user, role } = useAuth();
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  useScreenTitle('Dashboard');
 
   return (
     <ScreenContent gap={8}>
-      <Text style={styles.title}>Dashboard</Text>
       <Text style={styles.subtitle}>Welcome {user?.fullName ?? user?.username ?? 'User'}</Text>
       <Text style={styles.body}>Current role: {role}</Text>
       <Text style={styles.body}>Use the left navigation to access your allowed modules.</Text>
@@ -22,11 +23,6 @@ export default function DashboardScreen() {
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    title: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: theme.colors.textPrimary,
-    },
     subtitle: {
       fontSize: 16,
       color: theme.colors.textSecondary,

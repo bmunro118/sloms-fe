@@ -1,11 +1,12 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -17,6 +18,7 @@ export default function CreateOrderScreen() {
   const { isStaff, canMutate } = useAuth();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
+  useScreenTitle('Create Order');
   const [orderNumber, setOrderNumber] = useState('');
   const [customerAccount, setCustomerAccount] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -64,8 +66,6 @@ export default function CreateOrderScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <Text style={styles.title}>Create Order</Text>
-
       <ThemedInput
         keyboardType="number-pad"
         placeholder="Order number"

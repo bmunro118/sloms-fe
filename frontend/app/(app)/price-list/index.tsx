@@ -4,6 +4,7 @@ import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -19,6 +20,7 @@ type PriceListRow = {
 export default function PriceListScreen() {
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Price List');
   const [rows, setRows] = useState<PriceListRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,6 @@ export default function PriceListScreen() {
 
   return (
     <ScreenContent>
-      <Text style={styles.title}>Price List</Text>
       {isLoading ? <Text style={styles.muted}>Loading price list...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && rows.length === 0 ? <Text style={styles.muted}>No price list items found.</Text> : null}

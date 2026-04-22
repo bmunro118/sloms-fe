@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -15,6 +16,7 @@ export default function AccountScreen() {
   const { user, signOut } = useAuth();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
+  useScreenTitle('Account');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
@@ -49,7 +51,6 @@ export default function AccountScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <Text style={styles.title}>Account</Text>
       <Text style={styles.meta}>Username: {user?.username ?? 'Unknown'}</Text>
       <Text style={styles.meta}>Role: {user?.role ?? 'Unknown'}</Text>
 

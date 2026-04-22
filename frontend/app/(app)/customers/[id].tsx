@@ -4,6 +4,7 @@ import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -21,6 +22,7 @@ type CustomerDetails = {
 export default function CustomerDetailScreen() {
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Customer Detail');
   const params = useLocalSearchParams<{ id: string }>();
   const customerId = Number(params.id);
 
@@ -62,7 +64,6 @@ export default function CustomerDetailScreen() {
 
   return (
     <ScreenContent>
-      <Text style={styles.title}>Customer Detail</Text>
       {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && customer ? (

@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -26,6 +27,7 @@ export default function OrdersListScreen() {
   const router = useRouter();
   const { canMutate, isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Orders');
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,12 +59,9 @@ export default function OrdersListScreen() {
 
   return (
     <ScreenContent>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Orders</Text>
-        {isStaff && canMutate ? (
-          <ThemedButton label="Create order" onPress={() => router.push('/(app)/orders/create')} style={styles.primaryButton} />
-        ) : null}
-      </View>
+      {isStaff && canMutate ? (
+        <ThemedButton label="Create order" onPress={() => router.push('/(app)/orders/create')} style={styles.primaryButton} />
+      ) : null}
 
       {isLoading ? <Text style={styles.muted}>Loading orders...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -91,10 +90,5 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
   });
 }

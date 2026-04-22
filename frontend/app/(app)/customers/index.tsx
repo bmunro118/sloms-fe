@@ -4,6 +4,7 @@ import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -24,6 +25,7 @@ export default function CustomersListScreen() {
   const router = useRouter();
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Customers');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,6 @@ export default function CustomersListScreen() {
 
   return (
     <ScreenContent>
-      <Text style={styles.title}>Customers</Text>
       {isLoading ? <Text style={styles.muted}>Loading customers...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && customers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}

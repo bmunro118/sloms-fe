@@ -116,6 +116,20 @@ Layout profile and shell mode resolution:
 2. Device-type signal must use device-specific detection (`Platform.isPad` on iOS and equivalent Android/native tablet detection) so large phones in landscape are not misclassified as tablets.
 3. Viewport dimensions (width/height) are then used to choose shell presentation mode (`sidebar`, `sidebar-collapsed`, `drawer`) within the resolved platform/device profile.
 4. Web continues to use desktop/compact profile breakpoints, while native layout decisions require both device type and viewport state.
+5. Native phone drawer layouts use a `TopBar` (title only) at the top and a bottom navigation bar with `Back` and `Menu` actions; `Menu` opens the navigation drawer and sign-out remains inside the drawer panel.
+6. Compact web layouts render a `TopBar` that contains a left-aligned `Menu` button and the current page title; pressing `Menu` opens the compact navigation drawer.
+7. Desktop and tablet sidebar layouts render a `TopBar` (title only) above the scrollable content column, to the right of the sidebar.
+
+Navigation shell components:
+1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
+2. `MobileNavLayout` (`src/components/navigation/MobileNavLayout.tsx`) — drawer variant for `native-phone`; top bar + scrollable content + bottom bar.
+3. `CompactWebNavLayout` (`src/components/navigation/CompactWebNavLayout.tsx`) — drawer variant for `web-compact`; top bar with inline menu button + left-side drawer panel.
+4. `TopBar` (`src/components/navigation/TopBar.tsx`) — shared top bar used by all three variants; reads the current title from `ScreenTitleContext`; renders an optional left-side menu button when `onMenuPress` is provided.
+
+Screen title propagation:
+1. `ScreenTitleContext` (`src/context/ScreenTitleContext.tsx`) holds the active page title string and `setTitle` setter; `ScreenTitleProvider` wraps `NavLayout` in `app/(app)/_layout.tsx`.
+2. Each screen calls `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) to register its title; the hook sets the context value on mount and clears it on unmount.
+3. Screen content does not contain a title `Text` element; the title is rendered exclusively by `TopBar`.
 
 ### 9. Theme & Styling System
 Styling in v2 is centralized around semantic theme tokens and reusable UI primitives.
@@ -158,8 +172,10 @@ Current baseline after latest migration and fixes:
 5. Expo dependency health validated with full pass in expo-doctor.
 6. Centralized theming and reusable UI primitives are wired across auth and app module screens.
 7. API base URL and local web auth override are now environment-driven via `frontend/.env`.
+8. Navigation shell split into `MobileNavLayout` and `CompactWebNavLayout` with shared `TopBar` component.
+9. Screen title system implemented via `ScreenTitleContext` and `useScreenTitle` hook; all 11 authenticated screens use it.
 
-### 11. Runtime & Dependency Baseline
+### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:
 1. expo `~54.0.33`
 2. expo-router `~6.0.23`
@@ -171,7 +187,7 @@ The v2 frontend currently runs with:
 8. react-native-screens `~4.16.0`
 9. @types/react `~19.1.10`
 
-### 12. Scope Boundaries
+### 13. Scope Boundaries
 Out of scope for this repository layer:
 1. Backend data persistence and transactional rules.
 2. Server-side authorization policy definitions.

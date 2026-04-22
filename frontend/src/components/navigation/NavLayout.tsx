@@ -1,24 +1,19 @@
 import { usePathname, useRouter } from 'expo-router';
-import { PropsWithChildren, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
-
-interface NavLayoutProps extends PropsWithChildren {
-  title?: string;
-  items: AppShellNavItem[];
-  onSignOut: () => Promise<void> | void;
-}
+import { CompactWebNavLayout } from './CompactWebNavLayout';
+import { MobileNavLayout } from './MobileNavLayout';
+import { NavLayoutProps } from './navigationTypes';
+import { TopBar } from './TopBar';
 
 export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { shellMode } = useAppShell();
+  const { platformProfile, shellMode } = useAppShell();
   const theme = useAppTheme();
-  const insets = useSafeAreaInsets();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const isCollapsed = shellMode === 'sidebar-collapsed';
@@ -32,9 +27,6 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
       shortLabel: item.label.slice(0, 1).toUpperCase(),
     }));
   }, [items, pathname]);
-
-  const openDrawer = useCallback(() => setDrawerOpen(true), []);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
   const createNavigateHandler = useCallback(
     (href: AppShellNavItem['href'], onNavigate?: () => void) => () => {
@@ -77,41 +69,28 @@ export function NavLayout({ title = 'SLOMS', items, onSignOut, children }: NavLa
   );
 
   if (showDrawer) {
+    if (platformProfile === 'web-compact') {
+      return (
+        <CompactWebNavLayout title={title} items={items} onSignOut={onSignOut}>
+          {children}
+        </CompactWebNavLayout>
+      );
+    }
+
     return (
-      <View style={styles.rootDrawer}>
-        <View style={[styles.mobileTopBar, { paddingTop: insets.top + 10 }]}> 
-          <Pressable style={styles.menuButton} onPress={openDrawer}>
-            <Text style={styles.menuButtonText}>Menu</Text>
-          </Pressable>
-          <Text style={styles.mobileTitle}>{title}</Text>
-          <Pressable style={styles.menuButton} onPress={onSignOut}>
-            <Text style={styles.menuButtonText}>Out</Text>
-          </Pressable>
-        </View>
-
-        {drawerOpen ? (
-          <View style={styles.drawerOverlay}>
-            <Pressable style={styles.drawerBackdrop} onPress={closeDrawer} />
-            <View style={[styles.drawerPanel, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}> 
-              <Text style={styles.brand}>{title}</Text>
-              <View style={styles.navList}>{renderNavItems(false, closeDrawer)}</View>
-              <Pressable style={styles.signOutButton} onPress={onSignOut}>
-                <Text style={styles.signOutButtonText}>Sign out</Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-
-        <ScrollView contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 20 }]}>{children}</ScrollView>
-      </View>
+      <MobileNavLayout title={title} items={items} onSignOut={onSignOut}>
+        {children}
+      </MobileNavLayout>
     );
   }
 
   return (
     <View style={styles.root}>
       {renderSidebar(isCollapsed)}
-
-      <ScrollView contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
+      <View style={styles.contentColumn}>
+        <TopBar />
+        <ScrollView contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
+      </View>
     </View>
   );
 }
@@ -123,9 +102,8 @@ function createStyles(theme: AppTheme) {
       flexDirection: 'row',
       backgroundColor: theme.colors.background,
     },
-    rootDrawer: {
+    contentColumn: {
       flex: 1,
-      backgroundColor: theme.colors.background,
     },
     sidebar: {
       backgroundColor: theme.colors.navBackground,
@@ -183,50 +161,6 @@ function createStyles(theme: AppTheme) {
     },
     brandCompact: {
       textAlign: 'center',
-    },
-    mobileTopBar: {
-      minHeight: 62,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    mobileTitle: {
-      color: theme.colors.textPrimary,
-      fontSize: 17,
-      fontWeight: '700',
-    },
-    menuButton: {
-      borderRadius: 10,
-      backgroundColor: theme.colors.navBackground,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    menuButtonText: {
-      color: theme.colors.navTextStrong,
-      fontWeight: '600',
-      fontSize: 13,
-    },
-    drawerOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      zIndex: 10,
-      flexDirection: 'row',
-    },
-    drawerBackdrop: {
-      flex: 1,
-      backgroundColor: theme.colors.overlay,
-    },
-    drawerPanel: {
-      width: theme.layout.drawerWidth,
-      backgroundColor: theme.colors.navBackground,
-      paddingHorizontal: 14,
-      paddingVertical: 20,
-      borderLeftWidth: 1,
-      borderLeftColor: theme.colors.navBorder,
     },
   });
 }

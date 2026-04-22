@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -23,6 +24,7 @@ const DOCUMENTS_ENDPOINT = `${API_BASE_URL}/api/documents`;
 
 export default function DocumentsScreen() {
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Documents');
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,6 @@ export default function DocumentsScreen() {
 
   return (
     <ScreenContent>
-      <Text style={styles.title}>Documents</Text>
       {isLoading ? <Text style={styles.muted}>Loading documents...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && documents.length === 0 ? <Text style={styles.muted}>No documents found.</Text> : null}

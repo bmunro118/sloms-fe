@@ -4,6 +4,7 @@ import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -23,6 +24,7 @@ type SettingsResponse = {
 export default function SettingsScreen() {
   const { isAdmin } = useAuth();
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Settings');
   const [settings, setSettings] = useState<SettingRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,6 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContent>
-      <Text style={styles.title}>Settings</Text>
       {isLoading ? <Text style={styles.muted}>Loading settings...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && settings.length === 0 ? <Text style={styles.muted}>No settings found.</Text> : null}

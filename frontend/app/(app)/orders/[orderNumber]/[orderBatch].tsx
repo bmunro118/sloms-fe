@@ -6,6 +6,7 @@ import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -25,6 +26,7 @@ export default function OrderDetailScreen() {
   const { canMutate } = useAuth();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
+  useScreenTitle('Order Detail');
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
 
@@ -99,7 +101,6 @@ export default function OrderDetailScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <Text style={styles.title}>Order Detail</Text>
       <Text style={styles.meta}>Order: {orderNumber} / Batch: {orderBatch}</Text>
 
       {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}

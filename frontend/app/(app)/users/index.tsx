@@ -4,6 +4,7 @@ import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
+import { useScreenTitle } from '@src/hooks/useScreenTitle';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -24,6 +25,7 @@ type UsersResponse = {
 export default function UsersScreen() {
   const { isAdmin } = useAuth();
   const styles = useThemedStyles(createStyles);
+  useScreenTitle('Users');
   const [users, setUsers] = useState<UserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,6 @@ export default function UsersScreen() {
 
   return (
     <ScreenContent>
-      <Text style={styles.title}>Users</Text>
       {isLoading ? <Text style={styles.muted}>Loading users...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && users.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}

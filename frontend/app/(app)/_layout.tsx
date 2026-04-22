@@ -2,6 +2,7 @@ import { Slot, usePathname, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { NavLayout } from '@components/navigation/NavLayout';
 import { useAuth } from '@context/AuthContext';
+import { ScreenTitleProvider } from '@context/ScreenTitleContext';
 import { canRoleAccessPath, resolveNavItemsForRole } from '@src/features/app-shell';
 
 export default function AppLayout() {
@@ -21,8 +22,10 @@ export default function AppLayout() {
   }, [role, pathname, fallbackHref, router]);
 
   return (
-    <NavLayout items={navItems} onSignOut={signOut}>
-      <Slot />
-    </NavLayout>
+    <ScreenTitleProvider>
+      <NavLayout items={navItems} onSignOut={signOut}>
+        <Slot />
+      </NavLayout>
+    </ScreenTitleProvider>
   );
 }
