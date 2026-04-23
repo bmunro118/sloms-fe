@@ -245,6 +245,9 @@ Current baseline after latest migration and fixes:
 10. Top bar action system introduced via `useScreenTopBar`, enabling per-screen multi-action icon buttons in `TopBar`.
 11. Orders list now uses two `TopBar` actions (`refresh-orders`, `create-order`) to demonstrate multi-button registration and handlers.
 12. Hidden `TopBar` actions are no longer dropped on narrow layouts; they move into a `More` overflow menu.
+13. Customer detail uses `TopBar` editing actions (`edit-customer`, `save-customer`, `reset-customer-form`, `cancel-customer-edit`), making it the primary reference for state-dependent screen actions and overflow behavior.
+14. Account uses `TopBar` actions (`submit-password-change`, `reset-password-form`, `sign-out-account`) for form submission and session controls instead of in-content action buttons.
+15. Create Order uses `TopBar` actions (`submit-create-order`, `reset-create-order-form`) so order creation follows the same page-level action pattern as the other form screens.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

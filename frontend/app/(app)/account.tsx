@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { KeyRound as PasswordIcon, LogOut as SignOutIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
+import { TopBarAction } from '@context/ScreenTitleContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
-import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -16,10 +17,10 @@ export default function AccountScreen() {
   const { user, signOut } = useAuth();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  useScreenTitle('Account');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePasswordChange = async () => {
     setStatus(null);
@@ -29,6 +30,7 @@ export default function AccountScreen() {
     }
 
     try {
+      setIsSubmitting(true);
       await apiRequest(ENDPOINTS.users.mePassword, {
         method: 'PATCH',
         requireAuth: true,
@@ -46,8 +48,47 @@ export default function AccountScreen() {
       if (isMountedRef.current) {
         setStatus(err instanceof Error ? err.message : 'Unable to change password.');
       }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
+
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    return [
+      {
+        id: 'submit-password-change',
+        label: isSubmitting ? 'Updating password...' : 'Update password',
+        accessibilityLabel: isSubmitting ? 'Updating password' : 'Update password',
+        onPress: handlePasswordChange,
+        disabled: isSubmitting,
+        renderIcon: ({ color, size }) => <PasswordIcon color={color} size={size} />,
+      },
+      {
+        id: 'reset-password-form',
+        label: 'Reset form',
+        accessibilityLabel: 'Reset form',
+        onPress: () => {
+          setCurrentPassword('');
+          setNewPassword('');
+          setStatus(null);
+        },
+        disabled: isSubmitting,
+        renderIcon: ({ color, size }) => <ResetIcon color={color} size={size} />,
+      },
+      {
+        id: 'sign-out-account',
+        label: 'Sign out',
+        accessibilityLabel: 'Sign out',
+        onPress: signOut,
+        disabled: isSubmitting,
+        renderIcon: ({ color, size }) => <SignOutIcon color={color} size={size} />,
+      },
+    ];
+  }, [handlePasswordChange, isSubmitting, signOut]);
+
+  useScreenTopBar({ title: 'Account', actions: topBarActions });
 
   return (
     <ScreenContent gap={10}>
@@ -61,6 +102,7 @@ export default function AccountScreen() {
         style={styles.input}
         value={currentPassword}
         onChangeText={setCurrentPassword}
+        editable={!isSubmitting}
       />
       <ThemedInput
         secureTextEntry
@@ -68,12 +110,9 @@ export default function AccountScreen() {
         style={styles.input}
         value={newPassword}
         onChangeText={setNewPassword}
+        editable={!isSubmitting}
       />
       {status ? <Text style={styles.status}>{status}</Text> : null}
-
-      <ThemedButton label="Update password" onPress={handlePasswordChange} style={styles.primaryButton} />
-
-      <ThemedButton label="Sign out" variant="secondary" onPress={signOut} style={styles.secondaryButton} />
     </ScreenContent>
   );
 }
@@ -83,11 +122,5 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
-    primaryButton: {
-      paddingVertical: 11,
-    },
-    secondaryButton: {
-      paddingVertical: 11,
-    },
   });
 }

@@ -1,12 +1,13 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Plus as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
+import { TopBarAction } from '@context/ScreenTitleContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
-import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -18,7 +19,6 @@ export default function CreateOrderScreen() {
   const { isStaff, canMutate } = useAuth();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  useScreenTitle('Create Order');
   const [orderNumber, setOrderNumber] = useState('');
   const [customerAccount, setCustomerAccount] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -64,6 +64,33 @@ export default function CreateOrderScreen() {
     }
   };
 
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    return [
+      {
+        id: 'submit-create-order',
+        label: isSaving ? 'Creating order...' : 'Create order',
+        accessibilityLabel: isSaving ? 'Creating order' : 'Create order',
+        onPress: handleCreate,
+        disabled: isSaving,
+        renderIcon: ({ color, size }) => <CreateIcon color={color} size={size} />,
+      },
+      {
+        id: 'reset-create-order-form',
+        label: 'Reset form',
+        accessibilityLabel: 'Reset form',
+        onPress: () => {
+          setOrderNumber('');
+          setCustomerAccount('');
+          setError(null);
+        },
+        disabled: isSaving,
+        renderIcon: ({ color, size }) => <ResetIcon color={color} size={size} />,
+      },
+    ];
+  }, [handleCreate, isSaving]);
+
+  useScreenTopBar({ title: 'Create Order', actions: topBarActions });
+
   return (
     <ScreenContent gap={10}>
       <ThemedInput
@@ -72,6 +99,7 @@ export default function CreateOrderScreen() {
         style={styles.input}
         value={orderNumber}
         onChangeText={setOrderNumber}
+        editable={!isSaving}
       />
       <ThemedInput
         keyboardType="number-pad"
@@ -79,16 +107,10 @@ export default function CreateOrderScreen() {
         style={styles.input}
         value={customerAccount}
         onChangeText={setCustomerAccount}
+        editable={!isSaving}
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <ThemedButton
-        label={isSaving ? 'Saving...' : 'Create'}
-        onPress={handleCreate}
-        disabled={isSaving}
-        style={styles.button}
-      />
     </ScreenContent>
   );
 }
@@ -101,10 +123,6 @@ function createStyles(theme: AppTheme) {
     title: {
       ...common.title,
       marginBottom: 4,
-    },
-    button: {
-      marginTop: 4,
-      paddingVertical: 11,
     },
   });
 }

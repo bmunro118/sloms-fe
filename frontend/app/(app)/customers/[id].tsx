@@ -1,12 +1,13 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Pencil as EditIcon, RotateCcw as ResetIcon, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
-import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -56,7 +57,6 @@ type AddressesResponse = {
 export default function CustomerDetailScreen() {
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
-  useScreenTitle('Customer Detail');
   const params = useLocalSearchParams<{ id: string }>();
   const customerId = Number(params.id);
 
@@ -218,6 +218,59 @@ export default function CustomerDetailScreen() {
       setIsSaving(false);
     }
   };
+
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    if (isEditing) {
+      return [
+        {
+          id: 'save-customer',
+          label: isSaving ? 'Saving...' : 'Save changes',
+          accessibilityLabel: isSaving ? 'Saving changes' : 'Save changes',
+          onPress: handleSave,
+          disabled: isSaving,
+          renderIcon: ({ color, size }) => <SaveIcon color={color} size={size} />,
+        },
+        {
+          id: 'reset-customer-form',
+          label: 'Reset changes',
+          accessibilityLabel: 'Reset changes',
+          onPress: () => {
+            if (customer) {
+              setFormData(customer);
+            }
+          },
+          disabled: isSaving || !customer,
+          renderIcon: ({ color, size }) => <ResetIcon color={color} size={size} />,
+        },
+        {
+          id: 'cancel-customer-edit',
+          label: 'Cancel edit',
+          accessibilityLabel: 'Cancel edit',
+          onPress: () => {
+            setIsEditing(false);
+            if (customer) {
+              setFormData(customer);
+            }
+          },
+          disabled: isSaving,
+          renderIcon: ({ color, size }) => <CancelIcon color={color} size={size} />,
+        },
+      ];
+    }
+
+    return [
+      {
+        id: 'edit-customer',
+        label: 'Edit customer',
+        accessibilityLabel: 'Edit customer',
+        onPress: () => setIsEditing(true),
+        disabled: isLoading || !customer,
+        renderIcon: ({ color, size }) => <EditIcon color={color} size={size} />,
+      },
+    ];
+  }, [customer, handleSave, isEditing, isLoading, isSaving]);
+
+  useScreenTopBar({ title: 'Customer Detail', actions: topBarActions });
 
   if (!isStaff) {
     return <Redirect href="/(app)/dashboard" />;
@@ -549,32 +602,6 @@ export default function CustomerDetailScreen() {
             </ThemedCard>
           )}
 
-          {/* Action Buttons */}
-          <View style={styles.buttonGroup}>
-            {isEditing ? (
-              <>
-                <ThemedButton
-                  label={isSaving ? 'Saving...' : 'Save Changes'}
-                  onPress={handleSave}
-                  disabled={isSaving}
-                />
-                <ThemedButton
-                  label="Cancel"
-                  onPress={() => {
-                    setIsEditing(false);
-                    setFormData(customer);
-                  }}
-                  disabled={isSaving}
-                  variant="secondary"
-                />
-              </>
-            ) : (
-              <ThemedButton
-                label="Edit Customer"
-                onPress={() => setIsEditing(true)}
-              />
-            )}
-          </View>
         </ScrollView>
       ) : null}
     </ScreenContent>
@@ -622,10 +649,6 @@ function createStyles(theme: AppTheme) {
       fontSize: 12,
       fontWeight: '400',
       color: theme.colors.accent,
-    },
-    buttonGroup: {
-      gap: 10,
-      marginBottom: 24,
     },
   });
 }
