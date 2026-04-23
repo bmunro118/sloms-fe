@@ -36,7 +36,9 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
 
   return (
     <View style={styles.root}>
-      <TopBar onMenuPress={toggleSidebar} sidebarOpen={sidebarOpen} />
+      <View style={styles.topBarLayer}>
+        <TopBar onMenuPress={toggleSidebar} sidebarOpen={sidebarOpen} />
+      </View>
       <View style={styles.contentRow}>
         {sidebarOpen ? (
           <View
@@ -79,7 +81,7 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
             </TooltipPressable>
           </View>
         ) : null}
-        <ScrollView contentContainerStyle={styles.contentContainer}>
+        <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentContainer}>
           {children}
         </ScrollView>
       </View>
@@ -97,6 +99,16 @@ function createStyles(theme: AppTheme) {
       flex: 1,
       flexDirection: 'row',
     },
+    topBarLayer: {
+      position: 'relative',
+      zIndex: 200,
+      elevation: 200,
+      overflow: 'visible',
+    },
+    contentScroll: {
+      zIndex: 1,
+      elevation: 1,
+    },
     contentContainer: {
       flexGrow: 1,
       padding: 20,
@@ -108,9 +120,13 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 20,
       borderRightWidth: 1,
       borderRightColor: theme.colors.navBorder,
+      overflow: 'visible',
     },
     navList: {
       gap: 8,
+      zIndex: 2,
+      elevation: 2,
+      overflow: 'visible',
     },
     navItem: {
       borderRadius: 10,
@@ -147,6 +163,8 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.surfaceMuted,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
+      zIndex: 1,
+      elevation: 1,
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,

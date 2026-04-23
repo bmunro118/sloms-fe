@@ -107,10 +107,11 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
 
   return (
     <View style={styles.root}>
-      <View onLayout={(event) => setTopBarHeight(event.nativeEvent.layout.height)}>
+      <View style={styles.topBarLayer} onLayout={(event) => setTopBarHeight(event.nativeEvent.layout.height)}>
         <TopBar />
       </View>
       <ScrollView
+        style={styles.contentScroll}
         contentContainerStyle={[
           styles.contentContainer,
           {
@@ -208,6 +209,16 @@ function createStyles(theme: AppTheme) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
+    topBarLayer: {
+      position: 'relative',
+      zIndex: 200,
+      elevation: 200,
+      overflow: 'visible',
+    },
+    contentScroll: {
+      zIndex: 1,
+      elevation: 1,
+    },
     contentContainer: {
       flexGrow: 1,
       padding: 20,
@@ -269,9 +280,13 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 20,
       borderLeftWidth: 1,
       borderLeftColor: theme.colors.navBorder,
+      overflow: 'visible',
     },
     navList: {
       gap: 8,
+      zIndex: 2,
+      elevation: 2,
+      overflow: 'visible',
     },
     drawerSpacer: {
       flex: 1,
@@ -311,6 +326,8 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.surfaceMuted,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
+      zIndex: 1,
+      elevation: 1,
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,

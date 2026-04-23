@@ -556,8 +556,17 @@ export default function CustomerDetailScreen() {
           {addresses.length > 0 && (
             <ThemedCard style={styles.card}>
               <Text style={styles.sectionTitle}>Delivery Addresses</Text>
-              {addresses.map((address, idx) => (
-                <View key={address.id} style={styles.addressBlock}>
+              {addresses.map((address, idx) => {
+                const isLastAddress = idx === addresses.length - 1;
+
+                return (
+                <View
+                  key={address.id}
+                  style={[
+                    styles.addressBlock,
+                    isLastAddress && styles.addressBlockLast,
+                  ]}
+                >
                   <Text style={styles.addressTitle}>
                     Address {idx + 1}
                     {address.defaultAddress && (
@@ -596,7 +605,8 @@ export default function CustomerDetailScreen() {
                     </Text>
                   )}
                 </View>
-              ))}
+                );
+              })}
             </ThemedCard>
           )}
 
@@ -636,6 +646,11 @@ function createStyles(theme: AppTheme) {
       marginBottom: 12,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.border,
+    },
+    addressBlockLast: {
+      paddingBottom: 0,
+      marginBottom: 0,
+      borderBottomWidth: 0,
     },
     addressTitle: {
       fontSize: 14,

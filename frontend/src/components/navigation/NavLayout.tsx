@@ -215,10 +215,12 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
   if (platformProfile === 'native-tablet') {
     return (
       <View style={[styles.root, styles.rootColumn]}>
-        <TopBar />
+        <View style={styles.topBarLayer}>
+          <TopBar />
+        </View>
         <View style={styles.contentRow}>
           {renderSidebar(isCollapsed)}
-          <ScrollView contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
+          <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
         </View>
       </View>
     );
@@ -228,8 +230,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     <View style={styles.root}>
       {renderSidebar(isCollapsed)}
       <View style={styles.contentColumn}>
-        <TopBar />
-        <ScrollView contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
+        <View style={styles.topBarLayer}>
+          <TopBar />
+        </View>
+        <ScrollView style={styles.contentScroll} contentContainerStyle={styles.contentContainer}>{children}</ScrollView>
       </View>
     </View>
   );
@@ -254,16 +258,30 @@ function createStyles(theme: AppTheme) {
     contentColumn: {
       flex: 1,
     },
+    topBarLayer: {
+      position: 'relative',
+      zIndex: 200,
+      elevation: 200,
+      overflow: 'visible',
+    },
+    contentScroll: {
+      zIndex: 1,
+      elevation: 1,
+    },
     sidebar: {
       backgroundColor: theme.colors.navBackground,
       paddingHorizontal: 14,
       paddingVertical: 20,
       borderRightWidth: 1,
       borderRightColor: theme.colors.navBorder,
+      overflow: 'visible',
     },
     navList: {
       gap: 8,
       marginTop: -5,
+      zIndex: 2,
+      elevation: 2,
+      overflow: 'visible',
     },
     sidebarToggleButton: {
       width: compactRailInnerWidth,
@@ -329,6 +347,8 @@ function createStyles(theme: AppTheme) {
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
       justifyContent: 'center',
+      zIndex: 1,
+      elevation: 1,
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,

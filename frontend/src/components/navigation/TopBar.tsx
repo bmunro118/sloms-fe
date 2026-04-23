@@ -161,6 +161,10 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     bar: {
+      position: 'relative',
+      zIndex: 300,
+      elevation: 300,
+      overflow: 'visible',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
