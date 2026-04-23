@@ -215,6 +215,7 @@ Screen styling conventions:
 1. Shared screen-level definitions live in `frontend/src/theme/stylePresets.ts` for repeated title/meta/card/form/button patterns.
 2. `frontend/src/theme/useThemedStyles.ts` generates memoized style objects from the current theme.
 3. App screens should use semantic style values (for example textPrimary, border, accent) instead of raw color literals.
+4. Main-content action buttons can use the shared `contentAction*` preset keys in `stylePresets.ts` (layout row, base, hover/pressed, disabled, text, disabled text) to match `TopBar` action visual language in content areas.
 
 Reusable UI primitives:
 1. `frontend/src/components/ui/ThemedButton.tsx`
@@ -248,7 +249,7 @@ Current baseline after latest migration and fixes:
 11. Orders list now uses two `TopBar` actions (`refresh-orders`, `create-order`) to demonstrate multi-button registration and handlers.
 12. Hidden `TopBar` actions are no longer dropped on narrow layouts; they move into a `More` overflow menu.
 13. Customer detail uses `TopBar` editing actions (`edit-customer`, `save-customer`, `reset-customer-form`, `cancel-customer-edit`), making it the primary reference for state-dependent screen actions and overflow behavior.
-14. Account now keeps only `reset-password-form` in `TopBar`; password submission uses a right-aligned in-content `Save` button directly below the `New password` input, styled to match `TopBar` action buttons.
+14. Account now keeps only `reset-password-form` in `TopBar`; password submission uses a right-aligned in-content `Save` button directly below the `New password` input, wired to shared `contentAction*` style presets so the same button pattern can be reused across main content screens.
 15. Create Order uses `TopBar` actions (`submit-create-order`, `reset-create-order-form`) so order creation follows the same page-level action pattern as the other form screens.
 16. TopBar action reference screens now use the shared `buildIconTopBarAction(...)` helper for consistent icon renderer generation and label/accessibility handling.
 17. Customers, Users, and Documents list screens now use `TopBar` refresh actions (`refresh-customers`, `refresh-users`, `refresh-documents`) to support explicit data reload without in-content control duplication.

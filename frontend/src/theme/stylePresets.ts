@@ -79,5 +79,39 @@ export function createCommonScreenStyleDefinitions(theme: AppTheme) {
     disabled: {
       opacity: 0.65,
     },
+    contentActionRowRight: {
+      alignItems: 'flex-end' as const,
+      marginTop: 2,
+      marginBottom: 2,
+    },
+    contentActionButton: {
+      minHeight: 36,
+      borderRadius: 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      flexDirection: 'row' as const,
+      gap: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.colors.navBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+    },
+    contentActionButtonPressed: {
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    contentActionButtonHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    contentActionButtonDisabled: {
+      opacity: 0.55,
+    },
+    contentActionButtonText: {
+      color: theme.colors.navTextStrong,
+      fontSize: 14,
+      fontWeight: '600' as const,
+    },
+    contentActionButtonTextDisabled: {
+      color: theme.colors.textMuted,
+    },
   };
 }

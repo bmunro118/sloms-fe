@@ -25,6 +25,13 @@ export default function AccountScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const canSubmitPasswordChange = useMemo(() => {
+    const currentTrimmed = currentPassword.trim();
+    const nextTrimmed = newPassword.trim();
+
+    return !isSubmitting && currentTrimmed.length > 0 && nextTrimmed.length > 0 && currentTrimmed !== nextTrimmed;
+  }, [currentPassword, isSubmitting, newPassword]);
+
   const handlePasswordChange = useCallback(async () => {
     setStatus(null);
     if (!currentPassword || !newPassword) {
@@ -98,21 +105,21 @@ export default function AccountScreen() {
         onChangeText={setNewPassword}
         editable={!isSubmitting}
       />
-      <View style={styles.saveButtonRow}>
+      <View style={styles.contentActionRowRight}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isSubmitting ? 'Saving password change' : 'Save password change'}
-          disabled={isSubmitting}
+          accessibilityLabel={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
+          disabled={!canSubmitPasswordChange}
           onPress={handlePasswordChange}
           style={(state) => [
-            styles.saveButton,
-            isSubmitting ? styles.actionButtonDisabled : null,
-            isHovered(state) && !isSubmitting ? styles.saveButtonHover : null,
-            state.pressed && !isSubmitting ? styles.saveButtonPressed : null,
+            styles.contentActionButton,
+            !canSubmitPasswordChange ? styles.contentActionButtonDisabled : null,
+            isHovered(state) && canSubmitPasswordChange ? styles.contentActionButtonHover : null,
+            state.pressed && canSubmitPasswordChange ? styles.contentActionButtonPressed : null,
           ]}
         >
-          <SaveIcon size={16} color={isSubmitting ? theme.colors.textMuted : theme.colors.navTextStrong} />
-          <Text style={[styles.saveButtonText, isSubmitting ? styles.saveButtonTextDisabled : null]}>
+          <SaveIcon size={16} color={canSubmitPasswordChange ? theme.colors.navTextStrong : theme.colors.textMuted} />
+          <Text style={[styles.contentActionButtonText, !canSubmitPasswordChange ? styles.contentActionButtonTextDisabled : null]}>
             {isSubmitting ? 'Saving...' : 'Save Password'}
           </Text>
         </Pressable>
@@ -131,39 +138,5 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
-    saveButtonRow: {
-      alignItems: 'flex-end',
-      marginTop: 2,
-      marginBottom: 2,
-    },
-    saveButton: {
-      minHeight: 36,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'row',
-      gap: 8,
-      paddingHorizontal: 12,
-      backgroundColor: theme.colors.navBackground,
-      borderWidth: 1,
-      borderColor: theme.colors.navBorder,
-    },
-    saveButtonPressed: {
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    saveButtonHover: {
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    actionButtonDisabled: {
-      opacity: 0.55,
-    },
-    saveButtonText: {
-      color: theme.colors.navTextStrong,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    saveButtonTextDisabled: {
-      color: theme.colors.textMuted,
-    },
   });
 }
