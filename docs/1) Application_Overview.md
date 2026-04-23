@@ -152,8 +152,8 @@ Layout profile and shell mode resolution:
 2. Device-type signal must use device-specific detection (`Platform.isPad` on iOS and equivalent Android/native tablet detection) so large phones in landscape are not misclassified as tablets.
 3. Viewport dimensions (width/height) are used for platform profile classification; web and tablet profiles default to `sidebar-collapsed`, while native phone uses `drawer`.
 4. Web continues to use desktop/compact profile breakpoints, while native layout decisions require both device type and viewport state.
-5. Native phone drawer layouts use a `TopBar` (title only) at the top and a bottom navigation bar with `Back` and menu icon actions; the menu icon opens the navigation drawer and sign-out remains inside the drawer panel.
-6. Web and tablet sidebar layouts render a `TopBar` (title only) above the scrollable content column, to the right of the sidebar.
+5. Native phone drawer layouts use a `TopBar` (title + optional screen-defined actions) at the top and a bottom navigation bar with `Back` and menu icon actions; the menu icon opens the navigation drawer and sign-out remains inside the drawer panel.
+6. Web and tablet sidebar layouts render a `TopBar` (title + optional screen-defined actions) above the scrollable content column, to the right of the sidebar.
 7. In web/tablet sidebar layouts, the menu toggle button is rendered on the sidebar rail; pressing it expands or collapses the sidebar in place.
 8. The sidebar menu toggle uses a dedicated fixed-size square button style in both collapsed and expanded sidebar states (it does not stretch like nav item buttons).
 9. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
@@ -161,12 +161,14 @@ Layout profile and shell mode resolution:
 Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
 2. `MobileNavLayout` (`src/components/navigation/MobileNavLayout.tsx`) — drawer variant for `native-phone`; top bar + scrollable content + bottom bar.
-3. `TopBar` (`src/components/navigation/TopBar.tsx`) — shared top bar used by sidebar and native-phone variants; reads the current title from `ScreenTitleContext`.
+3. `TopBar` (`src/components/navigation/TopBar.tsx`) — shared top bar used by sidebar and native-phone variants; reads the current title and action buttons from `ScreenTitleContext`.
+4. `TopBar` action rendering is width-aware: it measures available header space at runtime, keeps a minimum title area, renders as many icon actions as fit, and moves any remaining actions into a `More` overflow menu.
 
-Screen title propagation:
-1. `ScreenTitleContext` (`src/context/ScreenTitleContext.tsx`) holds the active page title string and `setTitle` setter; `ScreenTitleProvider` wraps `NavLayout` in `app/(app)/_layout.tsx`.
-2. Each screen calls `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) to register its title; the hook sets the context value on mount and clears it on unmount.
-3. Screen content does not contain a title `Text` element; the title is rendered exclusively by `TopBar`.
+Screen top bar propagation:
+1. `ScreenTitleContext` (`src/context/ScreenTitleContext.tsx`) holds the active page title and optional per-screen action button definitions; `ScreenTitleProvider` wraps `NavLayout` in `app/(app)/_layout.tsx`.
+2. Screens can call `useScreenTopBar({ title, actions })` (`src/hooks/useScreenTopBar.ts`) to register both title and multiple action buttons (icon + handler) for `TopBar`.
+3. `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) remains supported for title-only screens.
+4. Screen content does not contain a title `Text` element; the title and actions are rendered by `TopBar`.
 
 UI terminology dictionary (canonical naming):
 
@@ -175,8 +177,10 @@ UI terminology dictionary (canonical naming):
 | `App Shell` | The authenticated chrome that wraps all `app/(app)` screens and provides navigation + title area. | `NavLayout` and delegated variants |
 | `Platform Profile` | Runtime profile classification: `web-desktop`, `web-compact`, `native-tablet`, `native-phone`. | App-shell mode resolution |
 | `Shell Mode` | Presentation mode inside a profile: `sidebar-collapsed` (web/tablet) or `drawer` (native phone). | `useAppShell()` output |
-| `TopBar` | Shared top title region at the top of content; renders page title and optional compact menu button. | All shell variants |
-| `Page Title` | Current screen title text shown in `TopBar`; sourced from `useScreenTitle(...)`. | All authenticated screens |
+| `TopBar` | Shared top title region at the top of content; renders page title and optional screen-defined action buttons. | All shell variants |
+| `Page Title` | Current screen title text shown in `TopBar`; sourced from `useScreenTopBar(...)` or `useScreenTitle(...)`. | All authenticated screens |
+| `TopBar Action` | A screen-defined action with icon, handler, and optional label; it may render directly in `TopBar` or inside overflow. | Screens using `useScreenTopBar(...)` |
+| `Overflow Menu` | The `More` menu opened from `TopBar` when not all actions fit in the available width. | `TopBar` on narrower layouts or long-title screens |
 | `Sidebar` | Persistent left navigation rail used in desktop/tablet sidebar modes. | `NavLayout` |
 | `Collapsed Sidebar` | Narrow sidebar variant using short nav labels in compact sidebar mode. | `NavLayout` when `shellMode=sidebar-collapsed` |
 | `Drawer` | Overlay navigation pattern used for compact web and native phone flows. | `CompactWebNavLayout`, `MobileNavLayout` |
@@ -238,6 +242,9 @@ Current baseline after latest migration and fixes:
 7. API base URL and local web auth override are now environment-driven via `frontend/.env`.
 8. Navigation shell split into `MobileNavLayout` and `CompactWebNavLayout` with shared `TopBar` component.
 9. Screen title system implemented via `ScreenTitleContext` and `useScreenTitle` hook; all 11 authenticated screens use it.
+10. Top bar action system introduced via `useScreenTopBar`, enabling per-screen multi-action icon buttons in `TopBar`.
+11. Orders list now uses two `TopBar` actions (`refresh-orders`, `create-order`) to demonstrate multi-button registration and handlers.
+12. Hidden `TopBar` actions are no longer dropped on narrow layouts; they move into a `More` overflow menu.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Plus as PlusIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
-import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -27,10 +28,37 @@ export default function OrdersListScreen() {
   const router = useRouter();
   const { canMutate, isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
-  useScreenTitle('Orders');
+  const [refreshTick, setRefreshTick] = useState(0);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    const actions: TopBarAction[] = [
+      {
+        id: 'refresh-orders',
+        label: 'Refresh orders',
+        accessibilityLabel: 'Refresh orders',
+        onPress: () => setRefreshTick((value) => value + 1),
+        disabled: isLoading,
+        renderIcon: ({ color, size }) => <RefreshIcon color={color} size={size} />,
+      },
+    ];
+
+    if (isStaff && canMutate) {
+      actions.push({
+        id: 'create-order',
+        label: 'Create order',
+        accessibilityLabel: 'Create order',
+        onPress: () => router.push('/(app)/orders/create'),
+        renderIcon: ({ color, size }) => <PlusIcon color={color} size={size} />,
+      });
+    }
+
+    return actions;
+  }, [canMutate, isLoading, isStaff, router]);
+
+  useScreenTopBar({ title: 'Orders', actions: topBarActions });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,14 +83,10 @@ export default function OrdersListScreen() {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [refreshTick]);
 
   return (
     <ScreenContent>
-      {isStaff && canMutate ? (
-        <ThemedButton label="Create order" onPress={() => router.push('/(app)/orders/create')} style={styles.primaryButton} />
-      ) : null}
-
       {isLoading ? <Text style={styles.muted}>Loading orders...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
