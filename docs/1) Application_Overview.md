@@ -90,6 +90,42 @@ Current variables:
 	- Only applies on web in `__DEV__` when the app is running on localhost.
 	- When empty, the app auto-detects the mode by comparing the app origin with the configured API origin.
 
+Workflow-level debug flags:
+1. Use `EXPO_PUBLIC_DEBUG_<WORKFLOW>` variables to gate targeted console logging in development.
+2. Keep values string-based (`true` / `false`) because Expo replaces env values at build time as strings.
+3. Recommended naming examples:
+	- `EXPO_PUBLIC_DEBUG_CUSTOMERS`
+	- `EXPO_PUBLIC_DEBUG_ORDERS`
+	- `EXPO_PUBLIC_DEBUG_AUTH`
+
+Implementation pattern for screen/workflow logging:
+1. Read flags directly from `process.env.EXPO_PUBLIC_...` at the logging call site (or via a small helper), never by destructuring `process.env`.
+2. Always pair flag checks with `__DEV__` so logs are development-only and removed from production bundles by dead-code elimination.
+3. Keep logs scoped and structured (prefix log messages with workflow tags like `[customers]`).
+
+Example `.env` entries:
+```dotenv
+EXPO_PUBLIC_DEBUG_CUSTOMERS=false
+EXPO_PUBLIC_DEBUG_ORDERS=false
+EXPO_PUBLIC_DEBUG_AUTH=false
+```
+
+Example usage in code:
+```ts
+const shouldDebugCustomers =
+  __DEV__ && process.env.EXPO_PUBLIC_DEBUG_CUSTOMERS === 'true';
+
+if (shouldDebugCustomers) {
+  console.log('[customers] route params', params);
+  console.log('[customers] validation state', validationState);
+}
+```
+
+Debug logging guardrails:
+1. Never log secrets, tokens, passwords, cookie contents, or full PII payloads.
+2. Prefer logging derived diagnostics (IDs, counts, status, branch decisions) over raw API responses.
+3. Remove temporary one-off logs after a bugfix; keep only reusable workflow-flagged diagnostics.
+
 ### 7. API Integration Pattern
 All network operations route through centralized utilities:
 1. `frontend/utils/config.ts` defines API base URL and endpoint registry.
