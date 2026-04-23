@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from 'expo-router';
-import { ChevronLeft as CollapseIcon, ChevronRight as ExpandIcon } from 'lucide-react-native';
+import { ChevronLeft as CollapseIcon, ChevronRight as ExpandIcon, LogOut as SignOutIcon } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, PressableStateCallbackType, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
@@ -94,12 +94,15 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             ]}
             onPress={onSignOut}
           >
-            <Text style={styles.signOutButtonText}>{compact ? 'Out' : 'Sign out'}</Text>
+            <View style={styles.navItemContent}>
+              <SignOutIcon size={18} color={theme.colors.textPrimary} />
+              {!compact ? <Text style={styles.signOutButtonText}>Sign out</Text> : null}
+            </View>
           </Pressable>
         </View>
       );
     },
-    [onSignOut, renderNavItems, sidebarWidth, theme.colors.navItemText]
+    [onSignOut, renderNavItems, sidebarWidth, theme.colors.navItemText, theme.colors.textPrimary]
   );
 
   if (showDrawer) {
@@ -227,7 +230,6 @@ function createStyles(theme: AppTheme) {
     signOutButtonText: {
       color: theme.colors.textPrimary,
       fontWeight: '700',
-      textAlign: 'center',
     },
     contentContainer: {
       flexGrow: 1,
