@@ -1,6 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -49,8 +50,9 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
           >
             <View style={styles.navList}>
               {navigationItems.map((item) => (
-                <Pressable
+                <TooltipPressable
                   key={item.id}
+                  tooltip={item.label}
                   style={({ hovered }) => [
                     styles.navItem,
                     item.active ? styles.navItemActive : null,
@@ -65,15 +67,16 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
                     />
                     <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>{item.label}</Text>
                   </View>
-                </Pressable>
+                </TooltipPressable>
               ))}
             </View>
-            <Pressable
+            <TooltipPressable
+              tooltip="Sign out"
               style={({ hovered }) => [styles.signOutButton, hovered ? styles.signOutButtonHover : null]}
               onPress={onSignOut}
             >
               <Text style={styles.signOutButtonText}>Sign out</Text>
-            </Pressable>
+            </TooltipPressable>
           </View>
         ) : null}
         <ScrollView contentContainerStyle={styles.contentContainer}>

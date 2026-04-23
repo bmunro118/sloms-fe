@@ -5,6 +5,7 @@ import { Animated, Easing, Pressable, PressableStateCallbackType, ScrollView, St
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { MobileNavLayout } from './MobileNavLayout';
 import { NavItemIcon } from './NavItemIcon';
 import { NavLayoutProps } from './navigationTypes';
@@ -85,8 +86,9 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const renderNavItems = useCallback(
     (compact: boolean, onNavigate?: () => void) => {
       return navigationItems.map((item) => (
-        <Pressable
+        <TooltipPressable
           key={item.id}
+          tooltip={item.label}
           style={(state) => [
             styles.navItem,
             item.active ? styles.navItemActive : null,
@@ -122,7 +124,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
               </Animated.View>
             ) : null}
           </View>
-        </Pressable>
+        </TooltipPressable>
       ));
     },
     [
@@ -141,7 +143,8 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     (compact: boolean) => {
       return (
         <Animated.View style={[styles.sidebar, { width: animatedSidebarWidth }]}> 
-          <Pressable
+          <TooltipPressable
+            tooltip={compact ? 'Expand sidebar' : 'Collapse sidebar'}
             style={(state) => [
               styles.navItem,
               styles.navItemCompact,
@@ -153,9 +156,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             {compact
               ? <ExpandIcon size={18} color={theme.colors.navItemText} />
               : <CollapseIcon size={18} color={theme.colors.navItemText} />}
-          </Pressable>
+          </TooltipPressable>
           <View style={styles.navList}>{renderNavItems(compact)}</View>
-          <Pressable
+          <TooltipPressable
+            tooltip="Sign out"
             style={(state) => [
               styles.signOutButton,
               isHovered(state) ? styles.signOutButtonHover : null,
@@ -183,7 +187,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
                 </Animated.View>
               ) : null}
             </View>
-          </Pressable>
+          </TooltipPressable>
         </Animated.View>
       );
     },

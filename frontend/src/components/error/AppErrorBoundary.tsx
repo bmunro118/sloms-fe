@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
@@ -50,9 +51,9 @@ class AppErrorBoundaryInner extends React.Component<AppErrorBoundaryInnerProps, 
         <View style={styles.root}>
           <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.subtitle}>Please try again.</Text>
-          <Pressable style={styles.button} onPress={this.handleRetry}>
+          <TooltipPressable tooltip="Retry loading this screen" style={styles.button} onPress={this.handleRetry}>
             <Text style={styles.buttonText}>Retry</Text>
-          </Pressable>
+          </TooltipPressable>
         </View>
       );
     }

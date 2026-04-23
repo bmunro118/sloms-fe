@@ -160,6 +160,7 @@ Layout profile and shell mode resolution:
 10. Sidebar expand/collapse transitions are animated so rail width changes smoothly instead of snapping between states.
 11. Sidebar label text (navigation item labels and sign-out text) fades/slides in and out during expand/collapse with an animated label-width clip, while icons render in fixed geometry slots so they do not flicker or jump.
 12. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
+13. Interactive buttons in auth screens, app-shell navigation, and page-level actions use a shared tooltip-capable pressable wrapper so intent labels appear on hover/focus (and long-press where supported), improving discoverability for icon-only and compact controls.
 
 Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
@@ -260,6 +261,7 @@ Current baseline after latest migration and fixes:
 19. TopBar action handlers on form-heavy screens are memoized to keep action references stable and prevent React maximum update-depth loops in `useScreenTopBar(...)` flows.
 20. On web, `TopBar` action buttons now use the same hover background treatment as sidebar/drawer nav menu items for interaction consistency.
 21. Order Detail now renders `Mark as dispatched` with the shared `contentAction*` main-content button preset, matching the reusable action-button styling contract used by Account.
+22. A shared `TooltipPressable` primitive now wraps all button interactions (including `TopBar`, navigation rails/drawers, auth actions, and screen-level action buttons) so every button exposes a tooltip label without duplicating per-screen tooltip logic.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

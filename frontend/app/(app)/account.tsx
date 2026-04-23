@@ -2,6 +2,7 @@ import { RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -106,7 +107,8 @@ export default function AccountScreen() {
         editable={!isSubmitting}
       />
       <View style={styles.contentActionRowRight}>
-        <Pressable
+        <TooltipPressable
+          tooltip={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
           accessibilityRole="button"
           accessibilityLabel={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
           disabled={!canSubmitPasswordChange}
@@ -122,7 +124,7 @@ export default function AccountScreen() {
           <Text style={[styles.contentActionButtonText, !canSubmitPasswordChange ? styles.contentActionButtonTextDisabled : null]}>
             {isSubmitting ? 'Saving...' : 'Save Password'}
           </Text>
-        </Pressable>
+        </TooltipPressable>
       </View>
       {status ? <Text style={styles.status}>{status}</Text> : null}
     </ScreenContent>

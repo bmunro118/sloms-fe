@@ -1,5 +1,6 @@
-import { Pressable, StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
+import { TooltipPressable } from './TooltipPressable';
 
 interface ThemedButtonProps {
   label: string;
@@ -8,6 +9,7 @@ interface ThemedButtonProps {
   variant?: 'primary' | 'secondary';
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  tooltip?: string;
 }
 
 export function ThemedButton({
@@ -17,12 +19,14 @@ export function ThemedButton({
   variant = 'primary',
   style,
   textStyle,
+  tooltip,
 }: ThemedButtonProps) {
   const { colors, radii } = useAppTheme();
   const isSecondary = variant === 'secondary';
 
   return (
-    <Pressable
+    <TooltipPressable
+      tooltip={tooltip ?? label}
       onPress={onPress}
       disabled={disabled}
       style={[
@@ -40,7 +44,7 @@ export function ThemedButton({
       <Text style={[styles.text, { color: isSecondary ? colors.buttonSecondaryText : colors.accentText }, textStyle]}>
         {label}
       </Text>
-    </Pressable>
+    </TooltipPressable>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Menu as MenuIcon, MoreHorizontal as MoreIcon, X as CloseIcon } from 'lucide-react-native';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -63,11 +64,15 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 12 }]} onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}>
       {onMenuPress ? (
-        <Pressable style={styles.menuButton} onPress={onMenuPress}>
+        <TooltipPressable
+          tooltip={sidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          style={styles.menuButton}
+          onPress={onMenuPress}
+        >
           {sidebarOpen
             ? <CloseIcon size={18} color={theme.colors.navTextStrong} />
             : <MenuIcon size={18} color={theme.colors.navTextStrong} />}
-        </Pressable>
+        </TooltipPressable>
       ) : null}
       <Text style={styles.title} numberOfLines={1}>
         {title}
@@ -75,8 +80,9 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
       {visibleActions.length > 0 ? (
         <View style={styles.actionsRow}>
           {visibleActions.map((action) => (
-            <Pressable
+            <TooltipPressable
               key={action.id}
+              tooltip={action.label ?? action.accessibilityLabel}
               accessibilityRole="button"
               accessibilityLabel={action.accessibilityLabel}
               disabled={action.disabled}
@@ -92,12 +98,13 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
                 size: 18,
                 color: action.disabled ? theme.colors.textMuted : theme.colors.navTextStrong,
               })}
-            </Pressable>
+            </TooltipPressable>
           ))}
         </View>
       ) : null}
       {overflowActions.length > 0 ? (
-        <Pressable
+        <TooltipPressable
+          tooltip="Show more actions"
           accessibilityRole="button"
           accessibilityLabel="More top bar actions"
           onPress={() => setOverflowOpen(true)}
@@ -108,7 +115,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
           ]}
         >
           <MoreIcon size={18} color={theme.colors.navTextStrong} />
-        </Pressable>
+        </TooltipPressable>
       ) : null}
 
       <Modal animationType="fade" transparent visible={overflowOpen} onRequestClose={closeOverflow}>
@@ -116,8 +123,9 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
           <Pressable style={styles.modalBackdrop} onPress={closeOverflow} />
           <View style={[styles.overflowMenu, { top: insets.top + 54 }]}>
             {overflowActions.map((action, index) => (
-              <Pressable
+              <TooltipPressable
                 key={action.id}
+                tooltip={action.label ?? action.accessibilityLabel}
                 accessibilityRole="button"
                 accessibilityLabel={action.accessibilityLabel}
                 disabled={action.disabled}
@@ -141,7 +149,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
                 <Text style={[styles.overflowItemLabel, action.disabled ? styles.overflowItemLabelDisabled : null]}>
                   {action.label ?? action.accessibilityLabel}
                 </Text>
-              </Pressable>
+              </TooltipPressable>
             ))}
           </View>
         </View>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTitle } from '@src/hooks/useScreenTitle';
@@ -115,7 +116,8 @@ export default function OrderDetailScreen() {
 
       {canMutate ? (
         <View style={styles.contentActionRowRight}>
-          <Pressable
+          <TooltipPressable
+            tooltip={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
             accessibilityRole="button"
             accessibilityLabel={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
             disabled={isDispatching}
@@ -130,7 +132,7 @@ export default function OrderDetailScreen() {
             <Text style={[styles.contentActionButtonText, isDispatching ? styles.contentActionButtonTextDisabled : null]}>
               {isDispatching ? 'Dispatching...' : 'Mark as dispatched'}
             </Text>
-          </Pressable>
+          </TooltipPressable>
         </View>
       ) : (
         <Text style={styles.muted}>Read-only role: dispatch action hidden.</Text>

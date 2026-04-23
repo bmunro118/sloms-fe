@@ -2,6 +2,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft as BackIcon, Menu as MenuIcon, X as CloseIcon } from 'lucide-react-native';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -135,7 +136,8 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
               drawerAnimatedStyle,
             ]}
           >
-            <Pressable
+            <TooltipPressable
+              tooltip="Sign out"
               style={(state) => {
                 const hovered = (state as { hovered?: boolean }).hovered;
                 return [styles.signOutButton, hovered ? styles.signOutButtonHover : null];
@@ -143,12 +145,13 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
               onPress={onSignOut}
             >
               <Text style={styles.signOutButtonText}>Sign out</Text>
-            </Pressable>
+            </TooltipPressable>
             <View style={styles.drawerSpacer} />
             <View style={styles.navList}>
               {navigationItems.map((item) => (
-                <Pressable
+                <TooltipPressable
                   key={item.id}
+                  tooltip={item.label}
                   style={(state) => {
                     const hovered = (state as { hovered?: boolean }).hovered;
                     return [
@@ -166,7 +169,7 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
                     />
                     <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>{item.label}</Text>
                   </View>
-                </Pressable>
+                </TooltipPressable>
               ))}
             </View>
           </Animated.View>
@@ -182,14 +185,18 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
         ]}
         onLayout={(event) => setBottomBarHeight(event.nativeEvent.layout.height)}
       >
-        <Pressable style={[styles.bottomBarButton, styles.menuToggleButton]} onPress={goBack}>
+        <TooltipPressable tooltip="Go back" style={[styles.bottomBarButton, styles.menuToggleButton]} onPress={goBack}>
           <BackIcon size={18} color={theme.colors.navTextStrong} />
-        </Pressable>
-        <Pressable style={[styles.bottomBarButton, styles.menuToggleButton]} onPress={drawerOpen ? closeDrawer : openDrawer}>
+        </TooltipPressable>
+        <TooltipPressable
+          tooltip={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          style={[styles.bottomBarButton, styles.menuToggleButton]}
+          onPress={drawerOpen ? closeDrawer : openDrawer}
+        >
           {drawerOpen
             ? <CloseIcon size={18} color={theme.colors.navTextStrong} />
             : <MenuIcon size={18} color={theme.colors.navTextStrong} />}
-        </Pressable>
+        </TooltipPressable>
       </View>
     </View>
   );
