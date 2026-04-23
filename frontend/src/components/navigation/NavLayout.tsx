@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { ChevronLeft as CollapseIcon, ChevronRight as ExpandIcon, LogOut as SignOutIcon } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, PressableStateCallbackType, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, PressableStateCallbackType, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
@@ -19,8 +19,49 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
 
   const showDrawer = shellMode === 'drawer';
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [showSidebarText, setShowSidebarText] = useState(false);
   const isCollapsed = !isSidebarExpanded;
-  const sidebarWidth = isCollapsed ? theme.layout.compactSidebarWidth : theme.layout.expandedSidebarWidth;
+  const animatedSidebarWidth = useRef(new Animated.Value(theme.layout.compactSidebarWidth)).current;
+  const sidebarTextOpacity = animatedSidebarWidth.interpolate({
+    inputRange: [theme.layout.compactSidebarWidth, theme.layout.expandedSidebarWidth],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const sidebarTextTranslateX = animatedSidebarWidth.interpolate({
+    inputRange: [theme.layout.compactSidebarWidth, theme.layout.expandedSidebarWidth],
+    outputRange: [-6, 0],
+    extrapolate: 'clamp',
+  });
+  const sidebarTextContainerWidth = animatedSidebarWidth.interpolate({
+    inputRange: [theme.layout.compactSidebarWidth, theme.layout.expandedSidebarWidth],
+    outputRange: [0, theme.layout.expandedSidebarWidth - theme.layout.compactSidebarWidth],
+    extrapolate: 'clamp',
+  });
+
+  const animateSidebarWidth = useCallback(
+    (expanded: boolean) => {
+      if (expanded) {
+        setShowSidebarText(true);
+      }
+
+      animatedSidebarWidth.stopAnimation();
+      Animated.timing(animatedSidebarWidth, {
+        toValue: expanded ? theme.layout.expandedSidebarWidth : theme.layout.compactSidebarWidth,
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (finished && !expanded) {
+          setShowSidebarText(false);
+        }
+      });
+    },
+    [animatedSidebarWidth, theme.layout.compactSidebarWidth, theme.layout.expandedSidebarWidth]
+  );
+
+  useEffect(() => {
+    animateSidebarWidth(isSidebarExpanded);
+  }, [animateSidebarWidth, isSidebarExpanded]);
 
   const navigationItems = useMemo(() => {
     return items.map((item) => ({
@@ -50,29 +91,56 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             styles.navItem,
             item.active ? styles.navItemActive : null,
             isHovered(state) && !item.active ? styles.navItemHover : null,
-            compact ? styles.navItemCompact : null,
           ]}
           onPress={createNavigateHandler(item.href, onNavigate)}
         >
-          <View style={styles.navItemContent}>
-            <NavItemIcon
-              icon={item.icon}
-              color={item.active ? theme.colors.navItemTextActive : theme.colors.navItemText}
-            />
-            {!compact ? (
-              <Text style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}>{item.label}</Text>
+          <View style={[styles.navItemContent, !showSidebarText ? styles.navItemContentCompact : null]}>
+            <View style={styles.navItemIconSlot}>
+              <NavItemIcon
+                icon={item.icon}
+                color={item.active ? theme.colors.navItemTextActive : theme.colors.navItemText}
+              />
+            </View>
+            {showSidebarText ? (
+              <Animated.View
+                style={[
+                  styles.sidebarLabelContainer,
+                  {
+                    width: sidebarTextContainerWidth,
+                    opacity: sidebarTextOpacity,
+                    transform: [{ translateX: sidebarTextTranslateX }],
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
+                  style={[styles.navItemText, item.active ? styles.navItemTextActive : null]}
+                >
+                  {item.label}
+                </Text>
+              </Animated.View>
             ) : null}
           </View>
         </Pressable>
       ));
     },
-    [createNavigateHandler, navigationItems, theme.colors.navItemText, theme.colors.navItemTextActive]
+    [
+      createNavigateHandler,
+      navigationItems,
+      showSidebarText,
+      sidebarTextContainerWidth,
+      sidebarTextOpacity,
+      sidebarTextTranslateX,
+      theme.colors.navItemText,
+      theme.colors.navItemTextActive,
+    ]
   );
 
   const renderSidebar = useCallback(
     (compact: boolean) => {
       return (
-        <View style={[styles.sidebar, { width: sidebarWidth }]}> 
+        <Animated.View style={[styles.sidebar, { width: animatedSidebarWidth }]}> 
           <Pressable
             style={(state) => [
               styles.navItem,
@@ -91,19 +159,45 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             style={(state) => [
               styles.signOutButton,
               isHovered(state) ? styles.signOutButtonHover : null,
-              compact ? styles.navItemCompact : null,
             ]}
             onPress={onSignOut}
           >
-            <View style={styles.navItemContent}>
-              <SignOutIcon size={18} color={theme.colors.textPrimary} />
-              {!compact ? <Text style={styles.signOutButtonText}>Sign out</Text> : null}
+            <View style={[styles.navItemContent, !showSidebarText ? styles.navItemContentCompact : null]}>
+              <View style={styles.navItemIconSlot}>
+                <SignOutIcon size={18} color={theme.colors.textPrimary} />
+              </View>
+              {showSidebarText ? (
+                <Animated.View
+                  style={[
+                    styles.sidebarLabelContainer,
+                    {
+                      width: sidebarTextContainerWidth,
+                      opacity: sidebarTextOpacity,
+                      transform: [{ translateX: sidebarTextTranslateX }],
+                    },
+                  ]}
+                >
+                    <Text numberOfLines={1} ellipsizeMode="clip" style={styles.signOutButtonText}>
+                      Sign out
+                    </Text>
+                </Animated.View>
+              ) : null}
             </View>
           </Pressable>
-        </View>
+        </Animated.View>
       );
     },
-    [onSignOut, renderNavItems, sidebarWidth, theme.colors.navItemText, theme.colors.textPrimary]
+    [
+      animatedSidebarWidth,
+      onSignOut,
+      renderNavItems,
+      showSidebarText,
+      sidebarTextContainerWidth,
+      sidebarTextOpacity,
+      sidebarTextTranslateX,
+      theme.colors.navItemText,
+      theme.colors.textPrimary,
+    ]
   );
 
   if (showDrawer) {
@@ -175,16 +269,32 @@ function createStyles(theme: AppTheme) {
     },
     navItem: {
       borderRadius: 10,
-      paddingVertical: 10,
+      height: 44,
+      paddingVertical: 0,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.navItemBackground,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
+      justifyContent: 'center',
     },
     navItemContent: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      width: '100%',
+    },
+    navItemContentCompact: {
+      justifyContent: 'center',
+    },
+    navItemIconSlot: {
+      width: 20,
+      height: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sidebarLabelContainer: {
+      overflow: 'hidden',
+      flexShrink: 1,
+      marginLeft: 10,
     },
     navItemHover: {
       backgroundColor: theme.colors.navItemHoverBackground,
@@ -208,11 +318,13 @@ function createStyles(theme: AppTheme) {
     signOutButton: {
       marginTop: 16,
       borderRadius: 10,
-      paddingVertical: 10,
+      height: 44,
+      paddingVertical: 0,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.surfaceMuted,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
+      justifyContent: 'center',
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,

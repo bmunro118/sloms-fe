@@ -157,7 +157,9 @@ Layout profile and shell mode resolution:
 7. In web/tablet sidebar layouts, the menu toggle button is rendered on the sidebar rail; pressing it expands or collapses the sidebar in place.
 8. The sidebar menu toggle uses the same size and rounded-rectangle shape as collapsed sidebar nav item buttons in both collapsed and expanded sidebar states.
 9. The sidebar menu toggle remains horizontally anchored to the collapsed-rail position when the sidebar expands, so it does not jump to a new x-position.
-10. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
+10. Sidebar expand/collapse transitions are animated so rail width changes smoothly instead of snapping between states.
+11. Sidebar label text (navigation item labels and sign-out text) fades/slides in and out during expand/collapse with an animated label-width clip, while icons render in fixed geometry slots so they do not flicker or jump.
+12. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
 
 Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
