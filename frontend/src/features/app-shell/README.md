@@ -9,6 +9,7 @@ Platform detection, shell mode selection, and navigation policy for the Sonic Ap
 ```
 src/features/app-shell/
 ├── index.ts                    ← PUBLIC BARREL (only allowed import point)
+├── top-bar-actions.ts          ← Shared TopBar action builders
 ├── context/
 │   └── AppShellContext.tsx     ← React context + provider + useAppShell hook
 ├── layout-mode/

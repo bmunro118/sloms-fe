@@ -1,10 +1,13 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
-import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -60,10 +63,24 @@ export default function CustomersListScreen() {
   const router = useRouter();
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
-  useScreenTitle('Customers');
+  const [refreshTick, setRefreshTick] = useState(0);
   const [customers, setCustomers] = useState<CustomerCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    return [
+      buildIconTopBarAction({
+        id: 'refresh-customers',
+        label: 'Refresh customers',
+        onPress: () => setRefreshTick((value) => value + 1),
+        icon: RefreshIcon,
+        disabled: isLoading,
+      }),
+    ];
+  }, [isLoading]);
+
+  useScreenTopBar({ title: 'Customers', actions: topBarActions });
 
   useEffect(() => {
     if (!isStaff) {
@@ -71,6 +88,8 @@ export default function CustomersListScreen() {
     }
 
     const controller = new AbortController();
+    setIsLoading(true);
+    setError(null);
     (async () => {
       try {
         const response = await apiRequest<CustomersResponse>(ENDPOINTS.customers.list, {
@@ -79,13 +98,7 @@ export default function CustomersListScreen() {
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
-          console.log('[CustomersListScreen] API response:', response);
-          if (response?.data && response.data.length > 0) {
-            console.log('[CustomersListScreen] First customer object keys:', Object.keys(response.data[0]));
-            console.log('[CustomersListScreen] First customer object:', response.data[0]);
-          }
           const normalized = normalizeCustomers(Array.isArray(response?.data) ? response.data : []);
-          console.log('[CustomersListScreen] Normalized customers:', normalized);
           setCustomers(normalized);
         }
       } catch (err) {
@@ -99,7 +112,7 @@ export default function CustomersListScreen() {
     return () => {
       controller.abort();
     };
-  }, [isStaff]);
+  }, [isStaff, refreshTick]);
 
   if (!isStaff) {
     return <Redirect href="/(app)/dashboard" />;
@@ -114,16 +127,7 @@ export default function CustomersListScreen() {
         <ThemedCard
           key={customer.renderKey}
           style={styles.card}
-          onPress={() => {
-            const route = `/(app)/customers/${customer.customerId}`;
-            console.log('[CustomersListScreen] Navigating to customer:', {
-              customer,
-              route,
-              customerId: customer.customerId,
-              customerIdType: typeof customer.customerId,
-            });
-            router.push(route as never);
-          }}
+          onPress={() => router.push(`/(app)/customers/${customer.customerId}` as never)}
         >
           <Text style={styles.cardTitle}>{customer.companyName ?? `Customer #${customer.customerId}`}</Text>
           <Text style={styles.cardMeta}>Account: {customer.accountNumber ?? 'N/A'}</Text>

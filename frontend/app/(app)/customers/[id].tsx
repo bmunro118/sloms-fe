@@ -1,12 +1,13 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Pencil as EditIcon, RotateCcw as ResetIcon, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -177,7 +178,7 @@ export default function CustomerDetailScreen() {
     };
   }, [customerId, isStaff, customer]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!Number.isFinite(customerId) || !customer) return;
 
     setIsSaving(true);
@@ -217,56 +218,53 @@ export default function CustomerDetailScreen() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [customer, customerId, formData]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     if (isEditing) {
       return [
-        {
+        buildIconTopBarAction({
           id: 'save-customer',
           label: isSaving ? 'Saving...' : 'Save changes',
-          accessibilityLabel: isSaving ? 'Saving changes' : 'Save changes',
+          accessibilityLabel: isSaving ? 'Saving changes' : undefined,
           onPress: handleSave,
+          icon: SaveIcon,
           disabled: isSaving,
-          renderIcon: ({ color, size }) => <SaveIcon color={color} size={size} />,
-        },
-        {
+        }),
+        buildIconTopBarAction({
           id: 'reset-customer-form',
           label: 'Reset changes',
-          accessibilityLabel: 'Reset changes',
           onPress: () => {
             if (customer) {
               setFormData(customer);
             }
           },
+          icon: ResetIcon,
           disabled: isSaving || !customer,
-          renderIcon: ({ color, size }) => <ResetIcon color={color} size={size} />,
-        },
-        {
+        }),
+        buildIconTopBarAction({
           id: 'cancel-customer-edit',
           label: 'Cancel edit',
-          accessibilityLabel: 'Cancel edit',
           onPress: () => {
             setIsEditing(false);
             if (customer) {
               setFormData(customer);
             }
           },
+          icon: CancelIcon,
           disabled: isSaving,
-          renderIcon: ({ color, size }) => <CancelIcon color={color} size={size} />,
-        },
+        }),
       ];
     }
 
     return [
-      {
+      buildIconTopBarAction({
         id: 'edit-customer',
         label: 'Edit customer',
-        accessibilityLabel: 'Edit customer',
         onPress: () => setIsEditing(true),
+        icon: EditIcon,
         disabled: isLoading || !customer,
-        renderIcon: ({ color, size }) => <EditIcon color={color} size={size} />,
-      },
+      }),
     ];
   }, [customer, handleSave, isEditing, isLoading, isSaving]);
 

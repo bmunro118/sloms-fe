@@ -1,11 +1,12 @@
 import { Redirect, useRouter } from 'expo-router';
 import { Plus as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
@@ -28,7 +29,7 @@ export default function CreateOrderScreen() {
     return <Redirect href="/(app)/dashboard" />;
   }
 
-  const handleCreate = async () => {
+  const handleCreate = useCallback(async () => {
     if (!canMutate) {
       setError('Your role does not allow creating orders.');
       return;
@@ -62,30 +63,29 @@ export default function CreateOrderScreen() {
         setIsSaving(false);
       }
     }
-  };
+  }, [canMutate, customerAccount, isMountedRef, orderNumber, router]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
-      {
+      buildIconTopBarAction({
         id: 'submit-create-order',
         label: isSaving ? 'Creating order...' : 'Create order',
-        accessibilityLabel: isSaving ? 'Creating order' : 'Create order',
+        accessibilityLabel: isSaving ? 'Creating order' : undefined,
         onPress: handleCreate,
+        icon: CreateIcon,
         disabled: isSaving,
-        renderIcon: ({ color, size }) => <CreateIcon color={color} size={size} />,
-      },
-      {
+      }),
+      buildIconTopBarAction({
         id: 'reset-create-order-form',
         label: 'Reset form',
-        accessibilityLabel: 'Reset form',
         onPress: () => {
           setOrderNumber('');
           setCustomerAccount('');
           setError(null);
         },
+        icon: ResetIcon,
         disabled: isSaving,
-        renderIcon: ({ color, size }) => <ResetIcon color={color} size={size} />,
-      },
+      }),
     ];
   }, [handleCreate, isSaving]);
 
@@ -120,9 +120,5 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
-    title: {
-      ...common.title,
-      marginBottom: 4,
-    },
   });
 }

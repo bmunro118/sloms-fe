@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Menu as MenuIcon, MoreHorizontal as MoreIcon, X as CloseIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
@@ -53,9 +53,12 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
 
   useEffect(() => {
     setOverflowOpen(false);
-  }, [directActionCount, title, actions]);
+  }, [directActionCount, title]);
 
   const closeOverflow = () => setOverflowOpen(false);
+  const isHovered = (state: PressableStateCallbackType) => {
+    return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
+  };
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 12 }]} onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}>
@@ -78,10 +81,11 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
               accessibilityLabel={action.accessibilityLabel}
               disabled={action.disabled}
               onPress={action.onPress}
-              style={({ pressed }) => [
+              style={(state) => [
                 styles.actionButton,
                 action.disabled ? styles.actionButtonDisabled : null,
-                pressed && !action.disabled ? styles.actionButtonPressed : null,
+                isHovered(state) && !action.disabled ? styles.actionButtonHover : null,
+                state.pressed && !action.disabled ? styles.actionButtonPressed : null,
               ]}
             >
               {action.renderIcon({
@@ -97,7 +101,11 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
           accessibilityRole="button"
           accessibilityLabel="More top bar actions"
           onPress={() => setOverflowOpen(true)}
-          style={({ pressed }) => [styles.actionButton, pressed ? styles.actionButtonPressed : null]}
+          style={(state) => [
+            styles.actionButton,
+            isHovered(state) ? styles.actionButtonHover : null,
+            state.pressed ? styles.actionButtonPressed : null,
+          ]}
         >
           <MoreIcon size={18} color={theme.colors.navTextStrong} />
         </Pressable>
@@ -106,7 +114,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
       <Modal animationType="fade" transparent visible={overflowOpen} onRequestClose={closeOverflow}>
         <View style={styles.modalRoot}>
           <Pressable style={styles.modalBackdrop} onPress={closeOverflow} />
-          <View style={[styles.overflowMenu, { top: insets.top + 54 }]}> 
+          <View style={[styles.overflowMenu, { top: insets.top + 54 }]}>
             {overflowActions.map((action, index) => (
               <Pressable
                 key={action.id}
@@ -184,6 +192,9 @@ function createStyles(theme: AppTheme) {
       borderColor: theme.colors.navBorder,
     },
     actionButtonPressed: {
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    actionButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,
     },
     actionButtonDisabled: {

@@ -30,6 +30,35 @@ interface ScreenTitleContextValue {
 
 const ScreenTitleContext = createContext<ScreenTitleContextValue | undefined>(undefined);
 
+function areTopBarActionsEqual(left: TopBarAction[], right: TopBarAction[]): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const a = left[index];
+    const b = right[index];
+
+    if (
+      a.id !== b.id
+      || a.label !== b.label
+      || a.accessibilityLabel !== b.accessibilityLabel
+      || a.disabled !== b.disabled
+      || a.hidden !== b.hidden
+      || a.onPress !== b.onPress
+      || a.renderIcon !== b.renderIcon
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export function ScreenTitleProvider({ children }: { children: React.ReactNode }) {
   const [title, setTitleState] = useState('');
   const [actions, setActionsState] = useState<TopBarAction[]>([]);
@@ -40,13 +69,15 @@ export function ScreenTitleProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const setTopBar = useCallback((config: ScreenTopBarConfig) => {
-    setTitleState(config.title);
-    setActionsState(config.actions ?? []);
+    const nextActions = config.actions ?? [];
+
+    setTitleState((currentTitle) => (currentTitle === config.title ? currentTitle : config.title));
+    setActionsState((currentActions) => (areTopBarActionsEqual(currentActions, nextActions) ? currentActions : nextActions));
   }, []);
 
   const resetTopBar = useCallback(() => {
-    setTitleState('');
-    setActionsState([]);
+    setTitleState((currentTitle) => (currentTitle === '' ? currentTitle : ''));
+    setActionsState((currentActions) => (currentActions.length === 0 ? currentActions : []));
   }, []);
 
   const value = useMemo(() => ({

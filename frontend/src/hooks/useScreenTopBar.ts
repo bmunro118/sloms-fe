@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ScreenTopBarConfig, TopBarAction, useScreenTitleContext } from '@context/ScreenTitleContext';
 
 interface UseScreenTopBarOptions {
@@ -8,17 +8,20 @@ interface UseScreenTopBarOptions {
 
 export function useScreenTopBar({ title, actions = [] }: UseScreenTopBarOptions): void {
   const { setTopBar, resetTopBar } = useScreenTitleContext();
+  const visibleActions = useMemo(() => actions.filter((action) => !action.hidden), [actions]);
 
   useEffect(() => {
-    const visibleActions = actions.filter((action) => !action.hidden);
     const config: ScreenTopBarConfig = {
       title,
       actions: visibleActions,
     };
 
     setTopBar(config);
+  }, [setTopBar, title, visibleActions]);
+
+  useEffect(() => {
     return () => {
       resetTopBar();
     };
-  }, [actions, resetTopBar, setTopBar, title]);
+  }, [resetTopBar]);
 }

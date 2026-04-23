@@ -169,6 +169,8 @@ Screen top bar propagation:
 2. Screens can call `useScreenTopBar({ title, actions })` (`src/hooks/useScreenTopBar.ts`) to register both title and multiple action buttons (icon + handler) for `TopBar`.
 3. `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) remains supported for title-only screens.
 4. Screen content does not contain a title `Text` element; the title and actions are rendered by `TopBar`.
+5. Shared action construction helper `buildIconTopBarAction(...)` (`src/features/app-shell/top-bar-actions.ts`) standardizes icon-action wiring and accessibility defaults across screens.
+6. `useScreenTopBar(...)` applies title/actions updates reactively but only clears top-bar state on screen unmount, preventing transient title/action resets during routine rerenders.
 
 UI terminology dictionary (canonical naming):
 
@@ -246,8 +248,13 @@ Current baseline after latest migration and fixes:
 11. Orders list now uses two `TopBar` actions (`refresh-orders`, `create-order`) to demonstrate multi-button registration and handlers.
 12. Hidden `TopBar` actions are no longer dropped on narrow layouts; they move into a `More` overflow menu.
 13. Customer detail uses `TopBar` editing actions (`edit-customer`, `save-customer`, `reset-customer-form`, `cancel-customer-edit`), making it the primary reference for state-dependent screen actions and overflow behavior.
-14. Account uses `TopBar` actions (`submit-password-change`, `reset-password-form`, `sign-out-account`) for form submission and session controls instead of in-content action buttons.
+14. Account now keeps only `reset-password-form` in `TopBar`; password submission uses a right-aligned in-content `Save` button directly below the `New password` input, styled to match `TopBar` action buttons.
 15. Create Order uses `TopBar` actions (`submit-create-order`, `reset-create-order-form`) so order creation follows the same page-level action pattern as the other form screens.
+16. TopBar action reference screens now use the shared `buildIconTopBarAction(...)` helper for consistent icon renderer generation and label/accessibility handling.
+17. Customers, Users, and Documents list screens now use `TopBar` refresh actions (`refresh-customers`, `refresh-users`, `refresh-documents`) to support explicit data reload without in-content control duplication.
+18. TopBar `More` overflow interaction is stabilized so the menu remains open for item selection instead of dismissing immediately on transient action-state updates.
+19. TopBar action handlers on form-heavy screens are memoized to keep action references stable and prevent React maximum update-depth loops in `useScreenTopBar(...)` flows.
+20. On web, `TopBar` action buttons now use the same hover background treatment as sidebar/drawer nav menu items for interaction consistency.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

@@ -6,6 +6,7 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -35,24 +36,22 @@ export default function OrdersListScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const actions: TopBarAction[] = [
-      {
+      buildIconTopBarAction({
         id: 'refresh-orders',
         label: 'Refresh orders',
-        accessibilityLabel: 'Refresh orders',
         onPress: () => setRefreshTick((value) => value + 1),
+        icon: RefreshIcon,
         disabled: isLoading,
-        renderIcon: ({ color, size }) => <RefreshIcon color={color} size={size} />,
-      },
+      }),
     ];
 
     if (isStaff && canMutate) {
-      actions.push({
+      actions.push(buildIconTopBarAction({
         id: 'create-order',
         label: 'Create order',
-        accessibilityLabel: 'Create order',
         onPress: () => router.push('/(app)/orders/create'),
-        renderIcon: ({ color, size }) => <PlusIcon color={color} size={size} />,
-      });
+        icon: PlusIcon,
+      }));
     }
 
     return actions;

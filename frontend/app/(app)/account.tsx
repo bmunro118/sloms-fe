@@ -1,12 +1,14 @@
-import { KeyRound as PasswordIcon, LogOut as SignOutIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -14,7 +16,8 @@ import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 export default function AccountScreen() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -22,7 +25,7 @@ export default function AccountScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePasswordChange = async () => {
+  const handlePasswordChange = useCallback(async () => {
     setStatus(null);
     if (!currentPassword || !newPassword) {
       setStatus('Enter current and new password.');
@@ -53,40 +56,23 @@ export default function AccountScreen() {
         setIsSubmitting(false);
       }
     }
-  };
+  }, [currentPassword, isMountedRef, newPassword]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
-      {
-        id: 'submit-password-change',
-        label: isSubmitting ? 'Updating password...' : 'Update password',
-        accessibilityLabel: isSubmitting ? 'Updating password' : 'Update password',
-        onPress: handlePasswordChange,
-        disabled: isSubmitting,
-        renderIcon: ({ color, size }) => <PasswordIcon color={color} size={size} />,
-      },
-      {
+      buildIconTopBarAction({
         id: 'reset-password-form',
         label: 'Reset form',
-        accessibilityLabel: 'Reset form',
         onPress: () => {
           setCurrentPassword('');
           setNewPassword('');
           setStatus(null);
         },
+        icon: ResetIcon,
         disabled: isSubmitting,
-        renderIcon: ({ color, size }) => <ResetIcon color={color} size={size} />,
-      },
-      {
-        id: 'sign-out-account',
-        label: 'Sign out',
-        accessibilityLabel: 'Sign out',
-        onPress: signOut,
-        disabled: isSubmitting,
-        renderIcon: ({ color, size }) => <SignOutIcon color={color} size={size} />,
-      },
+      }),
     ];
-  }, [handlePasswordChange, isSubmitting, signOut]);
+  }, [isSubmitting]);
 
   useScreenTopBar({ title: 'Account', actions: topBarActions });
 
@@ -112,9 +98,32 @@ export default function AccountScreen() {
         onChangeText={setNewPassword}
         editable={!isSubmitting}
       />
+      <View style={styles.saveButtonRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isSubmitting ? 'Saving password change' : 'Save password change'}
+          disabled={isSubmitting}
+          onPress={handlePasswordChange}
+          style={(state) => [
+            styles.saveButton,
+            isSubmitting ? styles.actionButtonDisabled : null,
+            isHovered(state) && !isSubmitting ? styles.saveButtonHover : null,
+            state.pressed && !isSubmitting ? styles.saveButtonPressed : null,
+          ]}
+        >
+          <SaveIcon size={16} color={isSubmitting ? theme.colors.textMuted : theme.colors.navTextStrong} />
+          <Text style={[styles.saveButtonText, isSubmitting ? styles.saveButtonTextDisabled : null]}>
+            {isSubmitting ? 'Saving...' : 'Save Password'}
+          </Text>
+        </Pressable>
+      </View>
       {status ? <Text style={styles.status}>{status}</Text> : null}
     </ScreenContent>
   );
+}
+
+function isHovered(state: PressableStateCallbackType) {
+  return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
 }
 
 function createStyles(theme: AppTheme) {
@@ -122,5 +131,39 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    saveButtonRow: {
+      alignItems: 'flex-end',
+      marginTop: 2,
+      marginBottom: 2,
+    },
+    saveButton: {
+      minHeight: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 12,
+      backgroundColor: theme.colors.navBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+    },
+    saveButtonPressed: {
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    saveButtonHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    actionButtonDisabled: {
+      opacity: 0.55,
+    },
+    saveButtonText: {
+      color: theme.colors.navTextStrong,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    saveButtonTextDisabled: {
+      color: theme.colors.textMuted,
+    },
   });
 }
