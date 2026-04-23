@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { ChevronLeft as CollapseIcon, ChevronRight as ExpandIcon } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, PressableStateCallbackType, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
@@ -29,6 +29,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     }));
   }, [items, pathname]);
 
+  const isHovered = (state: PressableStateCallbackType) => {
+    return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
+  };
+
   const createNavigateHandler = useCallback(
     (href: AppShellNavItem['href'], onNavigate?: () => void) => () => {
       router.push(href as never);
@@ -42,10 +46,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       return navigationItems.map((item) => (
         <Pressable
           key={item.id}
-          style={({ hovered }) => [
+          style={(state) => [
             styles.navItem,
             item.active ? styles.navItemActive : null,
-            hovered && !item.active ? styles.navItemHover : null,
+            isHovered(state) && !item.active ? styles.navItemHover : null,
             compact ? styles.navItemCompact : null,
           ]}
           onPress={createNavigateHandler(item.href, onNavigate)}
@@ -70,10 +74,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       return (
         <View style={[styles.sidebar, { width: sidebarWidth }]}> 
           <Pressable
-            style={({ hovered }) => [
+            style={(state) => [
               styles.sidebarToggleButton,
-              hovered ? styles.sidebarToggleButtonHover : null,
-              compact ? styles.navItemCompact : null,
+              !compact ? styles.sidebarToggleButtonExpanded : null,
+              isHovered(state) ? styles.sidebarToggleButtonHover : null,
             ]}
             onPress={() => setIsSidebarExpanded((prev) => !prev)}
           >
@@ -83,9 +87,9 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
           </Pressable>
           <View style={styles.navList}>{renderNavItems(compact)}</View>
           <Pressable
-            style={({ hovered }) => [
+            style={(state) => [
               styles.signOutButton,
-              hovered ? styles.signOutButtonHover : null,
+              isHovered(state) ? styles.signOutButtonHover : null,
               compact ? styles.navItemCompact : null,
             ]}
             onPress={onSignOut}
@@ -155,12 +159,15 @@ function createStyles(theme: AppTheme) {
     },
     navList: {
       gap: 8,
-      marginTop: 8,
+      marginTop: -5,
     },
     sidebarToggleButton: {
+      width: 40,
+      height: 40,
+      alignSelf: 'center',
+      marginTop: -18,
+      marginBottom: 18,
       borderRadius: 10,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
       backgroundColor: theme.colors.navItemBackground,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
@@ -169,6 +176,9 @@ function createStyles(theme: AppTheme) {
     },
     sidebarToggleButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    sidebarToggleButtonExpanded: {
+      alignSelf: 'flex-end',
     },
     navItem: {
       borderRadius: 10,
