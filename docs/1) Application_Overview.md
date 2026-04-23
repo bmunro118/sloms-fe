@@ -114,18 +114,17 @@ The authenticated shell is role-driven:
 Layout profile and shell mode resolution:
 1. Platform class is derived from runtime OS (`web`, `ios`, `android`) and a device-type signal (`phone` vs `tablet`), not from viewport width alone.
 2. Device-type signal must use device-specific detection (`Platform.isPad` on iOS and equivalent Android/native tablet detection) so large phones in landscape are not misclassified as tablets.
-3. Viewport dimensions (width/height) are then used to choose shell presentation mode (`sidebar`, `sidebar-collapsed`, `drawer`) within the resolved platform/device profile.
+3. Viewport dimensions (width/height) are used for platform profile classification; web and tablet profiles default to `sidebar-collapsed`, while native phone uses `drawer`.
 4. Web continues to use desktop/compact profile breakpoints, while native layout decisions require both device type and viewport state.
 5. Native phone drawer layouts use a `TopBar` (title only) at the top and a bottom navigation bar with `Back` and menu icon actions; the menu icon opens the navigation drawer and sign-out remains inside the drawer panel.
-6. Compact web layouts render a `TopBar` that contains a left-aligned menu icon button and the current page title; pressing the icon opens the compact navigation drawer.
-7. Desktop and tablet sidebar layouts render a `TopBar` (title only) above the scrollable content column, to the right of the sidebar.
+6. Web and tablet sidebar layouts render a `TopBar` (title only) above the scrollable content column, to the right of the sidebar.
+7. In web/tablet sidebar layouts, the menu toggle button is rendered on the sidebar rail; pressing it expands or collapses the sidebar in place.
 8. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
 
 Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
 2. `MobileNavLayout` (`src/components/navigation/MobileNavLayout.tsx`) — drawer variant for `native-phone`; top bar + scrollable content + bottom bar.
-3. `CompactWebNavLayout` (`src/components/navigation/CompactWebNavLayout.tsx`) — drawer variant for `web-compact`; top bar with inline menu button + left-side drawer panel.
-4. `TopBar` (`src/components/navigation/TopBar.tsx`) — shared top bar used by all three variants; reads the current title from `ScreenTitleContext`; renders an optional left-side menu button when `onMenuPress` is provided.
+3. `TopBar` (`src/components/navigation/TopBar.tsx`) — shared top bar used by sidebar and native-phone variants; reads the current title from `ScreenTitleContext`.
 
 Screen title propagation:
 1. `ScreenTitleContext` (`src/context/ScreenTitleContext.tsx`) holds the active page title string and `setTitle` setter; `ScreenTitleProvider` wraps `NavLayout` in `app/(app)/_layout.tsx`.
@@ -138,7 +137,7 @@ UI terminology dictionary (canonical naming):
 |---|---|---|
 | `App Shell` | The authenticated chrome that wraps all `app/(app)` screens and provides navigation + title area. | `NavLayout` and delegated variants |
 | `Platform Profile` | Runtime profile classification: `web-desktop`, `web-compact`, `native-tablet`, `native-phone`. | App-shell mode resolution |
-| `Shell Mode` | Presentation mode inside a profile: `sidebar`, `sidebar-collapsed`, `drawer`. | `useAppShell()` output |
+| `Shell Mode` | Presentation mode inside a profile: `sidebar-collapsed` (web/tablet) or `drawer` (native phone). | `useAppShell()` output |
 | `TopBar` | Shared top title region at the top of content; renders page title and optional compact menu button. | All shell variants |
 | `Page Title` | Current screen title text shown in `TopBar`; sourced from `useScreenTitle(...)`. | All authenticated screens |
 | `Sidebar` | Persistent left navigation rail used in desktop/tablet sidebar modes. | `NavLayout` |
@@ -147,7 +146,7 @@ UI terminology dictionary (canonical naming):
 | `Drawer Panel` | The visible navigation panel containing nav items and sign-out control. | Inside drawer overlay |
 | `Drawer Backdrop` | The translucent overlay area outside the panel that closes the drawer on press. | Drawer variants |
 | `Bottom Bar` | Fixed bottom action bar on native phone with navigation controls. | `MobileNavLayout` |
-| `Menu Button` | Icon-only control (lucide `Menu`) that opens the drawer (`TopBar` on compact web, bottom bar on native phone). | Compact web and native phone |
+| `Menu Button` | Icon-only control used for navigation chrome actions: expands/collapses the web/tablet sidebar rail and opens the native-phone drawer. | Sidebar rail on web/tablet, bottom bar on native phone |
 | `Back Button` | Native-phone bottom bar action that triggers router back navigation. | `MobileNavLayout` |
 | `Nav Item` | Role-filtered route entry in sidebar/drawer navigation list. | All nav variants |
 | `Sign out Button` | Session termination action placed at the end of sidebar/drawer navigation. | All nav variants |
@@ -156,7 +155,7 @@ UI terminology dictionary (canonical naming):
 
 Terminology guidance:
 1. Use `TopBar` instead of generic alternatives like "header" when referencing this component in code tasks and tickets.
-2. Use `Drawer` for overlay navigation variants; reserve `Sidebar` for persistent desktop/tablet nav rails.
+2. Use `Drawer` for native-phone overlay navigation; reserve `Sidebar` for persistent web/tablet nav rails.
 3. Use `Page Title` for module titles and avoid rendering title text inside screen content containers.
 
 ### 9. Theme & Styling System

@@ -56,16 +56,18 @@ Derived from `PlatformProfile` and viewport width.
 
 | Value | Condition |
 |---|---|
-| `sidebar` | web-desktop, width ≥ 1280 px OR native-tablet, width ≥ 1024 px |
-| `sidebar-collapsed` | web-desktop, 1024 px ≤ width < 1280 px OR native-tablet, width < 1024 px |
-| `drawer` | web-compact OR native-phone |
+| `sidebar-collapsed` | web-desktop OR web-compact OR native-tablet |
+| `drawer` | native-phone |
 
 `NavLayout` reads `shellMode` from `useAppShell()` and renders the appropriate variant.
 
 Small-screen shell variants:
 1. `native-phone` uses a bottom navigation bar with `Back` and `Menu` actions.
-2. `web-compact` uses a floating `Menu` button instead of a fixed header bar.
-3. Both variants still open a drawer panel for role-based navigation items and sign-out.
+
+Sidebar toggle behavior:
+1. Web and tablet start in `sidebar-collapsed` mode on all viewport sizes.
+2. The menu toggle button is rendered on the sidebar rail itself.
+3. Pressing the sidebar menu toggle expands or collapses the persistent sidebar in place.
 
 ### Shell breakpoints
 

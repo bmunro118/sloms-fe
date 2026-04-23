@@ -41,21 +41,7 @@ export function resolveShellMode(
   snapshot: ViewportSnapshot,
   profile: PlatformProfile
 ): AppShellMode {
-  const { width } = snapshot;
-
-  if (profile === 'web-desktop') {
-    if (width >= SHELL_BREAKPOINTS.wideDesktop) {
-      return 'sidebar';
-    }
-
-    return 'sidebar-collapsed';
-  }
-
-  if (profile === 'native-tablet') {
-    if (width >= SHELL_BREAKPOINTS.desktop) {
-      return 'sidebar';
-    }
-
+  if (profile === 'web-desktop' || profile === 'web-compact' || profile === 'native-tablet') {
     return 'sidebar-collapsed';
   }
 

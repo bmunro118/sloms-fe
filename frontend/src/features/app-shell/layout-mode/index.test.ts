@@ -24,12 +24,12 @@ describe('resolvePlatformProfile', () => {
 });
 
 describe('resolveShellMode', () => {
-  it('uses full sidebar on wide desktop', () => {
+  it('uses collapsed sidebar on wide desktop', () => {
     const mode = resolveShellMode(
       { width: SHELL_BREAKPOINTS.wideDesktop, height: 900 },
       'web-desktop'
     );
-    expect(mode).toBe('sidebar');
+    expect(mode).toBe('sidebar-collapsed');
   });
 
   it('uses collapsed sidebar on medium desktop', () => {
@@ -37,13 +37,16 @@ describe('resolveShellMode', () => {
     expect(mode).toBe('sidebar-collapsed');
   });
 
-  it('uses collapsed sidebar on native tablet under desktop threshold', () => {
+  it('uses collapsed sidebar on native tablet regardless of width', () => {
     const mode = resolveShellMode({ width: 900, height: 1024 }, 'native-tablet');
     expect(mode).toBe('sidebar-collapsed');
   });
 
-  it('uses drawer for compact profiles', () => {
-    expect(resolveShellMode({ width: 480, height: 900 }, 'web-compact')).toBe('drawer');
+  it('uses collapsed sidebar on compact web', () => {
+    expect(resolveShellMode({ width: 480, height: 900 }, 'web-compact')).toBe('sidebar-collapsed');
+  });
+
+  it('uses drawer for native phone', () => {
     expect(resolveShellMode({ width: 390, height: 844 }, 'native-phone')).toBe('drawer');
   });
 });

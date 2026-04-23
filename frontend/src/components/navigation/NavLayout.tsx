@@ -1,10 +1,10 @@
 import { usePathname, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { ChevronLeft as CollapseIcon, ChevronRight as ExpandIcon } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
-import { CompactWebNavLayout } from './CompactWebNavLayout';
 import { MobileNavLayout } from './MobileNavLayout';
 import { NavItemIcon } from './NavItemIcon';
 import { NavLayoutProps } from './navigationTypes';
@@ -17,8 +17,9 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const isCollapsed = shellMode === 'sidebar-collapsed';
   const showDrawer = shellMode === 'drawer';
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const isCollapsed = !isSidebarExpanded;
   const sidebarWidth = isCollapsed ? theme.layout.compactSidebarWidth : theme.layout.expandedSidebarWidth;
 
   const navigationItems = useMemo(() => {
@@ -67,7 +68,19 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const renderSidebar = useCallback(
     (compact: boolean) => {
       return (
-        <View style={[styles.sidebar, { width: compact ? 84 : sidebarWidth }]}> 
+        <View style={[styles.sidebar, { width: sidebarWidth }]}> 
+          <Pressable
+            style={({ hovered }) => [
+              styles.sidebarToggleButton,
+              hovered ? styles.sidebarToggleButtonHover : null,
+              compact ? styles.navItemCompact : null,
+            ]}
+            onPress={() => setIsSidebarExpanded((prev) => !prev)}
+          >
+            {compact
+              ? <ExpandIcon size={18} color={theme.colors.navItemText} />
+              : <CollapseIcon size={18} color={theme.colors.navItemText} />}
+          </Pressable>
           <View style={styles.navList}>{renderNavItems(compact)}</View>
           <Pressable
             style={({ hovered }) => [
@@ -82,18 +95,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
         </View>
       );
     },
-    [onSignOut, renderNavItems, sidebarWidth]
+    [onSignOut, renderNavItems, sidebarWidth, theme.colors.navItemText]
   );
 
   if (showDrawer) {
-    if (platformProfile === 'web-compact') {
-      return (
-        <CompactWebNavLayout items={items} onSignOut={onSignOut}>
-          {children}
-        </CompactWebNavLayout>
-      );
-    }
-
     return (
       <MobileNavLayout items={items} onSignOut={onSignOut}>
         {children}
@@ -150,6 +155,20 @@ function createStyles(theme: AppTheme) {
     },
     navList: {
       gap: 8,
+      marginTop: 8,
+    },
+    sidebarToggleButton: {
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: theme.colors.navItemBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sidebarToggleButtonHover: {
+      backgroundColor: theme.colors.navItemHoverBackground,
     },
     navItem: {
       borderRadius: 10,
