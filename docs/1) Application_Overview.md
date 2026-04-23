@@ -155,8 +155,9 @@ Layout profile and shell mode resolution:
 5. Native phone drawer layouts use a `TopBar` (title + optional screen-defined actions) at the top and a bottom navigation bar with `Back` and menu icon actions; the menu icon opens the navigation drawer and sign-out remains inside the drawer panel.
 6. Web and tablet sidebar layouts render a `TopBar` (title + optional screen-defined actions) above the scrollable content column, to the right of the sidebar.
 7. In web/tablet sidebar layouts, the menu toggle button is rendered on the sidebar rail; pressing it expands or collapses the sidebar in place.
-8. The sidebar menu toggle uses a dedicated fixed-size square button style in both collapsed and expanded sidebar states (it does not stretch like nav item buttons).
-9. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
+8. The sidebar menu toggle uses the same size and rounded-rectangle shape as collapsed sidebar nav item buttons in both collapsed and expanded sidebar states.
+9. The sidebar menu toggle remains horizontally anchored to the collapsed-rail position when the sidebar expands, so it does not jump to a new x-position.
+10. In native phone drawer panels, the sign-out action appears at the top, a flexible spacer separates it from navigation, and the `Account` nav item stays aligned at the bottom of the drawer list.
 
 Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
@@ -256,6 +257,7 @@ Current baseline after latest migration and fixes:
 18. TopBar `More` overflow interaction is stabilized so the menu remains open for item selection instead of dismissing immediately on transient action-state updates.
 19. TopBar action handlers on form-heavy screens are memoized to keep action references stable and prevent React maximum update-depth loops in `useScreenTopBar(...)` flows.
 20. On web, `TopBar` action buttons now use the same hover background treatment as sidebar/drawer nav menu items for interaction consistency.
+21. Order Detail now renders `Mark as dispatched` with the shared `contentAction*` main-content button preset, matching the reusable action-button styling contract used by Account.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

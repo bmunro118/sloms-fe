@@ -1,8 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
@@ -115,17 +114,33 @@ export default function OrderDetailScreen() {
       ) : null}
 
       {canMutate ? (
-        <ThemedButton
-          style={styles.button}
-          onPress={handleDispatch}
-          label={isDispatching ? 'Dispatching...' : 'Mark as dispatched'}
-          disabled={isDispatching}
-        />
+        <View style={styles.contentActionRowRight}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
+            disabled={isDispatching}
+            onPress={handleDispatch}
+            style={(state) => [
+              styles.contentActionButton,
+              isDispatching ? styles.contentActionButtonDisabled : null,
+              isHovered(state) && !isDispatching ? styles.contentActionButtonHover : null,
+              state.pressed && !isDispatching ? styles.contentActionButtonPressed : null,
+            ]}
+          >
+            <Text style={[styles.contentActionButtonText, isDispatching ? styles.contentActionButtonTextDisabled : null]}>
+              {isDispatching ? 'Dispatching...' : 'Mark as dispatched'}
+            </Text>
+          </Pressable>
+        </View>
       ) : (
         <Text style={styles.muted}>Read-only role: dispatch action hidden.</Text>
       )}
     </ScreenContent>
   );
+}
+
+function isHovered(state: PressableStateCallbackType) {
+  return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
 }
 
 function createStyles(theme: AppTheme) {
@@ -137,9 +152,9 @@ function createStyles(theme: AppTheme) {
       ...common.card,
       gap: 6,
     },
-    button: {
+    contentActionRowRight: {
+      ...common.contentActionRowRight,
       marginTop: 4,
-      paddingVertical: 11,
     },
   });
 }

@@ -75,9 +75,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
         <View style={[styles.sidebar, { width: sidebarWidth }]}> 
           <Pressable
             style={(state) => [
+              styles.navItem,
+              styles.navItemCompact,
               styles.sidebarToggleButton,
-              !compact ? styles.sidebarToggleButtonExpanded : null,
-              isHovered(state) ? styles.sidebarToggleButtonHover : null,
+              isHovered(state) ? styles.navItemHover : null,
             ]}
             onPress={() => setIsSidebarExpanded((prev) => !prev)}
           >
@@ -137,6 +138,8 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
 }
 
 function createStyles(theme: AppTheme) {
+  const compactRailInnerWidth = theme.layout.compactSidebarWidth - 28;
+
   return StyleSheet.create({
     root: {
       flex: 1,
@@ -165,23 +168,10 @@ function createStyles(theme: AppTheme) {
       marginTop: -5,
     },
     sidebarToggleButton: {
-      width: 40,
-      height: 40,
-      alignSelf: 'center',
+      width: compactRailInnerWidth,
+      alignSelf: 'flex-start',
       marginTop: -18,
       marginBottom: 18,
-      borderRadius: 10,
-      backgroundColor: theme.colors.navItemBackground,
-      borderWidth: 1,
-      borderColor: theme.colors.navBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    sidebarToggleButtonHover: {
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    sidebarToggleButtonExpanded: {
-      alignSelf: 'flex-end',
     },
     navItem: {
       borderRadius: 10,
