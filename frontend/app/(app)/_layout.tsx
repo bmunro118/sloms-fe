@@ -11,7 +11,7 @@ export default function AppLayout() {
   const router = useRouter();
 
   const navItems = useMemo(() => resolveNavItemsForRole(role), [role]);
-  const fallbackHref = navItems[0]?.href ?? '/(app)/dashboard';
+  const fallbackHref = useMemo(() => navItems[0]?.href ?? '/(app)/dashboard', [navItems]);
 
   // Role-based path guard — fires after paint, never blocks Slot from mounting.
   // Auth guard (unauthenticated redirect) is handled by AuthGuard in app/_layout.tsx.

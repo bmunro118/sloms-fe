@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'expo-router';
 import { Modal, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Menu as MenuIcon, MoreHorizontal as MoreIcon, X as CloseIcon } from 'lucide-react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
@@ -22,6 +23,7 @@ interface TopBarProps {
 
 export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const { title, actions } = useScreenTitleContext();
+  const pathname = usePathname();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -55,6 +57,10 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   useEffect(() => {
     setOverflowOpen(false);
   }, [directActionCount, title]);
+
+  useEffect(() => {
+    setOverflowOpen(false);
+  }, [pathname]);
 
   const closeOverflow = () => setOverflowOpen(false);
   const isHovered = (state: PressableStateCallbackType) => {
@@ -163,7 +169,6 @@ function createStyles(theme: AppTheme) {
     bar: {
       position: 'relative',
       zIndex: 300,
-      elevation: 300,
       overflow: 'visible',
       flexDirection: 'row',
       alignItems: 'center',
@@ -228,11 +233,6 @@ function createStyles(theme: AppTheme) {
       borderWidth: 1,
       borderColor: theme.colors.border,
       overflow: 'hidden',
-      shadowColor: '#000000',
-      shadowOpacity: 0.16,
-      shadowRadius: 14,
-      shadowOffset: { width: 0, height: 6 },
-      elevation: 8,
     },
     overflowItem: {
       flexDirection: 'row',

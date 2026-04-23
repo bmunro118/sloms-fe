@@ -1,6 +1,14 @@
-import React from 'react';
-import { LucideIcon } from 'lucide-react-native';
+﻿import React from 'react';
+import { LucideIcon, X as CloseIcon } from 'lucide-react-native';
 import { TopBarAction } from '@context/ScreenTitleContext';
+
+interface BuildCloseTopBarActionOptions {
+  onPress: () => void;
+  label?: string;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+  hidden?: boolean;
+}
 
 interface BuildIconTopBarActionOptions {
   id: string;
@@ -29,5 +37,26 @@ export function buildIconTopBarAction({
     disabled,
     hidden,
     renderIcon: ({ color, size }) => React.createElement(Icon, { color, size }),
+  };
+}
+
+export function buildCloseTopBarAction({
+  onPress,
+  label = 'Close',
+  accessibilityLabel,
+  disabled,
+  hidden,
+}: BuildCloseTopBarActionOptions): TopBarAction {
+  return {
+    ...buildIconTopBarAction({
+      id: 'close-screen',
+      label,
+      accessibilityLabel: accessibilityLabel ?? label,
+      onPress,
+      icon: CloseIcon,
+      disabled,
+      hidden,
+    }),
+    isClose: true,
   };
 }

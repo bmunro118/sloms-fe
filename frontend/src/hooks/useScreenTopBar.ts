@@ -8,7 +8,12 @@ interface UseScreenTopBarOptions {
 
 export function useScreenTopBar({ title, actions = [] }: UseScreenTopBarOptions): void {
   const { setTopBar, resetTopBar } = useScreenTitleContext();
-  const visibleActions = useMemo(() => actions.filter((action) => !action.hidden), [actions]);
+  const visibleActions = useMemo(() => {
+    const filtered = actions.filter((action) => !action.hidden);
+    const normal = filtered.filter((action) => !action.isClose);
+    const close = filtered.filter((action) => action.isClose);
+    return [...normal, ...close];
+  }, [actions]);
 
   useEffect(() => {
     const config: ScreenTopBarConfig = {

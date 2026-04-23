@@ -1,12 +1,12 @@
 import { Redirect, useRouter } from 'expo-router';
-import { Plus as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
+import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildIconTopBarAction } from '@src/features/app-shell';
+import { buildCloseTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
@@ -86,8 +86,12 @@ export default function CreateOrderScreen() {
         icon: ResetIcon,
         disabled: isSaving,
       }),
+      buildCloseTopBarAction({
+        onPress: () => router.replace('/(app)/orders'),
+        label: 'Close create order',
+      }),
     ];
-  }, [handleCreate, isSaving]);
+  }, [handleCreate, isSaving, router]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 

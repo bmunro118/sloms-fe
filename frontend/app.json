@@ -2,6 +2,7 @@
   "expo": {
     "name": "sonic_app",
     "slug": "sonic_app",
+    "scheme": "sonic-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app/icon.png",

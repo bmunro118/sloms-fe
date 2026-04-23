@@ -78,6 +78,7 @@ Rules:
 1. Frontend-exposed variables must use the `EXPO_PUBLIC_` prefix so Expo can statically replace them in the bundle.
 2. Access environment variables directly as `process.env.EXPO_PUBLIC_...`; do not destructure `process.env`.
 3. `.env`, `.env.local`, and `.env.*` are gitignored and must not be committed with secrets or environment-specific overrides.
+4. Expo config must define a stable deep-link scheme (`expo.scheme`) so Expo Router and Linking can resolve production URLs correctly.
 
 Current variables:
 1. `EXPO_PUBLIC_API_URL`
@@ -173,8 +174,9 @@ Screen top bar propagation:
 2. Screens can call `useScreenTopBar({ title, actions })` (`src/hooks/useScreenTopBar.ts`) to register both title and multiple action buttons (icon + handler) for `TopBar`.
 3. `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) remains supported for title-only screens.
 4. Screen content does not contain a title `Text` element; the title and actions are rendered by `TopBar`.
-5. Shared action construction helper `buildIconTopBarAction(...)` (`src/features/app-shell/top-bar-actions.ts`) standardizes icon-action wiring and accessibility defaults across screens.
-6. `useScreenTopBar(...)` applies title/actions updates reactively but only clears top-bar state on screen unmount, preventing transient title/action resets during routine rerenders.
+5. Shared action construction helpers `buildIconTopBarAction(...)` and `buildCloseTopBarAction(...)` (`src/features/app-shell/top-bar-actions.ts`) standardize icon-action wiring for normal and close/dismiss actions.
+6. Secondary screens opened from a `TopBar Action` must expose a close/dismiss `TopBar Action` on the destination screen so users can explicitly return to the owning primary screen.
+7. `useScreenTopBar(...)` applies title/actions updates reactively but only clears top-bar state on screen unmount, preventing transient title/action resets during routine rerenders.
 
 UI terminology dictionary (canonical naming):
 
@@ -262,6 +264,9 @@ Current baseline after latest migration and fixes:
 20. On web, `TopBar` action buttons now use the same hover background treatment as sidebar/drawer nav menu items for interaction consistency.
 21. Order Detail now renders `Mark as dispatched` with the shared `contentAction*` main-content button preset, matching the reusable action-button styling contract used by Account.
 22. A shared `TooltipPressable` primitive now wraps all button interactions (including `TopBar`, navigation rails/drawers, auth actions, and screen-level action buttons) so every button exposes a tooltip label without duplicating per-screen tooltip logic.
+23. Native-phone drawer interaction is hardened so a closing/invisible drawer overlay cannot continue intercepting touch input; this prevents intermittent "app unresponsive" states after rapid open/close interactions.
+24. Additional native-phone interaction hardening now closes `TopBar` overflow state on route changes, raises bottom-bar hit-testing order explicitly, and uses measured bottom-bar height for content padding to avoid clipped or unclickable lower-screen content.
+25. Native-phone drawer `Sign out` now uses the same icon-led row pattern as sidebar navigation items (matching web parity) so icon and label alignment stay consistent across navigation actions.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

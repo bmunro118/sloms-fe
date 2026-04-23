@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Plus as PlusIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { PackagePlus as PackagePlusIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -50,7 +50,7 @@ export default function OrdersListScreen() {
         id: 'create-order',
         label: 'Create order',
         onPress: () => router.push('/(app)/orders/create'),
-        icon: PlusIcon,
+        icon: PackagePlusIcon,
       }));
     }
 

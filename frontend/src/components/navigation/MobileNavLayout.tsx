@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ChevronLeft as BackIcon, Menu as MenuIcon, X as CloseIcon } from 'lucide-react-native';
+import { ChevronLeft as BackIcon, LogOut as SignOutIcon, Menu as MenuIcon, X as CloseIcon } from 'lucide-react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
@@ -87,10 +87,8 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start(({ finished }) => {
-      if (finished) {
-        setDrawerVisible(false);
-      }
+    ]).start(() => {
+      setDrawerVisible(false);
     });
   }, [backdropAnimation, drawerAnimation]);
   const goBack = useCallback(() => {
@@ -115,7 +113,7 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
         contentContainerStyle={[
           styles.contentContainer,
           {
-            paddingBottom: insets.bottom + 96,
+            paddingBottom: Math.max(insets.bottom + 96, bottomBarHeight + 16),
           },
         ]}
       >
@@ -123,7 +121,10 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
       </ScrollView>
 
       {drawerVisible ? (
-        <View style={[styles.drawerOverlay, { top: topBarHeight, bottom: drawerBottomInset }]}> 
+        <View
+          pointerEvents={drawerOpen ? 'auto' : 'none'}
+          style={[styles.drawerOverlay, { top: topBarHeight, bottom: drawerBottomInset }]}
+        >
           <Animated.View style={[styles.drawerBackdrop, { opacity: backdropAnimation }]}>
             <Pressable style={styles.drawerBackdropPressable} onPress={closeDrawer} />
           </Animated.View>
@@ -145,7 +146,10 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
               }}
               onPress={onSignOut}
             >
-              <Text style={styles.signOutButtonText}>Sign out</Text>
+              <View style={styles.navItemContent}>
+                <SignOutIcon size={18} color={theme.colors.textPrimary} />
+                <Text style={styles.signOutButtonText}>Sign out</Text>
+              </View>
             </TooltipPressable>
             <View style={styles.drawerSpacer} />
             <View style={styles.navList}>
@@ -178,6 +182,7 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
       ) : null}
 
       <View
+        pointerEvents="box-none"
         style={[
           styles.bottomBar,
           {
@@ -228,6 +233,8 @@ function createStyles(theme: AppTheme) {
       right: 0,
       bottom: 0,
       left: 0,
+      zIndex: 100,
+      elevation: 8,
       flexDirection: 'row',
       justifyContent: 'space-between',
       gap: 12,
@@ -321,11 +328,13 @@ function createStyles(theme: AppTheme) {
     },
     signOutButton: {
       borderRadius: 10,
-      paddingVertical: 10,
+      height: 44,
+      paddingVertical: 0,
       paddingHorizontal: 12,
       backgroundColor: theme.colors.surfaceMuted,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
+      justifyContent: 'center',
       zIndex: 1,
       elevation: 1,
     },
@@ -334,8 +343,8 @@ function createStyles(theme: AppTheme) {
     },
     signOutButtonText: {
       color: theme.colors.textPrimary,
+      fontSize: 14,
       fontWeight: '700',
-      textAlign: 'center',
     },
   });
 }
