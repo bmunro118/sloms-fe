@@ -8,6 +8,7 @@ import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildCloseTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -18,6 +19,7 @@ import { ENDPOINTS } from '@utils/config';
 export default function CreateOrderScreen() {
   const router = useRouter();
   const { isStaff, canMutate } = useAuth();
+  const { showConfirm } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
@@ -29,7 +31,7 @@ export default function CreateOrderScreen() {
     return <Redirect href="/(app)/dashboard" />;
   }
 
-  const handleCreate = useCallback(async () => {
+  const performCreate = useCallback(async () => {
     if (!canMutate) {
       setError('Your role does not allow creating orders.');
       return;
@@ -65,6 +67,25 @@ export default function CreateOrderScreen() {
     }
   }, [canMutate, customerAccount, isMountedRef, orderNumber, router]);
 
+  const handleCreate = useCallback(async () => {
+    if (isSaving) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Create new order?',
+      message: `A new order will be created for customer account ${customerAccount} with order number ${orderNumber}.`,
+      confirmLabel: 'Create',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    await performCreate();
+  }, [isSaving, showConfirm, customerAccount, orderNumber, performCreate]);
+
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
       buildIconTopBarAction({
@@ -91,7 +112,7 @@ export default function CreateOrderScreen() {
         label: 'Close create order',
       }),
     ];
-  }, [handleCreate, isSaving, router]);
+  }, [handleCreate, isSaving, router, performCreate]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 

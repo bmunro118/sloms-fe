@@ -1,8 +1,16 @@
 ﻿import React from 'react';
-import { LucideIcon, X as CloseIcon } from 'lucide-react-native';
+import { ArrowBigLeft as BackIcon, LucideIcon, X as CloseIcon } from 'lucide-react-native';
 import { TopBarAction } from '@context/ScreenTitleContext';
 
 interface BuildCloseTopBarActionOptions {
+  onPress: () => void;
+  label?: string;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+  hidden?: boolean;
+}
+
+interface BuildBackTopBarActionOptions {
   onPress: () => void;
   label?: string;
   accessibilityLabel?: string;
@@ -59,4 +67,22 @@ export function buildCloseTopBarAction({
     }),
     isClose: true,
   };
+}
+
+export function buildBackTopBarAction({
+  onPress,
+  label = 'Back',
+  accessibilityLabel,
+  disabled,
+  hidden,
+}: BuildBackTopBarActionOptions): TopBarAction {
+  return buildIconTopBarAction({
+    id: 'back-screen',
+    label,
+    accessibilityLabel: accessibilityLabel ?? label,
+    onPress,
+    icon: BackIcon,
+    disabled,
+    hidden,
+  });
 }

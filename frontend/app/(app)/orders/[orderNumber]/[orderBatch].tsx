@@ -1,12 +1,17 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { CheckSquare2, Send } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { useAuth } from '@context/AuthContext';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildBackTopBarAction } from '@src/features/app-shell';
+import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
-import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -24,9 +29,11 @@ type OrderDetails = {
 export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
   const { canMutate } = useAuth();
+  const theme = useAppTheme();
+  const router = useRouter();
+  const { showConfirm } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  useScreenTitle('Order Detail');
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
 
@@ -80,6 +87,16 @@ export default function OrderDetailScreen() {
 
   const handleDispatch = async () => {
     if (!canMutate) return;
+
+    const confirmed = await showConfirm({
+      title: 'Mark Order as Dispatched',
+      message: `Are you sure you want to mark order ${orderNumber}/${orderBatch} as dispatched? This action cannot be undone.`,
+      confirmLabel: 'Dispatch',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!confirmed) return;
+
     setIsDispatching(true);
     setError(null);
     try {
@@ -99,6 +116,15 @@ export default function OrderDetailScreen() {
     }
   };
 
+  const topBarActions = useMemo<TopBarAction[]>(() => [
+    buildBackTopBarAction({
+      onPress: () => router.back(),
+      label: 'Back to orders',
+    }),
+  ], [router]);
+
+  useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
+
   return (
     <ScreenContent gap={10}>
       <Text style={styles.meta}>Order: {orderNumber} / Batch: {orderBatch}</Text>
@@ -116,27 +142,41 @@ export default function OrderDetailScreen() {
 
       {canMutate ? (
         <View style={styles.contentActionRowRight}>
-          <TooltipPressable
-            tooltip={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
-            accessibilityRole="button"
-            accessibilityLabel={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
-            disabled={isDispatching}
-            onPress={handleDispatch}
-            style={(state) => [
-              styles.contentActionButton,
-              isDispatching ? styles.contentActionButtonDisabled : null,
-              isHovered(state) && !isDispatching ? styles.contentActionButtonHover : null,
-              state.pressed && !isDispatching ? styles.contentActionButtonPressed : null,
-            ]}
-          >
-            <Text style={[styles.contentActionButtonText, isDispatching ? styles.contentActionButtonTextDisabled : null]}>
-              {isDispatching ? 'Dispatching...' : 'Mark as dispatched'}
-            </Text>
-          </TooltipPressable>
+          {order?.status === 'Dispatched' ? (
+            <TooltipPressable
+              tooltip="Order dispatched"
+              accessibilityRole="button"
+              accessibilityLabel="Order dispatched"
+              disabled={true}
+              style={[styles.contentActionButton, styles.contentActionButtonDisabled]}
+            >
+              <CheckSquare2 size={20} color={theme.colors.textMuted} />
+              <Text style={[styles.contentActionButtonText, styles.contentActionButtonTextDisabled]}>
+                Dispatched
+              </Text>
+            </TooltipPressable>
+          ) : (
+            <TooltipPressable
+              tooltip={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
+              accessibilityRole="button"
+              accessibilityLabel={isDispatching ? 'Dispatching order' : 'Mark order as dispatched'}
+              disabled={isDispatching}
+              onPress={handleDispatch}
+              style={(state) => [
+                styles.contentActionButton,
+                isDispatching ? styles.contentActionButtonDisabled : null,
+                isHovered(state) && !isDispatching ? styles.contentActionButtonHover : null,
+                state.pressed && !isDispatching ? styles.contentActionButtonPressed : null,
+              ]}
+            >
+              <Send size={20} color={isDispatching ? theme.colors.textMuted : theme.colors.navTextStrong} />
+              <Text style={[styles.contentActionButtonText, isDispatching ? styles.contentActionButtonTextDisabled : null]}>
+                {isDispatching ? 'Dispatching...' : 'Mark as dispatched'}
+              </Text>
+            </TooltipPressable>
+          )}
         </View>
-      ) : (
-        <Text style={styles.muted}>Read-only role: dispatch action hidden.</Text>
-      )}
+      ) : null}
     </ScreenContent>
   );
 }

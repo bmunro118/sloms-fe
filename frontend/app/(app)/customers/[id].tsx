@@ -1,5 +1,5 @@
-import { Redirect, useLocalSearchParams } from 'expo-router';
-import { Pencil as EditIcon, RotateCcw as ResetIcon, Save as SaveIcon, X as CancelIcon } from 'lucide-react-native';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -7,7 +7,8 @@ import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -57,6 +58,8 @@ type AddressesResponse = {
 
 export default function CustomerDetailScreen() {
   const { isStaff } = useAuth();
+  const { showConfirm } = useAppModal();
+  const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const params = useLocalSearchParams<{ id: string }>();
   const customerId = Number(params.id);
@@ -178,7 +181,7 @@ export default function CustomerDetailScreen() {
     };
   }, [customerId, isStaff, customer]);
 
-  const handleSave = useCallback(async () => {
+  const performSave = useCallback(async () => {
     if (!Number.isFinite(customerId) || !customer) return;
 
     setIsSaving(true);
@@ -220,25 +223,65 @@ export default function CustomerDetailScreen() {
     }
   }, [customer, customerId, formData]);
 
+  const handleConfirmSave = useCallback(async () => {
+    if (isSaving) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Save customer changes?',
+      message: 'This will update the customer profile with your current edits.',
+      confirmLabel: 'Save',
+      cancelLabel: 'Keep editing',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    await performSave();
+  }, [isSaving, performSave, showConfirm]);
+
+  const handleConfirmReset = useCallback(async () => {
+    if (isSaving || !customer) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Reset unsaved changes?',
+      message: 'Your current edits will be discarded and values will be restored from the last saved customer record.',
+      confirmLabel: 'Reset',
+      cancelLabel: 'Continue editing',
+      confirmVariant: 'danger',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setFormData(customer);
+  }, [customer, isSaving, showConfirm]);
+
   const topBarActions = useMemo<TopBarAction[]>(() => {
+    const backAction = buildBackTopBarAction({
+      onPress: () => router.back(),
+      label: 'Back to customers',
+    });
+
     if (isEditing) {
       return [
         buildIconTopBarAction({
           id: 'save-customer',
           label: isSaving ? 'Saving...' : 'Save changes',
           accessibilityLabel: isSaving ? 'Saving changes' : undefined,
-          onPress: handleSave,
+          onPress: handleConfirmSave,
           icon: SaveIcon,
           disabled: isSaving,
         }),
         buildIconTopBarAction({
           id: 'reset-customer-form',
           label: 'Reset changes',
-          onPress: () => {
-            if (customer) {
-              setFormData(customer);
-            }
-          },
+          onPress: handleConfirmReset,
           icon: ResetIcon,
           disabled: isSaving || !customer,
         }),
@@ -251,9 +294,10 @@ export default function CustomerDetailScreen() {
               setFormData(customer);
             }
           },
-          icon: CancelIcon,
+          icon: CancelEditIcon,
           disabled: isSaving,
         }),
+        backAction,
       ];
     }
 
@@ -265,8 +309,9 @@ export default function CustomerDetailScreen() {
         icon: EditIcon,
         disabled: isLoading || !customer,
       }),
+      backAction,
     ];
-  }, [customer, handleSave, isEditing, isLoading, isSaving]);
+  }, [customer, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
 
   useScreenTopBar({ title: 'Customer Detail', actions: topBarActions });
 

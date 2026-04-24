@@ -8,6 +8,7 @@ import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
@@ -19,6 +20,7 @@ import { ENDPOINTS } from '@utils/config';
 export default function AccountScreen() {
   const { user } = useAuth();
   const theme = useAppTheme();
+  const { showConfirm } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -33,7 +35,7 @@ export default function AccountScreen() {
     return !isSubmitting && currentTrimmed.length > 0 && nextTrimmed.length > 0 && currentTrimmed !== nextTrimmed;
   }, [currentPassword, isSubmitting, newPassword]);
 
-  const handlePasswordChange = useCallback(async () => {
+  const performPasswordChange = useCallback(async () => {
     setStatus(null);
     if (!currentPassword || !newPassword) {
       setStatus('Enter current and new password.');
@@ -66,6 +68,25 @@ export default function AccountScreen() {
     }
   }, [currentPassword, isMountedRef, newPassword]);
 
+  const handlePasswordChange = useCallback(async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Change password?',
+      message: 'Your account password will be updated with the new password you entered.',
+      confirmLabel: 'Change password',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    await performPasswordChange();
+  }, [isSubmitting, performPasswordChange, showConfirm]);
+
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
       buildIconTopBarAction({
@@ -80,7 +101,7 @@ export default function AccountScreen() {
         disabled: isSubmitting,
       }),
     ];
-  }, [isSubmitting]);
+  }, [isSubmitting, handlePasswordChange]);
 
   useScreenTopBar({ title: 'Account', actions: topBarActions });
 

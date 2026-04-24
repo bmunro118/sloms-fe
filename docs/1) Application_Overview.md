@@ -174,8 +174,8 @@ Screen top bar propagation:
 2. Screens can call `useScreenTopBar({ title, actions })` (`src/hooks/useScreenTopBar.ts`) to register both title and multiple action buttons (icon + handler) for `TopBar`.
 3. `useScreenTitle(title)` (`src/hooks/useScreenTitle.ts`) remains supported for title-only screens.
 4. Screen content does not contain a title `Text` element; the title and actions are rendered by `TopBar`.
-5. Shared action construction helpers `buildIconTopBarAction(...)` and `buildCloseTopBarAction(...)` (`src/features/app-shell/top-bar-actions.ts`) standardize icon-action wiring for normal and close/dismiss actions.
-6. Secondary screens opened from a `TopBar Action` must expose a close/dismiss `TopBar Action` on the destination screen so users can explicitly return to the owning primary screen.
+5. Shared action construction helpers `buildIconTopBarAction(...)`, `buildBackTopBarAction(...)`, and `buildCloseTopBarAction(...)` (`src/features/app-shell/top-bar-actions.ts`) standardize icon-action wiring for normal, back, and close/dismiss actions.
+6. Secondary screens opened from a `TopBar Action` must expose a back or close/dismiss `TopBar Action` on the destination screen so users can explicitly return to the owning primary screen.
 7. `useScreenTopBar(...)` applies title/actions updates reactively but only clears top-bar state on screen unmount, preventing transient title/action resets during routine rerenders.
 
 UI terminology dictionary (canonical naming):
@@ -227,10 +227,62 @@ Reusable UI primitives:
 1. `frontend/src/components/ui/ThemedButton.tsx`
 2. `frontend/src/components/ui/ThemedInput.tsx`
 3. `frontend/src/components/ui/ThemedCard.tsx`
+4. `frontend/src/components/ui/AppModal.tsx` rendered globally via `frontend/src/context/AppModalContext.tsx` and exposed through `frontend/src/hooks/useAppModal.ts` plus an imperative controller for non-component callers.
 
 Theme behavior:
 1. App config uses `userInterfaceStyle: automatic` so the app follows OS light/dark preference.
 2. Android dev-build support for appearance switching is enabled with `expo-system-ui`.
+
+Modal system:
+1. Global modals are mounted at root level via `AppModalProvider` in `frontend/app/_layout.tsx`.
+2. Screens access modals via `useAppModal()` hook from `frontend/src/hooks/useAppModal.ts`.
+3. The hook exposes typed modal functions for consistent UX across the app.
+
+`useAppModal()` hook API:
+1. `showInfo(title, message?)` — Informational modal with OK button.
+2. `showSuccess(title, message?)` — Success modal with OK button.
+3. `showWarning(title, message?)` — Warning modal with OK button.
+4. `showDanger(title, message?)` — Danger/error modal with OK button.
+5. `showConfirm(options)` — Confirmation modal returning `Promise<boolean>`.
+
+`showConfirm(options)` parameters:
+1. `title` (required) — Modal title text.
+2. `message?` — Optional message body.
+3. `confirmLabel?` — Text for confirm button (default: 'Confirm').
+4. `cancelLabel?` — Text for cancel button (default: 'Cancel').
+5. `confirmVariant?` — Button variant: 'primary' | 'secondary' | 'danger' (default: 'primary').
+6. `dismissible?` — Allow closing by backdrop click (default: true).
+7. `onConfirm?` — Callback executed before resolve(true).
+8. `onCancel?` — Callback executed before resolve(false).
+9. `onDismiss?` — Callback if modal dismissed via backdrop.
+
+Implementation pattern for confirmations:
+1. Import the hook: `import { useAppModal } from '@src/hooks/useAppModal';`
+2. Destructure the function: `const { showConfirm } = useAppModal();`
+3. Call asynchronously to wait for user decision:
+```ts
+const confirmed = await showConfirm({
+  title: 'Confirm Action',
+  message: 'Are you sure you want to proceed? This action cannot be undone.',
+  confirmLabel: 'Proceed',
+  cancelLabel: 'Cancel',
+  confirmVariant: 'danger', // Use 'danger' for destructive actions
+});
+
+if (!confirmed) {
+  return; // User cancelled
+}
+
+// Proceed with action
+```
+
+Modal guidelines:
+1. Use `showConfirm()` for high-impact or destructive actions (delete, dispatch, save with unsaved changes, password changes).
+2. Use `confirmVariant: 'danger'` for destructive confirmations (reset form, delete record).
+3. Use `confirmVariant: 'primary'` for reversible confirmations (save, dispatch, proceed).
+4. Always provide custom `confirmLabel` and `cancelLabel` to clarify intent (e.g., "Dispatch" instead of "Confirm").
+5. Keep messages brief and action-focused; include context like record ID or scope if needed.
+6. Pair confirmations with `useCallback` memoization on handler functions to prevent modal state loops.
 
 ### 10. Icon Packages
 Two icon libraries are installed and available across the app:
@@ -267,6 +319,8 @@ Current baseline after latest migration and fixes:
 23. Native-phone drawer interaction is hardened so a closing/invisible drawer overlay cannot continue intercepting touch input; this prevents intermittent "app unresponsive" states after rapid open/close interactions.
 24. Additional native-phone interaction hardening now closes `TopBar` overflow state on route changes, raises bottom-bar hit-testing order explicitly, and uses measured bottom-bar height for content padding to avoid clipped or unclickable lower-screen content.
 25. Native-phone drawer `Sign out` now uses the same icon-led row pattern as sidebar navigation items (matching web parity) so icon and label alignment stay consistent across navigation actions.
+26. A global cross-platform modal subsystem is now mounted at root level (`AppModalProvider`) so screens and shared modules can open typed modals (`info`, `success`, `warning`, `danger`, `confirm`) from anywhere using either `useAppModal()` or the shared modal controller.
+27. Customer Detail, Account, and Create Order screens now use confirm modals for destructive and high-impact actions: save/reset on Customer Detail, password change on Account, and order creation on Create Order; these modals provide consistent confirmation UX with customizable messages and danger-variant styling for reset/destructive flows.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:
