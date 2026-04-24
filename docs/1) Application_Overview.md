@@ -325,6 +325,9 @@ Current baseline after latest migration and fixes:
 28. `TopBar` back actions are now automatically hidden in native-phone drawer layouts so only the bottom-bar `Back Button` is shown, avoiding duplicate back controls on mobile.
 29. `ThemedCard` now supports optional `TopBar Action` arrays for item/card-level icon actions, reusing the same action contract (`id`, `icon`, `label`, `disabled`, handlers) and overflow behavior (`More` menu) used by `TopBar` so card actions and top-level actions stay interaction-consistent.
 30. `TopBar` now right-pins `Back` actions within visible header actions so they render at the far right edge; non-back actions (for example refresh/create) render to the left and extra actions continue to use overflow when space is constrained.
+31. Order Detail now includes a full `TopBar` edit workflow (`edit-order`, `save-order`, `reset-order-form`, `cancel-order-edit`) that mirrors Customer Detail editing patterns and persists updates through `PUT /api/orders/{orderNumber}/{orderBatch}`.
+32. Order Detail now shows a success modal after save completes, providing immediate optimistic feedback once `PUT /api/orders/{orderNumber}/{orderBatch}` resolves successfully.
+33. Field-level validation on Order Detail edit remains schema-aligned with the published OpenAPI contract: `deliveryAddress` is validated as numeric while `priceBand` remains free-text because the current `UpdateOrderDto` schema does not declare enum/pattern constraints.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

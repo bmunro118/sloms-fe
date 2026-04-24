@@ -24,6 +24,7 @@ export default function CreateOrderScreen() {
   const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
   const [customerAccount, setCustomerAccount] = useState('');
+  const [priceBand, setPriceBand] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,12 +48,15 @@ export default function CreateOrderScreen() {
     setIsSaving(true);
     setError(null);
     try {
+      const trimmedPriceBand = priceBand.trim();
+
       await apiRequest(ENDPOINTS.orders.list, {
         method: 'POST',
         requireAuth: true,
         body: {
           orderNumber: parsedOrderNumber,
           customerAccount: parsedCustomer,
+          priceBand: trimmedPriceBand || undefined,
         },
       });
       router.replace('/(app)/orders');
@@ -65,7 +69,7 @@ export default function CreateOrderScreen() {
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, isMountedRef, orderNumber, router]);
+  }, [canMutate, customerAccount, isMountedRef, orderNumber, priceBand, router]);
 
   const handleCreate = useCallback(async () => {
     if (isSaving) {
@@ -102,6 +106,7 @@ export default function CreateOrderScreen() {
         onPress: () => {
           setOrderNumber('');
           setCustomerAccount('');
+          setPriceBand('');
           setError(null);
         },
         icon: ResetIcon,
@@ -112,7 +117,7 @@ export default function CreateOrderScreen() {
         label: 'Close create order',
       }),
     ];
-  }, [handleCreate, isSaving, router, performCreate]);
+  }, [handleCreate, isSaving, router]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
@@ -132,6 +137,13 @@ export default function CreateOrderScreen() {
         style={styles.input}
         value={customerAccount}
         onChangeText={setCustomerAccount}
+        editable={!isSaving}
+      />
+      <ThemedInput
+        placeholder="Price band (optional)"
+        style={styles.input}
+        value={priceBand}
+        onChangeText={setPriceBand}
         editable={!isSaving}
       />
 

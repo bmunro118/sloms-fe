@@ -1,9 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
-import { CheckSquare2, RefreshCw, Send } from 'lucide-react-native';
+import {
+  CheckSquare2,
+  Pencil as EditIcon,
+  PencilOff as CancelEditIcon,
+  RefreshCw,
+  RotateCcw as ResetIcon,
+  Save as SaveIcon,
+  Send,
+} from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { useAuth } from '@context/AuthContext';
@@ -24,14 +33,40 @@ type OrderDetails = {
   status?: string;
   customerAccount?: number;
   customerRef?: string;
+  orderContact?: string;
+  deliveryAddress?: number;
+  priceBand?: string;
 };
+
+type OrderUpdatePayload = {
+  customerRef?: string;
+  orderContact?: string;
+  deliveryAddress?: number;
+  priceBand?: string;
+};
+
+type OrderEditForm = {
+  customerRef: string;
+  orderContact: string;
+  deliveryAddress: string;
+  priceBand: string;
+};
+
+function toOrderEditForm(order: OrderDetails | null): OrderEditForm {
+  return {
+    customerRef: order?.customerRef ?? '',
+    orderContact: order?.orderContact ?? '',
+    deliveryAddress: order?.deliveryAddress !== undefined ? String(order.deliveryAddress) : '',
+    priceBand: order?.priceBand ?? '',
+  };
+}
 
 export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
   const { canMutate } = useAuth();
   const theme = useAppTheme();
   const router = useRouter();
-  const { showConfirm } = useAppModal();
+  const { showConfirm, showSuccess } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
@@ -40,7 +75,10 @@ export default function OrderDetailScreen() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<OrderEditForm>(toOrderEditForm(null));
 
   const canUpdate = (signal?: AbortSignal) => isMountedRef.current && !signal?.aborted;
 
@@ -59,6 +97,9 @@ export default function OrderDetailScreen() {
       });
       if (canUpdate(signal)) {
         setOrder(response);
+        if (!isEditing) {
+          setFormData(toOrderEditForm(response));
+        }
       }
     } catch (err) {
       if (canUpdate(signal)) {
@@ -84,6 +125,96 @@ export default function OrderDetailScreen() {
       controller.abort();
     };
   }, [orderNumber, orderBatch]);
+
+  const performSave = async () => {
+    if (!canMutate || isSaving) {
+      return;
+    }
+
+    const deliveryAddressRaw = formData.deliveryAddress.trim();
+    const hasDeliveryAddress =
+      deliveryAddressRaw.length > 0;
+    const parsedDeliveryAddress = hasDeliveryAddress ? Number(deliveryAddressRaw) : undefined;
+
+    if (hasDeliveryAddress && !Number.isFinite(parsedDeliveryAddress)) {
+      setError('Delivery address must be numeric.');
+      return;
+    }
+
+    const payload: OrderUpdatePayload = {
+      customerRef: formData.customerRef?.trim() || undefined,
+      orderContact: formData.orderContact?.trim() || undefined,
+      deliveryAddress: parsedDeliveryAddress,
+      priceBand: formData.priceBand?.trim() || undefined,
+    };
+
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await apiRequest<OrderDetails>(ENDPOINTS.orders.byId(orderNumber, orderBatch), {
+        method: 'PUT',
+        requireAuth: true,
+        body: payload,
+      });
+
+      if (isMountedRef.current) {
+        setOrder(response);
+        setFormData(toOrderEditForm(response));
+        setIsEditing(false);
+        showSuccess(
+          'Order updated',
+          `Order ${orderNumber}/${orderBatch} was updated successfully.`
+        );
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to save order changes.');
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const handleConfirmSave = async () => {
+    if (isSaving) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Save order changes?',
+      message: `This will update order ${orderNumber}/${orderBatch} with your current edits.`,
+      confirmLabel: 'Save',
+      cancelLabel: 'Keep editing',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    await performSave();
+  };
+
+  const handleConfirmReset = async () => {
+    if (isSaving || !order) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Reset unsaved changes?',
+      message: 'Your current edits will be discarded and values restored from the latest saved order.',
+      confirmLabel: 'Reset',
+      cancelLabel: 'Continue editing',
+      confirmVariant: 'danger',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setFormData(toOrderEditForm(order));
+  };
 
   const handleDispatch = async () => {
     if (!canMutate) return;
@@ -116,21 +247,69 @@ export default function OrderDetailScreen() {
     }
   };
 
-  const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildBackTopBarAction({
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    const backAction = buildBackTopBarAction({
       onPress: () => router.back(),
       label: 'Back to orders',
-    }),
-    buildIconTopBarAction({
-      id: 'refresh-order-details',
-      label: 'Refresh order',
-      onPress: () => {
-        void reload();
-      },
-      icon: RefreshCw,
-      disabled: isLoading,
-    }),
-  ], [isLoading, router]);
+    });
+
+    if (isEditing) {
+      return [
+        buildIconTopBarAction({
+          id: 'save-order',
+          label: isSaving ? 'Saving...' : 'Save changes',
+          accessibilityLabel: isSaving ? 'Saving order changes' : undefined,
+          onPress: () => {
+            void handleConfirmSave();
+          },
+          icon: SaveIcon,
+          disabled: isSaving,
+        }),
+        buildIconTopBarAction({
+          id: 'reset-order-form',
+          label: 'Reset changes',
+          onPress: () => {
+            void handleConfirmReset();
+          },
+          icon: ResetIcon,
+          disabled: isSaving || !order,
+        }),
+        buildIconTopBarAction({
+          id: 'cancel-order-edit',
+          label: 'Cancel edit',
+          onPress: () => {
+            setIsEditing(false);
+            if (order) {
+              setFormData(toOrderEditForm(order));
+            }
+          },
+          icon: CancelEditIcon,
+          disabled: isSaving,
+        }),
+        backAction,
+      ];
+    }
+
+    return [
+      buildIconTopBarAction({
+        id: 'refresh-order-details',
+        label: 'Refresh order',
+        onPress: () => {
+          void reload();
+        },
+        icon: RefreshCw,
+        disabled: isLoading,
+      }),
+      buildIconTopBarAction({
+        id: 'edit-order',
+        label: 'Edit order',
+        onPress: () => setIsEditing(true),
+        icon: EditIcon,
+        disabled: isLoading || !order || !canMutate,
+      }),
+      backAction,
+    ];
+  }, [canMutate, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, order, router]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
@@ -145,11 +324,54 @@ export default function OrderDetailScreen() {
         <ThemedCard style={styles.card}>
           <Text style={styles.cardItem}>Status: {order.status ?? 'Unknown'}</Text>
           <Text style={styles.cardItem}>Customer: {order.customerAccount ?? 'N/A'}</Text>
-          <Text style={styles.cardItem}>Ref: {order.customerRef ?? 'N/A'}</Text>
+
+          {isEditing ? (
+            <>
+              <Text style={styles.label}>Customer Ref</Text>
+              <ThemedInput
+                placeholder="Customer ref"
+                value={formData.customerRef ?? ''}
+                onChangeText={(text) => setFormData((prev) => ({ ...prev, customerRef: text }))}
+                editable={!isSaving}
+              />
+
+              <Text style={styles.label}>Order Contact</Text>
+              <ThemedInput
+                placeholder="Order contact"
+                value={formData.orderContact ?? ''}
+                onChangeText={(text) => setFormData((prev) => ({ ...prev, orderContact: text }))}
+                editable={!isSaving}
+              />
+
+              <Text style={styles.label}>Delivery Address</Text>
+              <ThemedInput
+                placeholder="Delivery address"
+                keyboardType="number-pad"
+                value={formData.deliveryAddress}
+                onChangeText={(text) => setFormData((prev) => ({ ...prev, deliveryAddress: text }))}
+                editable={!isSaving}
+              />
+
+              <Text style={styles.label}>Price Band</Text>
+              <ThemedInput
+                placeholder="Price band"
+                value={formData.priceBand ?? ''}
+                onChangeText={(text) => setFormData((prev) => ({ ...prev, priceBand: text }))}
+                editable={!isSaving}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.cardItem}>Ref: {order.customerRef ?? 'N/A'}</Text>
+              <Text style={styles.cardItem}>Order Contact: {order.orderContact ?? 'N/A'}</Text>
+              <Text style={styles.cardItem}>Delivery Address: {order.deliveryAddress ?? 'N/A'}</Text>
+              <Text style={styles.cardItem}>Price Band: {order.priceBand ?? 'N/A'}</Text>
+            </>
+          )}
         </ThemedCard>
       ) : null}
 
-      {canMutate ? (
+      {canMutate && !isEditing ? (
         <View style={styles.contentActionRowRight}>
           {order?.status === 'Dispatched' ? (
             <TooltipPressable
@@ -202,6 +424,10 @@ function createStyles(theme: AppTheme) {
     card: {
       ...common.card,
       gap: 6,
+    },
+    label: {
+      ...common.meta,
+      marginTop: 8,
     },
     contentActionRowRight: {
       ...common.contentActionRowRight,

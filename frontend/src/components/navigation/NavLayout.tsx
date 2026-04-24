@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from 'expo-router';
-import { ChevronLeft as CollapseIcon, ChevronRight as ExpandIcon, LogOut as SignOutIcon } from 'lucide-react-native';
+import { LogOut as SignOutIcon, PanelLeftClose as CollapseIcon, PanelLeftOpen as ExpandIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, PressableStateCallbackType, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
