@@ -1,14 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
-import { CheckSquare2, Send } from 'lucide-react-native';
+import { PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { CheckSquare2, RefreshCw, Send } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -121,7 +121,16 @@ export default function OrderDetailScreen() {
       onPress: () => router.back(),
       label: 'Back to orders',
     }),
-  ], [router]);
+    buildIconTopBarAction({
+      id: 'refresh-order-details',
+      label: 'Refresh order',
+      onPress: () => {
+        void reload();
+      },
+      icon: RefreshCw,
+      disabled: isLoading,
+    }),
+  ], [isLoading, router]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 

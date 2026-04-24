@@ -323,6 +323,8 @@ Current baseline after latest migration and fixes:
 26. A global cross-platform modal subsystem is now mounted at root level (`AppModalProvider`) so screens and shared modules can open typed modals (`info`, `success`, `warning`, `danger`, `confirm`) from anywhere using either `useAppModal()` or the shared modal controller.
 27. Customer Detail, Account, and Create Order screens now use confirm modals for destructive and high-impact actions: save/reset on Customer Detail, password change on Account, and order creation on Create Order; these modals provide consistent confirmation UX with customizable messages and danger-variant styling for reset/destructive flows.
 28. `TopBar` back actions are now automatically hidden in native-phone drawer layouts so only the bottom-bar `Back Button` is shown, avoiding duplicate back controls on mobile.
+29. `ThemedCard` now supports optional `TopBar Action` arrays for item/card-level icon actions, reusing the same action contract (`id`, `icon`, `label`, `disabled`, handlers) and overflow behavior (`More` menu) used by `TopBar` so card actions and top-level actions stay interaction-consistent.
+30. `TopBar` now right-pins `Back` actions within visible header actions so they render at the far right edge; non-back actions (for example refresh/create) render to the left and extra actions continue to use overflow when space is constrained.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

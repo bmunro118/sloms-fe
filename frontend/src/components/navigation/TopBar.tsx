@@ -30,6 +30,10 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const [barWidth, setBarWidth] = useState(0);
   const [overflowOpen, setOverflowOpen] = useState(false);
 
+  const backActions = useMemo(() => actions.filter((action) => action.isBack === true), [actions]);
+  const nonBackActions = useMemo(() => actions.filter((action) => action.isBack !== true), [actions]);
+  const hasBackAction = backActions.length > 0;
+
   const directActionCount = useMemo(() => {
     if (actions.length === 0 || barWidth <= 0) {
       return actions.length;
@@ -51,8 +55,47 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
     return Math.min(Math.max(0, slotCount - 1), ACTION_LIMIT_HARD_CAP);
   }, [actions.length, barWidth, onMenuPress]);
 
-  const visibleActions = useMemo(() => actions.slice(0, directActionCount), [actions, directActionCount]);
-  const overflowActions = useMemo(() => actions.slice(directActionCount), [actions, directActionCount]);
+  const directNonBackCount = useMemo(() => {
+    if (directActionCount <= 0) {
+      return 0;
+    }
+
+    if (!hasBackAction) {
+      return Math.min(nonBackActions.length, directActionCount);
+    }
+
+    return Math.min(nonBackActions.length, Math.max(0, directActionCount - 1));
+  }, [directActionCount, hasBackAction, nonBackActions.length]);
+
+  const visibleActions = useMemo(() => {
+    if (directActionCount <= 0) {
+      return [];
+    }
+
+    const visibleNonBack = nonBackActions.slice(0, directNonBackCount);
+
+    if (!hasBackAction) {
+      return visibleNonBack;
+    }
+
+    const rightPinnedBackAction = backActions[0];
+    if (!rightPinnedBackAction) {
+      return visibleNonBack;
+    }
+
+    return [...visibleNonBack, rightPinnedBackAction];
+  }, [backActions, directActionCount, directNonBackCount, hasBackAction, nonBackActions]);
+
+  const overflowActions = useMemo(() => {
+    const overflowNonBack = nonBackActions.slice(directNonBackCount);
+
+    if (!hasBackAction) {
+      return overflowNonBack;
+    }
+
+    const remainingBackActions = backActions.slice(1);
+    return [...overflowNonBack, ...remainingBackActions];
+  }, [backActions, directNonBackCount, hasBackAction, nonBackActions]);
 
   useEffect(() => {
     setOverflowOpen(false);
