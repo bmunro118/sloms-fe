@@ -603,10 +603,11 @@ export default function CustomerDetailScreen() {
               <Text style={styles.sectionTitle}>Delivery Addresses</Text>
               {addresses.map((address, idx) => {
                 const isLastAddress = idx === addresses.length - 1;
+                const addressKey = `${address.id ?? 'address'}-${idx}`;
 
                 return (
                 <View
-                  key={address.id}
+                  key={addressKey}
                   style={[
                     styles.addressBlock,
                     isLastAddress && styles.addressBlockLast,
