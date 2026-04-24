@@ -76,13 +76,16 @@ export function buildBackTopBarAction({
   disabled,
   hidden,
 }: BuildBackTopBarActionOptions): TopBarAction {
-  return buildIconTopBarAction({
-    id: 'back-screen',
-    label,
-    accessibilityLabel: accessibilityLabel ?? label,
-    onPress,
-    icon: BackIcon,
-    disabled,
-    hidden,
-  });
+  return {
+    ...buildIconTopBarAction({
+      id: 'back-screen',
+      label,
+      accessibilityLabel: accessibilityLabel ?? label,
+      onPress,
+      icon: BackIcon,
+      disabled,
+      hidden,
+    }),
+    isBack: true,
+  };
 }

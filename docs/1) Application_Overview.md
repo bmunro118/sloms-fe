@@ -177,6 +177,7 @@ Screen top bar propagation:
 5. Shared action construction helpers `buildIconTopBarAction(...)`, `buildBackTopBarAction(...)`, and `buildCloseTopBarAction(...)` (`src/features/app-shell/top-bar-actions.ts`) standardize icon-action wiring for normal, back, and close/dismiss actions.
 6. Secondary screens opened from a `TopBar Action` must expose a back or close/dismiss `TopBar Action` on the destination screen so users can explicitly return to the owning primary screen.
 7. `useScreenTopBar(...)` applies title/actions updates reactively but only clears top-bar state on screen unmount, preventing transient title/action resets during routine rerenders.
+8. In `native-phone` drawer mode, `useScreenTopBar(...)` suppresses `Back` `TopBar Action` entries because the bottom bar already exposes the canonical `Back Button` for that shell profile.
 
 UI terminology dictionary (canonical naming):
 
@@ -321,6 +322,7 @@ Current baseline after latest migration and fixes:
 25. Native-phone drawer `Sign out` now uses the same icon-led row pattern as sidebar navigation items (matching web parity) so icon and label alignment stay consistent across navigation actions.
 26. A global cross-platform modal subsystem is now mounted at root level (`AppModalProvider`) so screens and shared modules can open typed modals (`info`, `success`, `warning`, `danger`, `confirm`) from anywhere using either `useAppModal()` or the shared modal controller.
 27. Customer Detail, Account, and Create Order screens now use confirm modals for destructive and high-impact actions: save/reset on Customer Detail, password change on Account, and order creation on Create Order; these modals provide consistent confirmation UX with customizable messages and danger-variant styling for reset/destructive flows.
+28. `TopBar` back actions are now automatically hidden in native-phone drawer layouts so only the bottom-bar `Back Button` is shown, avoiding duplicate back controls on mobile.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

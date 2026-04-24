@@ -14,6 +14,7 @@ export interface TopBarAction {
   disabled?: boolean;
   hidden?: boolean;
   isClose?: boolean;
+  isBack?: boolean;
 }
 
 export interface ScreenTopBarConfig {
@@ -51,6 +52,7 @@ function areTopBarActionsEqual(left: TopBarAction[], right: TopBarAction[]): boo
       || a.disabled !== b.disabled
       || a.hidden !== b.hidden
       || a.isClose !== b.isClose
+      || a.isBack !== b.isBack
       || a.onPress !== b.onPress
       || a.renderIcon !== b.renderIcon
     ) {
