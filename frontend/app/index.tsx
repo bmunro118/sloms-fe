@@ -1,11 +1,12 @@
 import { Redirect } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { ThemedButton } from '@components/ui/ThemedButton';
+import { Image, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useAuth } from '@context/AuthContext';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppTheme } from '@theme/ThemeProvider';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { ApiError, apiRequest } from '@utils/api';
 import { usesCookieAuth } from '@utils/auth';
@@ -104,19 +105,37 @@ export default function LoginScreen() {
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <ThemedButton
-        label={isSubmitting ? 'Signing in...' : 'Sign in'}
+      <TooltipPressable
+        tooltip={isSubmitting ? 'Signing in…' : 'Sign in'}
+        accessibilityRole="button"
+        accessibilityLabel={isSubmitting ? 'Signing in…' : 'Sign in'}
         disabled={isSubmitting}
         onPress={handleLogin}
-        style={styles.button}
-        textStyle={styles.buttonText}
-      />
+        style={(state) => [
+          styles.contentActionButton,
+          styles.signInButton,
+          isSubmitting ? styles.contentActionButtonDisabled : null,
+          isHovered(state) && !isSubmitting ? styles.contentActionButtonHover : null,
+          state.pressed && !isSubmitting ? styles.contentActionButtonPressed : null,
+        ]}
+      >
+        <Text style={[styles.contentActionButtonText, isSubmitting ? styles.contentActionButtonTextDisabled : null]}>
+          {isSubmitting ? 'Signing in…' : 'Sign in'}
+        </Text>
+      </TooltipPressable>
     </View>
   );
 }
 
+function isHovered(state: PressableStateCallbackType) {
+  return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
+}
+
 function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
   return StyleSheet.create({
+    ...common,
     container: {
       flex: 1,
       alignItems: 'center',
@@ -148,17 +167,11 @@ function createStyles(theme: AppTheme) {
       maxWidth: 360,
       textAlign: 'center',
     },
-    button: {
-      minWidth: 220,
-      borderRadius: theme.radii.lg,
-      paddingHorizontal: 20,
-      paddingVertical: 14,
+    signInButton: {
+      minWidth: 180,
+      justifyContent: 'center',
+      marginTop: 4,
       marginBottom: 12,
-      backgroundColor: theme.colors.accent,
-    },
-    buttonText: {
-      textAlign: 'center',
-      fontSize: 15,
     },
   });
 }
