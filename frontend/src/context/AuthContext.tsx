@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { apiRequest } from '@utils/api';
+import { apiRequest, clearUnauthorizedHandler, setUnauthorizedHandler } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 import {
   JwtPayload,
@@ -193,6 +193,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     hydrateSession();
   }, [hydrateSession]);
+
+  // Register a global 401 handler so any authenticated API call that receives
+  // Unauthorized automatically clears the session and returns to login.
+  // The handler is unregistered on unmount to prevent stale closures.
+  useEffect(() => {
+    setUnauthorizedHandler(async () => {
+      await clearAccessToken();
+      setSignedOutState();
+    });
+    return () => {
+      clearUnauthorizedHandler();
+    };
+  }, [setSignedOutState]);
 
   const signIn = useCallback(
     async ({ accessToken, mustChangePassword: mustChange = false }: SignInPayload) => {

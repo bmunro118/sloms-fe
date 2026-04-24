@@ -1,5 +1,21 @@
 import { getStoredAccessToken, usesCookieAuth } from '@utils/auth';
 
+// ---------------------------------------------------------------------------
+// Global unauthorized handler — registered by AuthContext on mount.
+// Invoked when an authenticated request receives a 401, so the app can
+// aggressively clear session state and return the user to the login screen.
+// ---------------------------------------------------------------------------
+
+let _unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: () => void): void {
+  _unauthorizedHandler = handler;
+}
+
+export function clearUnauthorizedHandler(): void {
+  _unauthorizedHandler = null;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
@@ -100,6 +116,14 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     const responseText = await response.text();
     const payload = extractErrorPayload(contentType, responseText);
     const code = typeof payload.code === 'string' ? payload.code : undefined;
+
+    // When an authenticated request is rejected with 401, the session token
+    // is no longer valid. Notify the auth layer so it can clear state and
+    // redirect the user to login — do this before throwing so the screen's
+    // catch block sees a normal ApiError rather than a stale-state race.
+    if (response.status === 401 && requireAuth) {
+      _unauthorizedHandler?.();
+    }
 
     // Keep backend details out of user-facing errors.
     throw new ApiError(getStatusMessage(response.status), response.status, code);
