@@ -1,13 +1,17 @@
 import { Redirect } from 'expo-router';
 import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { FilterModal } from '@components/ui/FilterModal';
+import { ListFilterHeader } from '@components/ui/ListFilterHeader';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { UserCard } from '@src/features/users/components/UserCard';
+import { useListFilters } from '@src/hooks/useListFilters';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -27,6 +31,10 @@ type UserCardRow = UserRow & {
 
 type UsersResponse = {
   data?: UserRow[];
+};
+
+type UserFilters = {
+  includeInactive: boolean;
 };
 
 function resolveUserKeyBase(entry: UserRow): string {
@@ -60,13 +68,31 @@ function normalizeUserRows(rows: UserRow[]): UserCardRow[] {
   });
 }
 
+const INITIAL_FILTERS: UserFilters = { includeInactive: false };
+
 export default function UsersScreen() {
   const { isAdmin } = useAuth();
   const styles = useThemedStyles(createStyles);
+  const theme = useAppTheme();
   const [refreshTick, setRefreshTick] = useState(0);
   const [users, setUsers] = useState<UserCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    appliedFilters,
+    draftFilters,
+    searchQuery,
+    debouncedSearch,
+    isModalOpen,
+    hasActiveFilters,
+    setSearchQuery,
+    setDraftFilter,
+    openModal,
+    closeModal,
+    applyFilters,
+    clearFilters,
+  } = useListFilters<UserFilters>(INITIAL_FILTERS);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
@@ -90,9 +116,15 @@ export default function UsersScreen() {
     const controller = new AbortController();
     setIsLoading(true);
     setError(null);
+
+    const params = new URLSearchParams();
+    if (appliedFilters.includeInactive) params.set('includeInactive', 'true');
+    const query = params.toString();
+    const url = query ? `${ENDPOINTS.users.list}?${query}` : ENDPOINTS.users.list;
+
     (async () => {
       try {
-        const response = await apiRequest<UsersResponse>(ENDPOINTS.users.list, {
+        const response = await apiRequest<UsersResponse>(url, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
@@ -112,24 +144,63 @@ export default function UsersScreen() {
     return () => {
       controller.abort();
     };
-  }, [isAdmin, refreshTick]);
+  }, [isAdmin, refreshTick, appliedFilters]);
+
+  const filteredUsers = debouncedSearch.trim()
+    ? users.filter((u) => {
+        const q = debouncedSearch.trim().toLowerCase();
+        return (
+          (u.username?.toLowerCase().includes(q) ?? false) ||
+          (u.fullName?.toLowerCase().includes(q) ?? false) ||
+          (u.role?.toLowerCase().includes(q) ?? false)
+        );
+      })
+    : users;
 
   if (!isAdmin) {
     return <Redirect href="/(app)/dashboard" />;
   }
 
   return (
-    <ScreenContent>
-      {isLoading ? <Text style={styles.muted}>Loading users...</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {!isLoading && !error && users.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}
-      {users.map((entry) => (
-        <UserCard
-          key={entry.renderKey}
-          user={entry}
+    <>
+      <ScreenContent>
+        <ListFilterHeader
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          onFilterPress={openModal}
+          hasActiveFilters={hasActiveFilters}
+          placeholder="Search users..."
         />
-      ))}
-    </ScreenContent>
+
+        {isLoading ? <Text style={styles.muted}>Loading users...</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {!isLoading && !error && filteredUsers.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}
+        {filteredUsers.map((entry) => (
+          <UserCard
+            key={entry.renderKey}
+            user={entry}
+          />
+        ))}
+      </ScreenContent>
+
+      <FilterModal
+        visible={isModalOpen}
+        onClose={closeModal}
+        onApply={applyFilters}
+        onClear={clearFilters}
+        title="Filter Users"
+      >
+        <View style={styles.toggleRow}>
+          <Text style={{ color: theme.colors.textPrimary }}>Include inactive accounts</Text>
+          <Switch
+            value={draftFilters.includeInactive}
+            onValueChange={(val) => setDraftFilter('includeInactive', val)}
+            trackColor={{ true: theme.colors.accent, false: theme.colors.border }}
+            thumbColor={theme.colors.surface}
+          />
+        </View>
+      </FilterModal>
+    </>
   );
 }
 
@@ -138,5 +209,10 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
   });
 }

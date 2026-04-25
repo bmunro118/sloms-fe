@@ -1,14 +1,18 @@
 import { useRouter } from 'expo-router';
 import { PackagePlus as PackagePlusIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { FilterModal } from '@components/ui/FilterModal';
+import { ListFilterHeader } from '@components/ui/ListFilterHeader';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { OrderCard } from '@src/features/orders/components/OrderCard';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
+import { useListFilters } from '@src/hooks/useListFilters';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -26,16 +30,49 @@ type OrdersResponse = {
   data?: OrderRow[];
 };
 
+type OrderStatus = 'Received' | 'InProduction' | 'Ready' | 'Dispatched' | 'Voided' | '';
+
+type OrderFilters = {
+  status: OrderStatus;
+  includeVoided: boolean;
+};
+
+const INITIAL_FILTERS: OrderFilters = { status: '', includeVoided: false };
+const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
+  { label: 'Any', value: '' },
+  { label: 'Received', value: 'Received' },
+  { label: 'In Production', value: 'InProduction' },
+  { label: 'Ready', value: 'Ready' },
+  { label: 'Dispatched', value: 'Dispatched' },
+  { label: 'Voided', value: 'Voided' },
+];
+
 export default function OrdersListScreen() {
   const router = useRouter();
   const { canMutate, isStaff } = useAuth();
   const { showConfirm } = useAppModal();
   const styles = useThemedStyles(createStyles);
+  const theme = useAppTheme();
   const [refreshTick, setRefreshTick] = useState(0);
-  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [allOrders, setAllOrders] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dispatchingOrderKey, setDispatchingOrderKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    appliedFilters,
+    draftFilters,
+    searchQuery,
+    debouncedSearch,
+    isModalOpen,
+    hasActiveFilters,
+    setSearchQuery,
+    setDraftFilter,
+    openModal,
+    closeModal,
+    applyFilters,
+    clearFilters,
+  } = useListFilters<OrderFilters>(INITIAL_FILTERS);
 
   const handleDispatchFromList = useCallback(async (order: OrderRow) => {
     if (!canMutate) {
@@ -63,14 +100,10 @@ export default function OrdersListScreen() {
         requireAuth: true,
       });
 
-      setOrders((previousOrders) => previousOrders.map((entry) => {
+      setAllOrders((previousOrders) => previousOrders.map((entry) => {
         if (entry.orderNumber === order.orderNumber && entry.orderBatch === order.orderBatch) {
-          return {
-            ...entry,
-            status: 'Dispatched',
-          };
+          return { ...entry, status: 'Dispatched' };
         }
-
         return entry;
       }));
 
@@ -109,15 +142,24 @@ export default function OrdersListScreen() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setIsLoading(true);
+    setError(null);
+
+    const params = new URLSearchParams();
+    if (appliedFilters.status) params.set('status', appliedFilters.status);
+    if (appliedFilters.includeVoided) params.set('includeVoided', 'true');
+    const query = params.toString();
+    const url = query ? `${ENDPOINTS.orders.list}?${query}` : ENDPOINTS.orders.list;
+
     (async () => {
       try {
-        const response = await apiRequest<OrdersResponse>(ENDPOINTS.orders.list, {
+        const response = await apiRequest<OrdersResponse>(url, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
         });
         if (!controller.signal.aborted) {
-          setOrders(Array.isArray(response?.data) ? response.data : []);
+          setAllOrders(Array.isArray(response?.data) ? response.data : []);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -130,24 +172,93 @@ export default function OrdersListScreen() {
     return () => {
       controller.abort();
     };
-  }, [refreshTick]);
+  }, [refreshTick, appliedFilters]);
+
+  const orders = debouncedSearch.trim()
+    ? allOrders.filter((o) => {
+        const q = debouncedSearch.trim().toLowerCase();
+        return (
+          String(o.orderNumber).includes(q) ||
+          String(o.orderBatch).includes(q) ||
+          (o.status?.toLowerCase().includes(q) ?? false)
+        );
+      })
+    : allOrders;
 
   return (
-    <ScreenContent>
-      {isLoading ? <Text style={styles.muted}>Loading orders...</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
-
-      {orders.map((order) => (
-        <OrderCard
-          key={`${order.orderNumber}-${order.orderBatch}`}
-          order={order}
-          onDispatch={handleDispatchFromList}
-          isDispatching={dispatchingOrderKey === `${order.orderNumber}-${order.orderBatch}`}
+    <>
+      <ScreenContent>
+        <ListFilterHeader
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          onFilterPress={openModal}
+          hasActiveFilters={hasActiveFilters}
+          placeholder="Search orders..."
         />
-      ))}
-    </ScreenContent>
+
+        {isLoading ? <Text style={styles.muted}>Loading orders...</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
+
+        {orders.map((order) => (
+          <OrderCard
+            key={`${order.orderNumber}-${order.orderBatch}`}
+            order={order}
+            onDispatch={handleDispatchFromList}
+            isDispatching={dispatchingOrderKey === `${order.orderNumber}-${order.orderBatch}`}
+          />
+        ))}
+      </ScreenContent>
+
+      <FilterModal
+        visible={isModalOpen}
+        onClose={closeModal}
+        onApply={applyFilters}
+        onClear={clearFilters}
+        title="Filter Orders"
+      >
+        {/* Status picker */}
+        <View>
+          <Text style={[styles.filterLabel, { color: theme.colors.textSecondary }]}>Status</Text>
+          <View style={styles.chipRow}>
+            {STATUS_OPTIONS.map((opt) => {
+              const active = draftFilters.status === opt.value;
+              return (
+                <Pressable
+                  key={opt.value || '__any__'}
+                  onPress={() => setDraftFilter('status', opt.value)}
+                  style={[
+                    styles.chip,
+                    {
+                      borderColor: active ? theme.colors.accent : theme.colors.border,
+                      backgroundColor: active ? theme.colors.accentMuted : theme.colors.inputBackground,
+                      borderRadius: theme.radii.md,
+                    },
+                  ]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                >
+                  <Text style={{ color: active ? theme.colors.accent : theme.colors.textSecondary, fontSize: 13 }}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Include voided toggle */}
+        <View style={styles.toggleRow}>
+          <Text style={{ color: theme.colors.textPrimary }}>Include voided</Text>
+          <Switch
+            value={draftFilters.includeVoided}
+            onValueChange={(val) => setDraftFilter('includeVoided', val)}
+            trackColor={{ true: theme.colors.accent, false: theme.colors.border }}
+            thumbColor={theme.colors.surface}
+          />
+        </View>
+      </FilterModal>
+    </>
   );
 }
 
@@ -156,5 +267,27 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    filterLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 8,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    chip: {
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
   });
 }

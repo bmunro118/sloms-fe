@@ -1,13 +1,17 @@
 import { Redirect } from 'expo-router';
 import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { FilterModal } from '@components/ui/FilterModal';
+import { ListFilterHeader } from '@components/ui/ListFilterHeader';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { CustomerCard } from '@src/features/customers/components/CustomerCard';
+import { useListFilters } from '@src/hooks/useListFilters';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -26,6 +30,10 @@ type CustomerCardRow = Customer & {
 
 type CustomersResponse = {
   data?: Customer[];
+};
+
+type CustomerFilters = {
+  includeSuspended: boolean;
 };
 
 function resolveCustomerKeyBase(customer: Customer): string {
@@ -59,13 +67,31 @@ function normalizeCustomers(rows: Customer[]): CustomerCardRow[] {
   });
 }
 
+const INITIAL_FILTERS: CustomerFilters = { includeSuspended: false };
+
 export default function CustomersListScreen() {
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
+  const theme = useAppTheme();
   const [refreshTick, setRefreshTick] = useState(0);
   const [customers, setCustomers] = useState<CustomerCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const {
+    appliedFilters,
+    draftFilters,
+    searchQuery,
+    debouncedSearch,
+    isModalOpen,
+    hasActiveFilters,
+    setSearchQuery,
+    setDraftFilter,
+    openModal,
+    closeModal,
+    applyFilters,
+    clearFilters,
+  } = useListFilters<CustomerFilters>(INITIAL_FILTERS);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
@@ -89,9 +115,15 @@ export default function CustomersListScreen() {
     const controller = new AbortController();
     setIsLoading(true);
     setError(null);
+
+    const params = new URLSearchParams();
+    if (appliedFilters.includeSuspended) params.set('includeSuspended', 'true');
+    const query = params.toString();
+    const url = query ? `${ENDPOINTS.customers.list}?${query}` : ENDPOINTS.customers.list;
+
     (async () => {
       try {
-        const response = await apiRequest<CustomersResponse>(ENDPOINTS.customers.list, {
+        const response = await apiRequest<CustomersResponse>(url, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
@@ -111,24 +143,62 @@ export default function CustomersListScreen() {
     return () => {
       controller.abort();
     };
-  }, [isStaff, refreshTick]);
+  }, [isStaff, refreshTick, appliedFilters]);
+
+  const filteredCustomers = debouncedSearch.trim()
+    ? customers.filter((c) => {
+        const q = debouncedSearch.trim().toLowerCase();
+        return (
+          (c.companyName?.toLowerCase().includes(q) ?? false) ||
+          (c.accountNumber?.toLowerCase().includes(q) ?? false)
+        );
+      })
+    : customers;
 
   if (!isStaff) {
     return <Redirect href="/(app)/dashboard" />;
   }
 
   return (
-    <ScreenContent>
-      {isLoading ? <Text style={styles.muted}>Loading customers...</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {!isLoading && !error && customers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
-      {customers.map((customer) => (
-        <CustomerCard
-          key={customer.renderKey}
-          customer={customer}
+    <>
+      <ScreenContent>
+        <ListFilterHeader
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          onFilterPress={openModal}
+          hasActiveFilters={hasActiveFilters}
+          placeholder="Search customers..."
         />
-      ))}
-    </ScreenContent>
+
+        {isLoading ? <Text style={styles.muted}>Loading customers...</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {!isLoading && !error && filteredCustomers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
+        {filteredCustomers.map((customer) => (
+          <CustomerCard
+            key={customer.renderKey}
+            customer={customer}
+          />
+        ))}
+      </ScreenContent>
+
+      <FilterModal
+        visible={isModalOpen}
+        onClose={closeModal}
+        onApply={applyFilters}
+        onClear={clearFilters}
+        title="Filter Customers"
+      >
+        <View style={styles.toggleRow}>
+          <Text style={{ color: theme.colors.textPrimary }}>Include suspended</Text>
+          <Switch
+            value={draftFilters.includeSuspended}
+            onValueChange={(val) => setDraftFilter('includeSuspended', val)}
+            trackColor={{ true: theme.colors.accent, false: theme.colors.border }}
+            thumbColor={theme.colors.surface}
+          />
+        </View>
+      </FilterModal>
+    </>
   );
 }
 
@@ -137,5 +207,10 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
   });
 }
