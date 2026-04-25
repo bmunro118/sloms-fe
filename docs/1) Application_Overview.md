@@ -329,6 +329,7 @@ Current baseline after latest migration and fixes:
 32. Order Detail now shows a success modal after save completes, providing immediate optimistic feedback once `PUT /api/orders/{orderNumber}/{orderBatch}` resolves successfully.
 33. Field-level validation on Order Detail edit remains schema-aligned with the published OpenAPI contract: `deliveryAddress` is validated as numeric while `priceBand` remains free-text because the current `UpdateOrderDto` schema does not declare enum/pattern constraints.
 34. Collapsed-sidebar choreography now drives icon slot translation from the same animated sidebar-width value, with an early settle window so nav-item and sign-out icons are already in final collapsed alignment before the rail width reaches its terminal compact size.
+35. Sidebar menu-toggle icon choreography now uses the same settle breakpoint profile as sidebar item icon motion, crossfading between expand/collapse glyphs so toggle state perception remains uniform with rail-collapse timing.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

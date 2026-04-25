@@ -48,6 +48,16 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     outputRange: [collapsedIconCenteredOffset, collapsedIconCenteredOffset, 0],
     extrapolate: 'clamp',
   });
+  const toggleExpandIconOpacity = animatedSidebarWidth.interpolate({
+    inputRange: [theme.layout.compactSidebarWidth, iconSettlePoint, theme.layout.expandedSidebarWidth],
+    outputRange: [1, 1, 0],
+    extrapolate: 'clamp',
+  });
+  const toggleCollapseIconOpacity = animatedSidebarWidth.interpolate({
+    inputRange: [theme.layout.compactSidebarWidth, iconSettlePoint, theme.layout.expandedSidebarWidth],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
 
   const animateSidebarWidth = useCallback(
     (expanded: boolean) => {
@@ -164,9 +174,14 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             ]}
             onPress={() => setIsSidebarExpanded((prev) => !prev)}
           >
-            {compact
-              ? <ExpandIcon size={18} color={theme.colors.navItemText} />
-              : <CollapseIcon size={18} color={theme.colors.navItemText} />}
+            <View style={styles.sidebarToggleIconStack}>
+              <Animated.View style={[styles.sidebarToggleIconLayer, { opacity: toggleExpandIconOpacity }]}>
+                <ExpandIcon size={18} color={theme.colors.navItemText} />
+              </Animated.View>
+              <Animated.View style={[styles.sidebarToggleIconLayer, { opacity: toggleCollapseIconOpacity }]}>
+                <CollapseIcon size={18} color={theme.colors.navItemText} />
+              </Animated.View>
+            </View>
           </TooltipPressable>
           <View style={styles.navList}>{renderNavItems(compact)}</View>
           <TooltipPressable
@@ -208,6 +223,8 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       renderNavItems,
       showSidebarText,
       sidebarIconTranslateX,
+      toggleCollapseIconOpacity,
+      toggleExpandIconOpacity,
       sidebarTextContainerWidth,
       sidebarTextOpacity,
       sidebarTextTranslateX,
@@ -300,6 +317,19 @@ function createStyles(theme: AppTheme) {
       alignSelf: 'flex-start',
       marginTop: -18,
       marginBottom: 18,
+    },
+    sidebarToggleIconStack: {
+      width: 20,
+      height: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sidebarToggleIconLayer: {
+      position: 'absolute',
+      width: 20,
+      height: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     navItem: {
       borderRadius: 10,
