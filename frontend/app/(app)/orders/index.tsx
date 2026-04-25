@@ -145,15 +145,9 @@ export default function OrdersListScreen() {
     setIsLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (appliedFilters.status) params.set('status', appliedFilters.status);
-    if (appliedFilters.includeVoided) params.set('includeVoided', 'true');
-    const query = params.toString();
-    const url = query ? `${ENDPOINTS.orders.list}?${query}` : ENDPOINTS.orders.list;
-
     (async () => {
       try {
-        const response = await apiRequest<OrdersResponse>(url, {
+        const response = await apiRequest<OrdersResponse>(ENDPOINTS.orders.list, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
@@ -172,10 +166,20 @@ export default function OrdersListScreen() {
     return () => {
       controller.abort();
     };
-  }, [refreshTick, appliedFilters]);
+  }, [refreshTick]);
+
+  const ordersByFilter = allOrders.filter((o) => {
+    if (!appliedFilters.includeVoided && o.status === 'Voided') {
+      return false;
+    }
+    if (appliedFilters.status && o.status !== appliedFilters.status) {
+      return false;
+    }
+    return true;
+  });
 
   const orders = debouncedSearch.trim()
-    ? allOrders.filter((o) => {
+    ? ordersByFilter.filter((o) => {
         const q = debouncedSearch.trim().toLowerCase();
         return (
           String(o.orderNumber).includes(q) ||
@@ -183,7 +187,7 @@ export default function OrdersListScreen() {
           (o.status?.toLowerCase().includes(q) ?? false)
         );
       })
-    : allOrders;
+    : ordersByFilter;
 
   return (
     <>

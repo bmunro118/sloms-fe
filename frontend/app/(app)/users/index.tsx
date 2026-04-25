@@ -23,6 +23,7 @@ type UserRow = {
   username?: string;
   role?: string;
   fullName?: string;
+  isActive?: boolean;
 };
 
 type UserCardRow = UserRow & {
@@ -117,14 +118,9 @@ export default function UsersScreen() {
     setIsLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (appliedFilters.includeInactive) params.set('includeInactive', 'true');
-    const query = params.toString();
-    const url = query ? `${ENDPOINTS.users.list}?${query}` : ENDPOINTS.users.list;
-
     (async () => {
       try {
-        const response = await apiRequest<UsersResponse>(url, {
+        const response = await apiRequest<UsersResponse>(ENDPOINTS.users.list, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
@@ -144,10 +140,14 @@ export default function UsersScreen() {
     return () => {
       controller.abort();
     };
-  }, [isAdmin, refreshTick, appliedFilters]);
+  }, [isAdmin, refreshTick]);
+
+  const usersByFilter = appliedFilters.includeInactive
+    ? users
+    : users.filter((u) => u.isActive !== false);
 
   const filteredUsers = debouncedSearch.trim()
-    ? users.filter((u) => {
+    ? usersByFilter.filter((u) => {
         const q = debouncedSearch.trim().toLowerCase();
         return (
           (u.username?.toLowerCase().includes(q) ?? false) ||
@@ -155,7 +155,7 @@ export default function UsersScreen() {
           (u.role?.toLowerCase().includes(q) ?? false)
         );
       })
-    : users;
+    : usersByFilter;
 
   if (!isAdmin) {
     return <Redirect href="/(app)/dashboard" />;

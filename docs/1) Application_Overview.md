@@ -333,6 +333,7 @@ Current baseline after latest migration and fixes:
 36. Orders, Customers, and Users list screens now render typed domain cards (`OrderCard`, `CustomerCard`, `UserCard`) that own their card-level action definitions, replacing inline generic card action wiring in list screens.
 37. Card-level action icon sets are now domain-specific: Orders use edit/dispatch variants (`Pencil`, `Send`/`SquareCheck`), Customers use an edit action (`Pencil`), and Users intentionally render without card action buttons.
 38. Order and Customer card edit actions now deep-link into their detail screens with `mode=edit` so destination screens open directly in edit mode; Order card dispatch actions now run in-place on the Orders list screen, opening the same `Mark as dispatched` confirmation modal copy and executing the same dispatch endpoint flow without routing away first.
+39. Primary list screen text search and filter interactions are now applied client-side after data fetch (Orders, Customers, Users, Price List, Documents), while API requests are limited to baseline list endpoints to avoid backend 400 responses from unsupported query keys in stricter deployments.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

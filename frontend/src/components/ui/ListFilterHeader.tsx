@@ -1,7 +1,7 @@
 import { SlidersHorizontal as FiltersIcon, Search as SearchIcon } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
-import { ThemedInput } from './ThemedInput';
 import { TooltipPressable } from './TooltipPressable';
 
 interface ListFilterHeaderProps {
@@ -22,24 +22,38 @@ export function ListFilterHeader({
   showFilterButton = true,
 }: ListFilterHeaderProps) {
   const { colors, radii, spacing } = useAppTheme();
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={[styles.row, { gap: spacing.sm, paddingBottom: spacing.sm }]}>
-      <View style={styles.searchWrap}>
-        <SearchIcon
-          size={16}
-          color={colors.inputPlaceholder}
-          style={styles.searchIcon}
-        />
-        <ThemedInput
+      <View
+        style={[
+          styles.searchContainer,
+          {
+            borderColor: focused ? colors.accent : colors.border,
+            borderRadius: radii.md,
+            backgroundColor: colors.inputBackground,
+          },
+        ]}
+      >
+        <TextInput
           value={searchValue}
           onChangeText={onSearchChange}
           placeholder={placeholder}
+          placeholderTextColor={colors.inputPlaceholder}
           returnKeyType="search"
           clearButtonMode="while-editing"
-          style={styles.searchInput}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={[
+            styles.searchInput,
+            { color: colors.textPrimary, borderRadius: radii.md },
+          ]}
           accessibilityLabel="Search"
         />
+        <View style={styles.iconOverlay} pointerEvents="none">
+          <SearchIcon size={16} color={colors.inputPlaceholder} />
+        </View>
       </View>
 
       {showFilterButton ? (
@@ -72,18 +86,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  searchWrap: {
+  searchContainer: {
     flex: 1,
     position: 'relative',
-    justifyContent: 'center',
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: 10,
-    zIndex: 1,
+    borderWidth: 1,
   },
   searchInput: {
-    paddingLeft: 34,
+    width: '100%',
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingLeft: 36,
+    paddingRight: 12,
+    // Suppress the browser's default rectangular focus outline — focus state is
+    // handled by the container border instead
+    outlineStyle: 'none',
+  } as any,
+  iconOverlay: {
+    position: 'absolute',
+    left: 10,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterButton: {
     borderWidth: 1,

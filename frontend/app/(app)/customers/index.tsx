@@ -22,6 +22,7 @@ type Customer = {
   customerId: number;
   companyName?: string;
   accountNumber?: string;
+  isSuspended?: boolean;
 };
 
 type CustomerCardRow = Customer & {
@@ -116,14 +117,9 @@ export default function CustomersListScreen() {
     setIsLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (appliedFilters.includeSuspended) params.set('includeSuspended', 'true');
-    const query = params.toString();
-    const url = query ? `${ENDPOINTS.customers.list}?${query}` : ENDPOINTS.customers.list;
-
     (async () => {
       try {
-        const response = await apiRequest<CustomersResponse>(url, {
+        const response = await apiRequest<CustomersResponse>(ENDPOINTS.customers.list, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
@@ -143,17 +139,21 @@ export default function CustomersListScreen() {
     return () => {
       controller.abort();
     };
-  }, [isStaff, refreshTick, appliedFilters]);
+  }, [isStaff, refreshTick]);
+
+  const customersByFilter = appliedFilters.includeSuspended
+    ? customers
+    : customers.filter((c) => c.isSuspended !== true);
 
   const filteredCustomers = debouncedSearch.trim()
-    ? customers.filter((c) => {
+    ? customersByFilter.filter((c) => {
         const q = debouncedSearch.trim().toLowerCase();
         return (
           (c.companyName?.toLowerCase().includes(q) ?? false) ||
           (c.accountNumber?.toLowerCase().includes(q) ?? false)
         );
       })
-    : customers;
+    : customersByFilter;
 
   if (!isStaff) {
     return <Redirect href="/(app)/dashboard" />;

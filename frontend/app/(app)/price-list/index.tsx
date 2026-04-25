@@ -109,14 +109,9 @@ export default function PriceListScreen() {
     setIsLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (appliedFilters.category.trim()) params.set('category', appliedFilters.category.trim());
-    const query = params.toString();
-    const url = query ? `${ENDPOINTS.priceList.list}?${query}` : ENDPOINTS.priceList.list;
-
     (async () => {
       try {
-        const response = await apiRequest<PriceListRow[] | { data?: PriceListRow[] }>(url, {
+        const response = await apiRequest<PriceListRow[] | { data?: PriceListRow[] }>(ENDPOINTS.priceList.list, {
           method: 'GET',
           requireAuth: true,
           signal: controller.signal,
@@ -136,10 +131,14 @@ export default function PriceListScreen() {
     return () => {
       controller.abort();
     };
-  }, [isStaff, refreshTick, appliedFilters]);
+  }, [isStaff, refreshTick]);
+
+  const rowsByFilter = appliedFilters.category.trim()
+    ? allRows.filter((r) => (r.category?.toLowerCase().includes(appliedFilters.category.trim().toLowerCase()) ?? false))
+    : allRows;
 
   const rows = debouncedSearch.trim()
-    ? allRows.filter((r) => {
+    ? rowsByFilter.filter((r) => {
         const q = debouncedSearch.trim().toLowerCase();
         return (
           (r.itemId?.toLowerCase().includes(q) ?? false) ||
@@ -147,7 +146,7 @@ export default function PriceListScreen() {
           (r.category?.toLowerCase().includes(q) ?? false)
         );
       })
-    : allRows;
+    : rowsByFilter;
 
   if (!isStaff) {
     return <Redirect href="/(app)/dashboard" />;
