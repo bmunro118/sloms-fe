@@ -3,6 +3,7 @@ import { Pencil as EditOrderIcon, Send as DispatchOrderIcon, SquareCheck as Disp
 import { useCallback, useMemo } from 'react';
 import { Text } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
@@ -24,6 +25,7 @@ interface OrderCardProps {
 
 export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCardProps) {
   const router = useRouter();
+  const { canMutate } = useAuth();
   const styles = useThemedStyles(createStyles);
   const isDispatched = order.status?.trim().toLowerCase() === 'dispatched';
 
@@ -47,22 +49,27 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
   const actions = useMemo<TopBarAction[]>(() => {
     const dispatchDisabled = isDispatched || isDispatching;
 
-    return [
+    const nextActions: TopBarAction[] = [
       buildIconTopBarAction({
         id: `edit-order-${order.orderNumber}-${order.orderBatch}`,
         label: 'Edit order',
         onPress: handleOpenOrderEdit,
         icon: EditOrderIcon,
       }),
-      buildIconTopBarAction({
+    ];
+
+    if (canMutate) {
+      nextActions.push(buildIconTopBarAction({
         id: `dispatch-order-${order.orderNumber}-${order.orderBatch}`,
         label: isDispatched ? 'Order already dispatched' : isDispatching ? 'Dispatching order' : 'Dispatch order',
         onPress: handleDispatch,
         icon: isDispatched ? DispatchedOrderIcon : DispatchOrderIcon,
         disabled: dispatchDisabled,
-      }),
-    ];
-  }, [handleDispatch, handleOpenOrderEdit, isDispatched, isDispatching, order.orderBatch, order.orderNumber]);
+      }));
+    }
+
+    return nextActions;
+  }, [canMutate, handleDispatch, handleOpenOrderEdit, isDispatched, isDispatching, order.orderBatch, order.orderNumber]);
 
   return (
     <ThemedCard
