@@ -61,8 +61,9 @@ export default function CustomerDetailScreen() {
   const { showConfirm } = useAppModal();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; mode?: string }>();
   const customerId = Number(params.id);
+  const routeWantsEdit = params.mode === 'edit';
 
   // Debug: Enhanced logging to diagnose customer detail screen issues
   console.log('[CustomerDetailScreen] Component rendered', {
@@ -87,6 +88,16 @@ export default function CustomerDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<CustomerDetails>>({});
+  const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
+
+  useEffect(() => {
+    if (!routeWantsEdit || hasAppliedRouteEdit) {
+      return;
+    }
+
+    setIsEditing(true);
+    setHasAppliedRouteEdit(true);
+  }, [hasAppliedRouteEdit, routeWantsEdit]);
 
   // Fetch customer details
   useEffect(() => {

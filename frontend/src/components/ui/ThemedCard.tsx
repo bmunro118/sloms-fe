@@ -1,5 +1,5 @@
-import { PropsWithChildren } from 'react';
-import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { PropsWithChildren, useState } from 'react';
+import { LayoutChangeEvent, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { ActionOverflowRow } from './ActionOverflowRow';
@@ -10,12 +10,33 @@ interface ThemedCardProps extends PropsWithChildren {
   onPress?: () => void;
   disabled?: boolean;
   tooltip?: string;
+  title?: string;
+  titleNode?: PropsWithChildren['children'];
   actions?: TopBarAction[];
 }
 
-export function ThemedCard({ children, style, onPress, disabled = false, tooltip, actions = [] }: ThemedCardProps) {
+export function ThemedCard({
+  children,
+  style,
+  onPress,
+  disabled = false,
+  tooltip,
+  title,
+  titleNode,
+  actions = [],
+}: ThemedCardProps) {
   const { colors, radii, spacing } = useAppTheme();
   const visibleActions = actions.filter((action) => action.hidden !== true);
+  const hasTitle = Boolean(titleNode) || Boolean(title);
+  const showHeaderRow = hasTitle || visibleActions.length > 0;
+  const headerBottomSpacing = hasTitle ? spacing.xs : 0;
+  const [actionRowWidth, setActionRowWidth] = useState(0);
+  const titleRightInset = visibleActions.length > 0 ? actionRowWidth + spacing.xs : 0;
+
+  const handleActionRowLayout = (event: LayoutChangeEvent) => {
+    const nextWidth = Math.ceil(event.nativeEvent.layout.width);
+    setActionRowWidth((currentWidth) => (currentWidth === nextWidth ? currentWidth : nextWidth));
+  };
   const sharedStyle: StyleProp<ViewStyle> = [
     styles.base,
     {
@@ -29,9 +50,24 @@ export function ThemedCard({ children, style, onPress, disabled = false, tooltip
 
   const content = (
     <>
-      {visibleActions.length > 0 ? (
-        <View style={[styles.actionRow, { marginBottom: spacing.sm }]}>
-          <ActionOverflowRow actions={visibleActions} />
+      {showHeaderRow ? (
+        <View
+          style={[
+            styles.headerRow,
+            {
+              marginBottom: headerBottomSpacing,
+              minHeight: !hasTitle && visibleActions.length > 0 ? 32 : undefined,
+            },
+          ]}
+        >
+          <View style={[styles.titleContainer, { paddingRight: titleRightInset }]}>
+            {titleNode ?? (title ? <Text style={[styles.titleText, { color: colors.textPrimary }]}>{title}</Text> : null)}
+          </View>
+          {visibleActions.length > 0 ? (
+            <View style={styles.actionRow} onLayout={handleActionRowLayout}>
+              <ActionOverflowRow actions={visibleActions} />
+            </View>
+          ) : null}
         </View>
       ) : null}
       {children}
@@ -58,8 +94,19 @@ const styles = StyleSheet.create({
   base: {
     borderWidth: 1,
   },
+  headerRow: {
+    position: 'relative',
+  },
+  titleContainer: {
+    minWidth: 0,
+  },
+  titleText: {
+    fontWeight: '700',
+  },
   actionRow: {
-    alignItems: 'stretch',
+    position: 'absolute',
+    top: 0,
+    right: 0,
   },
   disabled: {
     opacity: 0.7,

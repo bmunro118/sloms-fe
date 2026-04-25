@@ -1,12 +1,12 @@
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import { CustomerCard } from '@src/features/customers/components/CustomerCard';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -60,7 +60,6 @@ function normalizeCustomers(rows: Customer[]): CustomerCardRow[] {
 }
 
 export default function CustomersListScreen() {
-  const router = useRouter();
   const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -124,14 +123,10 @@ export default function CustomersListScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!isLoading && !error && customers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
       {customers.map((customer) => (
-        <ThemedCard
+        <CustomerCard
           key={customer.renderKey}
-          style={styles.card}
-          onPress={() => router.push(`/(app)/customers/${customer.customerId}` as never)}
-        >
-          <Text style={styles.cardTitle}>{customer.companyName ?? `Customer #${customer.customerId}`}</Text>
-          <Text style={styles.cardMeta}>Account: {customer.accountNumber ?? 'N/A'}</Text>
-        </ThemedCard>
+          customer={customer}
+        />
       ))}
     </ScreenContent>
   );

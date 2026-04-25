@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import {
   CheckSquare2,
@@ -62,7 +62,7 @@ function toOrderEditForm(order: OrderDetails | null): OrderEditForm {
 }
 
 export default function OrderDetailScreen() {
-  const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
+  const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string; mode?: string; dispatch?: string }>();
   const { canMutate } = useAuth();
   const theme = useAppTheme();
   const router = useRouter();
@@ -71,6 +71,8 @@ export default function OrderDetailScreen() {
   const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
+  const routeWantsEdit = params.mode === 'edit';
+  const routeWantsDispatch = params.dispatch === 'true';
 
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +81,8 @@ export default function OrderDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<OrderEditForm>(toOrderEditForm(null));
+  const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
+  const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
 
   const canUpdate = (signal?: AbortSignal) => isMountedRef.current && !signal?.aborted;
 
@@ -216,7 +220,7 @@ export default function OrderDetailScreen() {
     setFormData(toOrderEditForm(order));
   };
 
-  const handleDispatch = async () => {
+  const handleDispatch = useCallback(async () => {
     if (!canMutate) return;
 
     const confirmed = await showConfirm({
@@ -245,7 +249,34 @@ export default function OrderDetailScreen() {
         setIsDispatching(false);
       }
     }
-  };
+  }, [canMutate, isMountedRef, orderBatch, orderNumber, reload, showConfirm]);
+
+  useEffect(() => {
+    if (!routeWantsEdit || hasAppliedRouteEdit) {
+      return;
+    }
+
+    setIsEditing(true);
+    setHasAppliedRouteEdit(true);
+  }, [hasAppliedRouteEdit, routeWantsEdit]);
+
+  useEffect(() => {
+    if (!routeWantsDispatch || hasHandledRouteDispatch) {
+      return;
+    }
+
+    if (isLoading || !order || isDispatching) {
+      return;
+    }
+
+    if (order.status?.trim().toLowerCase() === 'dispatched') {
+      setHasHandledRouteDispatch(true);
+      return;
+    }
+
+    setHasHandledRouteDispatch(true);
+    void handleDispatch();
+  }, [handleDispatch, hasHandledRouteDispatch, isDispatching, isLoading, order, routeWantsDispatch]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({

@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
 import { PackagePlus as PackagePlusIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { OrderCard } from '@src/features/orders/components/OrderCard';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -28,11 +29,58 @@ type OrdersResponse = {
 export default function OrdersListScreen() {
   const router = useRouter();
   const { canMutate, isStaff } = useAuth();
+  const { showConfirm } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const [refreshTick, setRefreshTick] = useState(0);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dispatchingOrderKey, setDispatchingOrderKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDispatchFromList = useCallback(async (order: OrderRow) => {
+    if (!canMutate) {
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Mark Order as Dispatched',
+      message: `Are you sure you want to mark order ${order.orderNumber}/${order.orderBatch} as dispatched? This action cannot be undone.`,
+      confirmLabel: 'Dispatch',
+      cancelLabel: 'Cancel',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    const orderKey = `${order.orderNumber}-${order.orderBatch}`;
+    setDispatchingOrderKey(orderKey);
+    setError(null);
+
+    try {
+      await apiRequest(ENDPOINTS.orders.dispatch(order.orderNumber, order.orderBatch), {
+        method: 'PATCH',
+        requireAuth: true,
+      });
+
+      setOrders((previousOrders) => previousOrders.map((entry) => {
+        if (entry.orderNumber === order.orderNumber && entry.orderBatch === order.orderBatch) {
+          return {
+            ...entry,
+            status: 'Dispatched',
+          };
+        }
+
+        return entry;
+      }));
+
+      setRefreshTick((value) => value + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to dispatch order.');
+    } finally {
+      setDispatchingOrderKey((currentKey) => (currentKey === orderKey ? null : currentKey));
+    }
+  }, [canMutate, showConfirm]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const actions: TopBarAction[] = [
@@ -92,17 +140,12 @@ export default function OrdersListScreen() {
       {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
 
       {orders.map((order) => (
-        <ThemedCard
+        <OrderCard
           key={`${order.orderNumber}-${order.orderBatch}`}
-          style={styles.card}
-          onPress={() => router.push(`/(app)/orders/${order.orderNumber}/${order.orderBatch}` as never)}
-        >
-          <Text style={styles.cardTitle}>Order {order.orderNumber} / Batch {order.orderBatch}</Text>
-          <Text style={styles.cardMeta}>Status: {order.status ?? 'Unknown'}</Text>
-          {typeof order.customerAccount === 'number' ? (
-            <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
-          ) : null}
-        </ThemedCard>
+          order={order}
+          onDispatch={handleDispatchFromList}
+          isDispatching={dispatchingOrderKey === `${order.orderNumber}-${order.orderBatch}`}
+        />
       ))}
     </ScreenContent>
   );
