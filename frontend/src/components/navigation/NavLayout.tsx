@@ -38,6 +38,16 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
     outputRange: [0, theme.layout.expandedSidebarWidth - theme.layout.compactSidebarWidth],
     extrapolate: 'clamp',
   });
+  const collapsedNavItemWidth = theme.layout.compactSidebarWidth - 28;
+  const collapsedIconCenteredOffset = Math.max(0, collapsedNavItemWidth / 2 - 22);
+  const iconSettlePoint = theme.layout.compactSidebarWidth
+    + (theme.layout.expandedSidebarWidth - theme.layout.compactSidebarWidth) * 0.3;
+  const sidebarIconTranslateX = animatedSidebarWidth.interpolate({
+    // Keep icons in their collapsed slot during the final width-settle segment.
+    inputRange: [theme.layout.compactSidebarWidth, iconSettlePoint, theme.layout.expandedSidebarWidth],
+    outputRange: [collapsedIconCenteredOffset, collapsedIconCenteredOffset, 0],
+    extrapolate: 'clamp',
+  });
 
   const animateSidebarWidth = useCallback(
     (expanded: boolean) => {
@@ -96,13 +106,13 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
           ]}
           onPress={createNavigateHandler(item.href, onNavigate)}
         >
-          <View style={[styles.navItemContent, !showSidebarText ? styles.navItemContentCompact : null]}>
-            <View style={styles.navItemIconSlot}>
+          <View style={styles.navItemContent}>
+            <Animated.View style={[styles.navItemIconSlot, { transform: [{ translateX: sidebarIconTranslateX }] }]}>
               <NavItemIcon
                 icon={item.icon}
                 color={item.active ? theme.colors.navItemTextActive : theme.colors.navItemText}
               />
-            </View>
+            </Animated.View>
             {showSidebarText ? (
               <Animated.View
                 style={[
@@ -131,6 +141,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       createNavigateHandler,
       navigationItems,
       showSidebarText,
+      sidebarIconTranslateX,
       sidebarTextContainerWidth,
       sidebarTextOpacity,
       sidebarTextTranslateX,
@@ -166,10 +177,10 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             ]}
             onPress={onSignOut}
           >
-            <View style={[styles.navItemContent, !showSidebarText ? styles.navItemContentCompact : null]}>
-              <View style={styles.navItemIconSlot}>
+            <View style={styles.navItemContent}>
+              <Animated.View style={[styles.navItemIconSlot, { transform: [{ translateX: sidebarIconTranslateX }] }]}>
                 <SignOutIcon size={18} color={theme.colors.textPrimary} />
-              </View>
+              </Animated.View>
               {showSidebarText ? (
                 <Animated.View
                   style={[
@@ -196,6 +207,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
       onSignOut,
       renderNavItems,
       showSidebarText,
+      sidebarIconTranslateX,
       sidebarTextContainerWidth,
       sidebarTextOpacity,
       sidebarTextTranslateX,
@@ -303,9 +315,6 @@ function createStyles(theme: AppTheme) {
       flexDirection: 'row',
       alignItems: 'center',
       width: '100%',
-    },
-    navItemContentCompact: {
-      justifyContent: 'center',
     },
     navItemIconSlot: {
       width: 20,
