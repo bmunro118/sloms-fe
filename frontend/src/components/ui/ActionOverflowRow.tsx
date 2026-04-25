@@ -48,6 +48,13 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
       return 0;
     }
 
+    // Keep small action sets (common on card headers) fully visible.
+    // Measuring from rendered width can otherwise get stuck in a compact
+    // one-icon-plus-overflow state after a temporary mode change.
+    if (visibleActionSet.length <= 3) {
+      return visibleActionSet.length;
+    }
+
     if (rowWidth <= 0) {
       return Math.min(visibleActionSet.length, ACTION_LIMIT_HARD_CAP);
     }

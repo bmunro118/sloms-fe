@@ -76,6 +76,7 @@ type RequestOptions = {
   requireAuth?: boolean;
   token?: string; // explicit token; if omitted and requireAuth=true, reads from storage
   signal?: AbortSignal;
+  responseType?: 'auto' | 'json' | 'text' | 'blob';
 };
 
 export async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise<T> {
@@ -86,6 +87,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     requireAuth = true,
     token: explicitToken,
     signal,
+    responseType = 'auto',
   } = options;
 
   let authToken: string | null = explicitToken ?? null;
@@ -131,6 +133,18 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
 
   if (response.status === 204) {
     return undefined as T;
+  }
+
+  if (responseType === 'blob') {
+    return (await response.blob()) as T;
+  }
+
+  if (responseType === 'text') {
+    return (await response.text()) as T;
+  }
+
+  if (responseType === 'json') {
+    return response.json() as Promise<T>;
   }
 
   const contentType = response.headers.get('content-type') ?? '';

@@ -29,9 +29,10 @@ export function ThemedCard({
   const visibleActions = actions.filter((action) => action.hidden !== true);
   const hasTitle = Boolean(titleNode) || Boolean(title);
   const showHeaderRow = hasTitle || visibleActions.length > 0;
+  const hasFloatingActionRow = !hasTitle && visibleActions.length > 0;
   const headerBottomSpacing = hasTitle ? spacing.xs : 0;
   const [actionRowWidth, setActionRowWidth] = useState(0);
-  const titleRightInset = visibleActions.length > 0 ? actionRowWidth + spacing.xs : 0;
+  const titleRightInset = hasTitle && visibleActions.length > 0 ? actionRowWidth + spacing.xs : 0;
 
   const handleActionRowLayout = (event: LayoutChangeEvent) => {
     const nextWidth = Math.ceil(event.nativeEvent.layout.width);
@@ -50,7 +51,7 @@ export function ThemedCard({
 
   const content = (
     <>
-      {showHeaderRow ? (
+      {showHeaderRow && !hasFloatingActionRow ? (
         <View
           style={[
             styles.headerRow,
@@ -70,6 +71,13 @@ export function ThemedCard({
           ) : null}
         </View>
       ) : null}
+
+      {hasFloatingActionRow ? (
+        <View style={[styles.floatingActionRow, { top: spacing.md, right: spacing.md }]}>
+          <ActionOverflowRow actions={visibleActions} />
+        </View>
+      ) : null}
+
       {children}
     </>
   );
@@ -107,6 +115,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
+  },
+  floatingActionRow: {
+    position: 'absolute',
+    zIndex: 2,
   },
   disabled: {
     opacity: 0.7,

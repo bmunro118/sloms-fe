@@ -13,8 +13,7 @@ import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { apiRequest } from '@utils/api';
-import { ENDPOINTS } from '@utils/config';
+import { createOrder } from '@src/features/orders/api';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -50,14 +49,10 @@ export default function CreateOrderScreen() {
     try {
       const trimmedPriceBand = priceBand.trim();
 
-      await apiRequest(ENDPOINTS.orders.list, {
-        method: 'POST',
-        requireAuth: true,
-        body: {
-          orderNumber: parsedOrderNumber,
-          customerAccount: parsedCustomer,
-          priceBand: trimmedPriceBand || undefined,
-        },
+      await createOrder({
+        orderNumber: parsedOrderNumber,
+        customerAccount: parsedCustomer,
+        priceBand: trimmedPriceBand || undefined,
       });
       router.replace('/(app)/orders');
     } catch (err) {

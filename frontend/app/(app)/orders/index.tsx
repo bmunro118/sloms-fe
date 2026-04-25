@@ -5,8 +5,10 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { OrdersListQuery } from '@src/features/orders/api';
 import { OrderCard } from '@src/features/orders/components/OrderCard';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
@@ -16,8 +18,8 @@ import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { apiRequest } from '@utils/api';
-import { ENDPOINTS } from '@utils/config';
+import { dispatchOrder, listOrders } from '@src/features/orders/api';
+import { ApiError } from '@utils/api';
 
 type OrderRow = {
   orderNumber: number;
@@ -35,9 +37,17 @@ type OrderStatus = 'Received' | 'InProduction' | 'Ready' | 'Dispatched' | 'Voide
 type OrderFilters = {
   status: OrderStatus;
   includeVoided: boolean;
+  customerId: string;
 };
 
-const INITIAL_FILTERS: OrderFilters = { status: '', includeVoided: false };
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 100;
+
+const INITIAL_FILTERS: OrderFilters = {
+  status: '',
+  includeVoided: false,
+  customerId: '',
+};
 const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
   { label: 'Any', value: '' },
   { label: 'Received', value: 'Received' },
@@ -95,10 +105,7 @@ export default function OrdersListScreen() {
     setError(null);
 
     try {
-      await apiRequest(ENDPOINTS.orders.dispatch(order.orderNumber, order.orderBatch), {
-        method: 'PATCH',
-        requireAuth: true,
-      });
+      await dispatchOrder(order.orderNumber, order.orderBatch);
 
       setAllOrders((previousOrders) => previousOrders.map((entry) => {
         if (entry.orderNumber === order.orderNumber && entry.orderBatch === order.orderBatch) {
@@ -138,6 +145,26 @@ export default function OrdersListScreen() {
     return actions;
   }, [canMutate, isLoading, isStaff, router]);
 
+  const listQuery = useMemo<OrdersListQuery>(() => {
+    const customerIdRaw = appliedFilters.customerId.trim();
+    const parsedCustomerId = customerIdRaw ? Number(customerIdRaw) : undefined;
+
+    return {
+      includeVoided: appliedFilters.includeVoided ? true : undefined,
+      status: appliedFilters.status || undefined,
+      customerId:
+        Number.isFinite(parsedCustomerId) && (parsedCustomerId as number) > 0
+          ? parsedCustomerId
+          : undefined,
+      page: DEFAULT_PAGE,
+      limit: DEFAULT_LIMIT,
+    };
+  }, [appliedFilters.customerId, appliedFilters.includeVoided, appliedFilters.status]);
+
+  const hasServerFilterQuery = useMemo(() => {
+    return Boolean(listQuery.includeVoided || listQuery.status || listQuery.customerId);
+  }, [listQuery.customerId, listQuery.includeVoided, listQuery.status]);
+
   useScreenTopBar({ title: 'Orders', actions: topBarActions });
 
   useEffect(() => {
@@ -147,15 +174,29 @@ export default function OrdersListScreen() {
 
     (async () => {
       try {
-        const response = await apiRequest<OrdersResponse>(ENDPOINTS.orders.list, {
-          method: 'GET',
-          requireAuth: true,
-          signal: controller.signal,
-        });
+        const response = await listOrders(listQuery, { signal: controller.signal });
+
         if (!controller.signal.aborted) {
           setAllOrders(Array.isArray(response?.data) ? response.data : []);
         }
       } catch (err) {
+        if (
+          !controller.signal.aborted
+          && hasServerFilterQuery
+          && err instanceof ApiError
+          && (err.status === 400 || err.status === 422)
+        ) {
+          try {
+            const fallback = await listOrders(undefined, { signal: controller.signal });
+            if (!controller.signal.aborted) {
+              setAllOrders(Array.isArray(fallback?.data) ? fallback.data : []);
+              return;
+            }
+          } catch {
+            // Fall through to the primary error state if fallback also fails.
+          }
+        }
+
         if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Failed to load orders.');
         }
@@ -166,15 +207,24 @@ export default function OrdersListScreen() {
     return () => {
       controller.abort();
     };
-  }, [refreshTick]);
+  }, [hasServerFilterQuery, listQuery, refreshTick]);
 
   const ordersByFilter = allOrders.filter((o) => {
+    const customerIdRaw = appliedFilters.customerId.trim();
+    const parsedCustomerId = customerIdRaw ? Number(customerIdRaw) : NaN;
+
     if (!appliedFilters.includeVoided && o.status === 'Voided') {
       return false;
     }
+
     if (appliedFilters.status && o.status !== appliedFilters.status) {
       return false;
     }
+
+    if (Number.isFinite(parsedCustomerId) && parsedCustomerId > 0 && o.customerAccount !== parsedCustomerId) {
+      return false;
+    }
+
     return true;
   });
 
@@ -250,6 +300,18 @@ export default function OrdersListScreen() {
             })}
           </View>
         </View>
+
+        {isStaff ? (
+          <View>
+            <Text style={[styles.filterLabel, { color: theme.colors.textSecondary }]}>Customer ID</Text>
+            <ThemedInput
+              keyboardType="number-pad"
+              placeholder="Filter by customer ID"
+              value={draftFilters.customerId}
+              onChangeText={(text) => setDraftFilter('customerId', text)}
+            />
+          </View>
+        ) : null}
 
         {/* Include voided toggle */}
         <View style={styles.toggleRow}>
