@@ -167,7 +167,7 @@ Navigation shell components:
 1. `NavLayout` (`src/components/navigation/NavLayout.tsx`) — root orchestrator; reads `platformProfile` and `shellMode`, delegates to the appropriate layout variant.
 2. `MobileNavLayout` (`src/components/navigation/MobileNavLayout.tsx`) — drawer variant for `native-phone`; top bar + scrollable content + bottom bar.
 3. `TopBar` (`src/components/navigation/TopBar.tsx`) — shared top bar used by sidebar and native-phone variants; reads the current title and action buttons from `ScreenTitleContext`.
-4. `TopBar` action rendering is width-aware: it measures available header space at runtime, keeps a minimum title area, renders as many icon actions as fit, and moves any remaining actions into a `More` overflow menu.
+4. `TopBar` action rendering is width-aware on web/tablet: it measures available header space at runtime, keeps a minimum title area, renders as many icon actions as fit, and moves remaining actions into a `More` overflow menu; on native phone, screen actions default to `More` overflow, with any `Edit` action pinned as the direct button immediately left of `More`.
 
 Screen top bar propagation:
 1. `ScreenTitleContext` (`src/context/ScreenTitleContext.tsx`) holds the active page title and optional per-screen action button definitions; `ScreenTitleProvider` wraps `NavLayout` in `app/(app)/_layout.tsx`.

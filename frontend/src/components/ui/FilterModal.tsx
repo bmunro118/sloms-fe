@@ -74,7 +74,11 @@ export function FilterModal({
           {/* Filter content */}
           <ScrollView
             style={styles.scrollArea}
-            contentContainerStyle={{ gap: spacing.md, paddingTop: spacing.sm }}
+            contentContainerStyle={{
+              gap: spacing.md,
+              paddingTop: spacing.sm,
+              paddingBottom: spacing.sm,
+            }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -82,7 +86,7 @@ export function FilterModal({
           </ScrollView>
 
           {/* Action buttons */}
-          <View style={[styles.actionsRow, { gap: spacing.sm, paddingTop: spacing.md }]}>
+          <View style={[styles.actionsRow, { gap: spacing.sm, paddingTop: spacing.sm }]}>
             <ThemedButton
               label="Clear"
               onPress={onClear}

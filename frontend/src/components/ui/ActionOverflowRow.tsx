@@ -43,6 +43,13 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
   const rootRef = useRef<View>(null);
 
   const visibleActionSet = useMemo(() => actions.filter((action) => action.hidden !== true), [actions]);
+  const mobilePinnedEditAction = useMemo(() => {
+    if (Platform.OS === 'web') {
+      return null;
+    }
+
+    return visibleActionSet.find((action) => isEditAction(action)) ?? null;
+  }, [visibleActionSet]);
 
   const directActionCount = useMemo(() => {
     if (visibleActionSet.length === 0) {
@@ -50,7 +57,7 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
     }
 
     if (Platform.OS !== 'web') {
-      return 0;
+      return mobilePinnedEditAction ? 1 : 0;
     }
 
     // Keep small action sets (common on card headers) fully visible.
@@ -75,10 +82,27 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
     }
 
     return Math.min(Math.max(0, slotCount - 1), ACTION_LIMIT_HARD_CAP);
-  }, [rowWidth, visibleActionSet.length]);
+  }, [mobilePinnedEditAction, rowWidth, visibleActionSet.length]);
 
-  const directActions = useMemo(() => visibleActionSet.slice(0, directActionCount), [visibleActionSet, directActionCount]);
-  const overflowActions = useMemo(() => visibleActionSet.slice(directActionCount), [visibleActionSet, directActionCount]);
+  const directActions = useMemo(() => {
+    if (Platform.OS !== 'web') {
+      return mobilePinnedEditAction ? [mobilePinnedEditAction] : [];
+    }
+
+    return visibleActionSet.slice(0, directActionCount);
+  }, [directActionCount, mobilePinnedEditAction, visibleActionSet]);
+
+  const overflowActions = useMemo(() => {
+    if (Platform.OS !== 'web') {
+      if (!mobilePinnedEditAction) {
+        return visibleActionSet;
+      }
+
+      return visibleActionSet.filter((action) => action.id !== mobilePinnedEditAction.id);
+    }
+
+    return visibleActionSet.slice(directActionCount);
+  }, [directActionCount, mobilePinnedEditAction, visibleActionSet]);
 
   const closeOverflow = () => setOverflowOpen(false);
   const isHovered = (state: PressableStateCallbackType) => {
@@ -201,6 +225,19 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
       </Modal>
     </View>
   );
+}
+
+function isEditAction(action: { id: string; label?: string; accessibilityLabel: string }): boolean {
+  const id = action.id.trim().toLowerCase();
+  const label = (action.label ?? '').trim().toLowerCase();
+  const accessibilityLabel = action.accessibilityLabel.trim().toLowerCase();
+  const editWord = /\bedit\b/;
+
+  return id === 'edit'
+    || id.endsWith('-edit')
+    || id.startsWith('edit-')
+    || editWord.test(label)
+    || editWord.test(accessibilityLabel);
 }
 
 function createStyles(theme: AppTheme) {

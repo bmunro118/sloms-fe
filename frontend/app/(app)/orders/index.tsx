@@ -285,14 +285,20 @@ export default function OrdersListScreen() {
                     styles.chip,
                     {
                       borderColor: active ? theme.colors.accent : theme.colors.border,
-                      backgroundColor: active ? theme.colors.accentMuted : theme.colors.inputBackground,
+                      backgroundColor: active ? theme.colors.accent : theme.colors.inputBackground,
                       borderRadius: theme.radii.md,
                     },
                   ]}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: active }}
                 >
-                  <Text style={{ color: active ? theme.colors.accent : theme.colors.textSecondary, fontSize: 13 }}>
+                  <Text
+                    style={{
+                      color: active ? theme.colors.accentText : theme.colors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: active ? '600' : '500',
+                    }}
+                  >
                     {opt.label}
                   </Text>
                 </Pressable>

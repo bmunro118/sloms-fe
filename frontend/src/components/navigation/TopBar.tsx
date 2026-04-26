@@ -33,6 +33,21 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const backActions = useMemo(() => actions.filter((action) => action.isBack === true), [actions]);
   const nonBackActions = useMemo(() => actions.filter((action) => action.isBack !== true), [actions]);
   const hasBackAction = backActions.length > 0;
+  const mobilePinnedEditAction = useMemo(() => {
+    if (Platform.OS === 'web') {
+      return null;
+    }
+
+    return nonBackActions.find((action) => action.hidden !== true && isEditAction(action)) ?? null;
+  }, [nonBackActions]);
+
+  const mobileOverflowNonBackActions = useMemo(() => {
+    if (!mobilePinnedEditAction) {
+      return nonBackActions;
+    }
+
+    return nonBackActions.filter((action) => action.id !== mobilePinnedEditAction.id);
+  }, [mobilePinnedEditAction, nonBackActions]);
 
   const directActionCount = useMemo(() => {
     if (actions.length === 0 || barWidth <= 0) {
@@ -56,8 +71,8 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   }, [actions.length, barWidth, onMenuPress]);
 
   const directNonBackCount = useMemo(() => {
-    if (Platform.OS !== 'web' && nonBackActions.length > 0) {
-      return 0;
+    if (Platform.OS !== 'web') {
+      return mobilePinnedEditAction ? 1 : 0;
     }
 
     if (directActionCount <= 0) {
@@ -69,14 +84,18 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
     }
 
     return Math.min(nonBackActions.length, Math.max(0, directActionCount - 1));
-  }, [directActionCount, hasBackAction, nonBackActions.length]);
+  }, [directActionCount, hasBackAction, mobilePinnedEditAction, nonBackActions.length]);
 
   const visibleActions = useMemo(() => {
     if (directActionCount <= 0) {
       return [];
     }
 
-    const visibleNonBack = nonBackActions.slice(0, directNonBackCount);
+    const visibleNonBack = Platform.OS !== 'web'
+      ? mobilePinnedEditAction
+        ? [mobilePinnedEditAction]
+        : []
+      : nonBackActions.slice(0, directNonBackCount);
 
     if (!hasBackAction) {
       return visibleNonBack;
@@ -87,11 +106,17 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
       return visibleNonBack;
     }
 
+    if (Platform.OS !== 'web' && mobilePinnedEditAction) {
+      return [rightPinnedBackAction, ...visibleNonBack];
+    }
+
     return [...visibleNonBack, rightPinnedBackAction];
-  }, [backActions, directActionCount, directNonBackCount, hasBackAction, nonBackActions]);
+  }, [backActions, directActionCount, directNonBackCount, hasBackAction, mobilePinnedEditAction, nonBackActions]);
 
   const overflowActions = useMemo(() => {
-    const overflowNonBack = nonBackActions.slice(directNonBackCount);
+    const overflowNonBack = Platform.OS !== 'web'
+      ? mobileOverflowNonBackActions
+      : nonBackActions.slice(directNonBackCount);
 
     if (!hasBackAction) {
       return overflowNonBack;
@@ -99,7 +124,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
 
     const remainingBackActions = backActions.slice(1);
     return [...overflowNonBack, ...remainingBackActions];
-  }, [backActions, directNonBackCount, hasBackAction, nonBackActions]);
+  }, [backActions, directNonBackCount, hasBackAction, mobileOverflowNonBackActions, nonBackActions]);
 
   useEffect(() => {
     setOverflowOpen(false);
@@ -209,6 +234,19 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
       </Modal>
     </View>
   );
+}
+
+function isEditAction(action: { id: string; label?: string; accessibilityLabel: string }): boolean {
+  const id = action.id.trim().toLowerCase();
+  const label = (action.label ?? '').trim().toLowerCase();
+  const accessibilityLabel = action.accessibilityLabel.trim().toLowerCase();
+  const editWord = /\bedit\b/;
+
+  return id === 'edit'
+    || id.endsWith('-edit')
+    || id.startsWith('edit-')
+    || editWord.test(label)
+    || editWord.test(accessibilityLabel);
 }
 
 function createStyles(theme: AppTheme) {
