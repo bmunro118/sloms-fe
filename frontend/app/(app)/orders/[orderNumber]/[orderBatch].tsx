@@ -78,8 +78,6 @@ type OrderItemEditForm = {
   price: string;
 };
 
-const ITEMS_PAGE_SIZE = 25;
-
 function toOrderEditForm(order: OrderDetails | null): OrderEditForm {
   return {
     customerRef: order?.customerRef ?? '',
@@ -138,8 +136,6 @@ export default function OrderDetailScreen() {
   const [items, setItems] = useState<OrderItemCardData[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [itemError, setItemError] = useState<string | null>(null);
-  const [itemPage, setItemPage] = useState(1);
-  const [itemTotal, setItemTotal] = useState<number | null>(null);
   const [isMutatingItems, setIsMutatingItems] = useState(false);
   const [newItemSerialNumber, setNewItemSerialNumber] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
@@ -155,7 +151,7 @@ export default function OrderDetailScreen() {
 
   const canUpdate = (signal?: AbortSignal) => isMountedRef.current && !signal?.aborted;
 
-  const loadItems = useCallback(async (signal?: AbortSignal, page = itemPage) => {
+  const loadItems = useCallback(async (signal?: AbortSignal) => {
     if (!Number.isFinite(orderNumber) || !Number.isFinite(orderBatch)) {
       return;
     }
@@ -167,7 +163,7 @@ export default function OrderDetailScreen() {
       const response = await listOrderItems<OrderItemCardData>(
         orderNumber,
         orderBatch,
-        { page, limit: ITEMS_PAGE_SIZE },
+        undefined,
         { signal }
       );
       const nextItems = Array.isArray(response)
@@ -176,15 +172,8 @@ export default function OrderDetailScreen() {
           ? response.data
           : [];
 
-      const nextTotal =
-        !Array.isArray(response) && typeof response?.total === 'number'
-          ? response.total
-          : null;
-
       if (canUpdate(signal)) {
         setItems(nextItems);
-        setItemTotal(nextTotal);
-        setItemPage(page);
       }
     } catch (err) {
       if (canUpdate(signal)) {
@@ -195,7 +184,7 @@ export default function OrderDetailScreen() {
         setIsLoadingItems(false);
       }
     }
-  }, [isMountedRef, itemPage, orderBatch, orderNumber]);
+  }, [isMountedRef, orderBatch, orderNumber]);
 
   const reload = useCallback(async (signal?: AbortSignal) => {
     if (!canUpdate(signal)) {
@@ -231,41 +220,12 @@ export default function OrderDetailScreen() {
     }
     const controller = new AbortController();
     void reload(controller.signal);
-    void loadItems(controller.signal, itemPage);
+    void loadItems(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [itemPage, loadItems, orderBatch, orderNumber, reload]);
-
-  const totalItemPages = useMemo(() => {
-    if (typeof itemTotal === 'number' && itemTotal > 0) {
-      return Math.max(1, Math.ceil(itemTotal / ITEMS_PAGE_SIZE));
-    }
-
-    return Math.max(1, itemPage + (items.length === ITEMS_PAGE_SIZE ? 1 : 0));
-  }, [itemPage, itemTotal, items.length]);
-
-  const hasPrevItemsPage = itemPage > 1;
-  const hasNextItemsPage = typeof itemTotal === 'number'
-    ? itemPage < totalItemPages
-    : items.length === ITEMS_PAGE_SIZE;
-
-  const handlePrevItemsPage = useCallback(() => {
-    if (!hasPrevItemsPage || isLoadingItems) {
-      return;
-    }
-
-    setItemPage((previousPage) => Math.max(1, previousPage - 1));
-  }, [hasPrevItemsPage, isLoadingItems]);
-
-  const handleNextItemsPage = useCallback(() => {
-    if (!hasNextItemsPage || isLoadingItems) {
-      return;
-    }
-
-    setItemPage((previousPage) => previousPage + 1);
-  }, [hasNextItemsPage, isLoadingItems]);
+  }, [loadItems, orderBatch, orderNumber, reload]);
 
   const performSave = async () => {
     if (!canMutate || isSaving) {
@@ -483,7 +443,7 @@ export default function OrderDetailScreen() {
       });
       setNewItemSerialNumber('');
       setNewItemDescription('');
-      await loadItems(undefined, itemPage);
+      await loadItems();
       showSuccess('Item added', `Item ${serialNumber} was added to this order.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add item.';
@@ -494,7 +454,7 @@ export default function OrderDetailScreen() {
         setIsMutatingItems(false);
       }
     }
-  }, [canMutate, isMountedRef, isMutatingItems, itemPage, loadItems, newItemDescription, newItemSerialNumber, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, newItemDescription, newItemSerialNumber, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
 
   const handleBeginEditItem = useCallback((item: OrderItemCardData) => {
     setEditingItemSerial(item.serialNumber);
@@ -542,7 +502,7 @@ export default function OrderDetailScreen() {
       });
       setEditingItemSerial(null);
       setItemFormData(toItemEditForm(null));
-      await loadItems(undefined, itemPage);
+      await loadItems();
       showSuccess('Item updated', `Item ${editingItemSerial} was updated.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update item.';
@@ -553,7 +513,7 @@ export default function OrderDetailScreen() {
         setIsMutatingItems(false);
       }
     }
-  }, [editingItemSerial, isMountedRef, isMutatingItems, itemFormData.description, itemFormData.patientInitial, itemFormData.patientSurname, itemFormData.price, itemFormData.side, itemPage, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
+  }, [editingItemSerial, isMountedRef, isMutatingItems, itemFormData.description, itemFormData.patientInitial, itemFormData.patientSurname, itemFormData.price, itemFormData.side, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
 
   const handleToggleCheckout = useCallback(async (item: OrderItemCardData, checkedOut: boolean) => {
     if (!canMutate || isMutatingItems) {
@@ -582,7 +542,7 @@ export default function OrderDetailScreen() {
         await checkoutOrderItem(orderNumber, orderBatch, item.serialNumber);
       }
 
-      await loadItems(undefined, itemPage);
+      await loadItems();
       showSuccess('Item status updated', `Item ${item.serialNumber} was updated.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update checkout state.';
@@ -593,7 +553,7 @@ export default function OrderDetailScreen() {
         setIsMutatingItems(false);
       }
     }
-  }, [canMutate, isMountedRef, isMutatingItems, itemPage, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
 
   const handleVoidItem = useCallback(async (item: OrderItemCardData) => {
     if (!canMutate || isMutatingItems) {
@@ -617,7 +577,7 @@ export default function OrderDetailScreen() {
 
     try {
       await voidOrderItem(orderNumber, orderBatch, item.serialNumber);
-      await loadItems(undefined, itemPage);
+      await loadItems();
       showWarning('Item voided', `Item ${item.serialNumber} was voided.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to void item.';
@@ -628,7 +588,7 @@ export default function OrderDetailScreen() {
         setIsMutatingItems(false);
       }
     }
-  }, [canMutate, isMountedRef, isMutatingItems, itemPage, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showWarning]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showWarning]);
 
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit) {
@@ -928,47 +888,7 @@ export default function OrderDetailScreen() {
             />
           ))}
 
-          {!isLoadingItems && items.length > 0 ? (
-            <View style={styles.itemsPaginationRow}>
-              <TooltipPressable
-                tooltip="Previous items page"
-                accessibilityRole="button"
-                accessibilityLabel="Previous items page"
-                disabled={!hasPrevItemsPage || isLoadingItems}
-                onPress={handlePrevItemsPage}
-                style={(state) => [
-                  styles.contentActionButton,
-                  !hasPrevItemsPage || isLoadingItems ? styles.contentActionButtonDisabled : null,
-                  isHovered(state) && hasPrevItemsPage && !isLoadingItems ? styles.contentActionButtonHover : null,
-                  state.pressed && hasPrevItemsPage && !isLoadingItems ? styles.contentActionButtonPressed : null,
-                ]}
-              >
-                <Text style={[styles.contentActionButtonText, !hasPrevItemsPage || isLoadingItems ? styles.contentActionButtonTextDisabled : null]}>
-                  Previous
-                </Text>
-              </TooltipPressable>
 
-              <Text style={styles.meta}>Page {itemPage} of {totalItemPages}</Text>
-
-              <TooltipPressable
-                tooltip="Next items page"
-                accessibilityRole="button"
-                accessibilityLabel="Next items page"
-                disabled={!hasNextItemsPage || isLoadingItems}
-                onPress={handleNextItemsPage}
-                style={(state) => [
-                  styles.contentActionButton,
-                  !hasNextItemsPage || isLoadingItems ? styles.contentActionButtonDisabled : null,
-                  isHovered(state) && hasNextItemsPage && !isLoadingItems ? styles.contentActionButtonHover : null,
-                  state.pressed && hasNextItemsPage && !isLoadingItems ? styles.contentActionButtonPressed : null,
-                ]}
-              >
-                <Text style={[styles.contentActionButtonText, !hasNextItemsPage || isLoadingItems ? styles.contentActionButtonTextDisabled : null]}>
-                  Next
-                </Text>
-              </TooltipPressable>
-            </View>
-          ) : null}
 
         </ThemedCard>
       </ScrollView>
@@ -1009,13 +929,6 @@ function createStyles(theme: AppTheme) {
     itemAddButton: {
       alignSelf: 'flex-end',
     },
-    itemsPaginationRow: {
-      marginTop: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-      flexWrap: 'wrap',
-    },
+
   });
 }

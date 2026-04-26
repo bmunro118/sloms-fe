@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   PressableStateCallbackType,
   StyleSheet,
@@ -45,6 +46,10 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
 
   const directActionCount = useMemo(() => {
     if (visibleActionSet.length === 0) {
+      return 0;
+    }
+
+    if (Platform.OS !== 'web') {
       return 0;
     }
 

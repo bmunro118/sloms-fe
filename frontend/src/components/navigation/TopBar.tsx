@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'expo-router';
-import { Modal, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Menu as MenuIcon, MoreHorizontal as MoreIcon, X as CloseIcon } from 'lucide-react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,6 +56,10 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   }, [actions.length, barWidth, onMenuPress]);
 
   const directNonBackCount = useMemo(() => {
+    if (Platform.OS !== 'web' && nonBackActions.length > 0) {
+      return 0;
+    }
+
     if (directActionCount <= 0) {
       return 0;
     }
