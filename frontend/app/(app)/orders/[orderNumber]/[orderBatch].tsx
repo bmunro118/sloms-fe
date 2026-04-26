@@ -595,9 +595,14 @@ export default function OrderDetailScreen() {
       return;
     }
 
+    if (!order) {
+      return;
+    }
+
+    setFormData(toOrderEditForm(order));
     setIsEditing(true);
     setHasAppliedRouteEdit(true);
-  }, [hasAppliedRouteEdit, routeWantsEdit]);
+  }, [hasAppliedRouteEdit, order, routeWantsEdit]);
 
   useEffect(() => {
     if (!routeWantsDispatch || hasHandledRouteDispatch) {

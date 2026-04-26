@@ -15,6 +15,7 @@ import { useAppTheme } from '@theme/ThemeProvider';
 const TOOLTIP_SHOW_DELAY_MS = 160;
 const TOOLTIP_FADE_IN_MS = 120;
 const TOOLTIP_FADE_OUT_MS = 90;
+const TOOLTIP_STACK_LEVEL = 10000;
 
 interface TooltipPressableProps extends PressableProps {
   tooltip?: string;
@@ -212,8 +213,8 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   pressableRaised: {
-    zIndex: 1000,
-    elevation: 1000,
+    zIndex: TOOLTIP_STACK_LEVEL,
+    elevation: TOOLTIP_STACK_LEVEL,
   },
   tooltipAnchor: {
     position: 'absolute',
@@ -222,8 +223,8 @@ const styles = StyleSheet.create({
     left: 0,
     marginTop: 8,
     alignItems: 'center',
-    zIndex: 1100,
-    elevation: 1100,
+    zIndex: TOOLTIP_STACK_LEVEL + 1,
+    elevation: TOOLTIP_STACK_LEVEL + 1,
   },
   tooltip: {
     maxWidth: 220,
