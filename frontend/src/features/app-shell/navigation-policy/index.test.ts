@@ -17,8 +17,15 @@ describe('resolveNavItemsForRole', () => {
       'documents',
       'price-list',
       'settings',
+      'vat-rates',
       'account',
     ]);
+  });
+
+  it('hides customers from ReadOnly', () => {
+    const items = resolveNavItemsForRole('ReadOnly').map((item) => item.id);
+    expect(items).not.toContain('customers');
+    expect(items).toEqual(['dashboard', 'orders', 'documents', 'price-list', 'account']);
   });
 
   it('returns empty list when role is missing', () => {

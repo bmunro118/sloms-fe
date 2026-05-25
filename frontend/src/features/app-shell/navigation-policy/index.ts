@@ -53,7 +53,7 @@ const NAV_POLICY: NavPolicyItem[] = [
     label: 'Customers',
     href: '/(app)/customers',
     icon: 'users',
-    visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly'],
+    visibleTo: ['Admin', 'Manager', 'Operative'],
   },
   {
     id: 'users',

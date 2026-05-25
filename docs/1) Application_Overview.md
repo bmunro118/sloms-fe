@@ -369,6 +369,7 @@ Current baseline after latest migration and fixes:
 52. Entering Order card edit mode now transitions in-place without triggering a transient order reload/loading state, so the card morphs into editable fields consistently with item-card inline edit behavior.
 53. The Order Tracking screen now renders an `Updates` timeline experience (replacing `Status History`) with Lucide status icons, status badges, expandable update rows, status-filter dropdown controls, a step-journey rail, consistency/problem checks, and item-status snapshots while still retaining raw payload diagnostics for API troubleshooting.
 54. A VAT Rates screen (`/(app)/vat-rates`) is now available to Admin and Manager roles, providing a current-rate pinned card, full historical rate list, an inline create form (Admin only) for adding new rates with percentage + effective-from date, and a confirm-modal close action (Admin only) that sets the end date on an open rate. The feature uses a centralized API client (`frontend/src/features/vat-rates/api.ts`) wired to all four documented VAT endpoints (`GET /api/vat-rates`, `POST /api/vat-rates`, `GET /api/vat-rates/current`, `PATCH /api/vat-rates/{id}/close`).
+55. The `ReadOnly` role no longer has the Customers nav item in its navigation policy. ReadOnly accounts (used as initial customer-facing accounts) see: Dashboard, Orders, Documents, Price List, and Account — but not Customers.
 
 ### 12. Runtime & Dependency Baseline
 The v2 frontend currently runs with:

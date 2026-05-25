@@ -32,6 +32,7 @@ export function TooltipPressable({
   onHoverOut,
   onFocus,
   onBlur,
+  onPress,
   onLongPress,
   onPressOut,
   tooltipContainerStyle,
@@ -42,6 +43,11 @@ export function TooltipPressable({
   const [isTooltipMounted, setTooltipMounted] = useState(false);
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const showDelayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks whether the most recent intent was to hide; prevents a stale fade-out
+  // callback from unmounting the tooltip after a subsequent show has started.
+  const hideRequestedRef = useRef(false);
+  // Prevents state updates after the component has unmounted.
+  const isMountedRef = useRef(true);
 
   const hasTooltip = typeof tooltip === 'string' && tooltip.trim().length > 0;
 
@@ -66,7 +72,8 @@ export function TooltipPressable({
     if (!hasTooltip) {
       return;
     }
-
+    // Cancel any in-flight hide so its callback does not unmount the tooltip.
+    hideRequestedRef.current = false;
     setTooltipMounted(true);
     animateTooltipIn();
   }, [animateTooltipIn, hasTooltip]);
@@ -85,22 +92,29 @@ export function TooltipPressable({
 
   const hideTooltip = useCallback(() => {
     clearShowDelay();
+    hideRequestedRef.current = true;
     tooltipOpacity.stopAnimation();
     Animated.timing(tooltipOpacity, {
       toValue: 0,
       duration: TOOLTIP_FADE_OUT_MS,
       useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) {
+    }).start(() => {
+      // Always unmount once the fade-out settles, whether it ran to completion
+      // or was stopped early — as long as a show hasn't superseded this hide.
+      if (hideRequestedRef.current && isMountedRef.current) {
         setTooltipMounted(false);
       }
     });
   }, [clearShowDelay, tooltipOpacity]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       clearShowDelay();
+      // Stop animation and force opacity to 0 so no visual remnant persists.
       tooltipOpacity.stopAnimation();
+      tooltipOpacity.setValue(0);
     };
   }, [clearShowDelay, tooltipOpacity]);
 
@@ -129,6 +143,15 @@ export function TooltipPressable({
     hideTooltip();
     onBlur?.();
   }, [hideTooltip, onBlur]);
+
+  const handlePress: NonNullable<PressableProps['onPress']> = useCallback(
+    (event) => {
+      // A press should always dismiss the tooltip immediately.
+      hideTooltip();
+      onPress?.(event);
+    },
+    [hideTooltip, onPress]
+  );
 
   const handleLongPress: NonNullable<PressableProps['onLongPress']> = useCallback(
     (event) => {
@@ -167,6 +190,7 @@ export function TooltipPressable({
       onHoverOut={handleHoverOut}
       onFocus={handleFocus}
       onBlur={handleBlur}
+      onPress={handlePress}
       onLongPress={handleLongPress}
       onPressOut={handlePressOut}
     >
