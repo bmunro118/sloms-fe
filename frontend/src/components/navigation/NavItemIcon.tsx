@@ -3,6 +3,7 @@ import {
   FileText,
   LayoutDashboard,
   Package,
+  Percent,
   Settings,
   Tags,
   UserCog,
@@ -32,6 +33,8 @@ export function NavItemIcon({ icon, color, size = 18 }: NavItemIconProps) {
       return <Tags color={color} size={size} />;
     case 'settings':
       return <Settings color={color} size={size} />;
+    case 'percent':
+      return <Percent color={color} size={size} />;
     case 'circle-user':
       return <CircleUser color={color} size={size} />;
     default:

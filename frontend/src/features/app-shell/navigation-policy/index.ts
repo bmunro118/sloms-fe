@@ -8,6 +8,7 @@ export type AppRoutePath =
   | '/(app)/documents'
   | '/(app)/price-list'
   | '/(app)/settings'
+  | '/(app)/vat-rates'
   | '/(app)/account';
 
 export interface AppShellNavItem {
@@ -25,6 +26,7 @@ export type AppShellNavIcon =
   | 'file-text'
   | 'tags'
   | 'settings'
+  | 'percent'
   | 'circle-user';
 
 interface NavPolicyItem extends AppShellNavItem {
@@ -79,6 +81,13 @@ const NAV_POLICY: NavPolicyItem[] = [
     label: 'Settings',
     href: '/(app)/settings',
     icon: 'settings',
+    visibleTo: ['Admin', 'Manager'],
+  },
+  {
+    id: 'vat-rates',
+    label: 'VAT Rates',
+    href: '/(app)/vat-rates',
+    icon: 'percent',
     visibleTo: ['Admin', 'Manager'],
   },
   {
