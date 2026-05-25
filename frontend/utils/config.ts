@@ -1,10 +1,26 @@
 import Constants from 'expo-constants';
 
+// ── API mode ─────────────────────────────────────────────────────────────────
+// Set EXPO_PUBLIC_API_MODE to 'local' or 'web' in frontend/.env to switch
+// between the local SQLite backend and the hosted Azure API.
+// EXPO_PUBLIC_API_URL overrides the resolved URL entirely when set explicitly.
+
+export type ApiMode = 'local' | 'web';
+
+const LOCAL_API_URL = 'http://localhost:3000';
+const WEB_API_URL = 'https://slomsapi.wonderfulsky-1907992c.uksouth.azurecontainerapps.io';
+
+export const API_MODE: ApiMode = (() => {
+  const mode = (process.env.EXPO_PUBLIC_API_MODE ?? '').trim().toLowerCase();
+  return mode === 'local' ? 'local' : 'web';
+})();
+
+// ── API base URL ─────────────────────────────────────────────────────────────
+
 const RAW_API_BASE_URL: string =
   process.env.EXPO_PUBLIC_API_URL ??
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
-  '';
+  (API_MODE === 'local' ? LOCAL_API_URL : WEB_API_URL);
 
 function assertValidApiBaseUrl(url: string): string {
   let parsedUrl: URL;
@@ -13,7 +29,7 @@ function assertValidApiBaseUrl(url: string): string {
     parsedUrl = new URL(url);
   } catch {
     throw new Error(
-      'API base URL is invalid or missing. Set EXPO_PUBLIC_API_URL to a full URL including protocol.'
+      'API base URL is invalid or missing. Set EXPO_PUBLIC_API_MODE to "web" or "local", or set EXPO_PUBLIC_API_URL to a full URL including protocol.'
     );
   }
 

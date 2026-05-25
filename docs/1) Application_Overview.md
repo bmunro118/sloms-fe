@@ -80,16 +80,36 @@ Rules:
 3. `.env`, `.env.local`, and `.env.*` are gitignored and must not be committed with secrets or environment-specific overrides.
 4. Expo config must define a stable deep-link scheme (`expo.scheme`) so Expo Router and Linking can resolve production URLs correctly.
 
+#### API profiles: web vs local
+
+Switch between the hosted Azure API and the local SQLite backend by changing one value in `frontend/.env`:
+
+```dotenv
+EXPO_PUBLIC_API_MODE=web    # hosted Azure SLOMS API (default)
+EXPO_PUBLIC_API_MODE=local  # local NestJS SQLite backend on http://localhost:3000
+```
+
+Start the local backend before switching: `cd sloms/backend && npm run start:dev`
+
+The resolved URL and auth transport are derived automatically from `API_MODE`. No other changes are needed.
+
 Current variables:
-1. `EXPO_PUBLIC_API_URL`
-	- Primary SLOMS API base URL used by `frontend/utils/config.ts`.
+1. `EXPO_PUBLIC_API_MODE` *(required)*
+	- Controls which API environment is active: `web` or `local`.
+	- `web` → hosted Azure SLOMS API; uses cookie auth on web production.
+	- `local` → `http://localhost:3000`; automatically uses bearer token auth.
+	- Defaults to `web` when unset or set to an unrecognised value.
+2. `EXPO_PUBLIC_API_URL` *(optional override)*
+	- Overrides the URL resolved from `EXPO_PUBLIC_API_MODE` when set explicitly.
 	- Must be a full URL including protocol.
 	- Production requires HTTPS; dev-only HTTP is allowed only for localhost origins.
-2. `EXPO_PUBLIC_WEB_AUTH_MODE`
-	- Optional local web development override for auth transport resolution.
-	- Accepted values are `cookie` and `token`.
-	- Only applies on web in `__DEV__` when the app is running on localhost.
-	- When empty, the app auto-detects the mode by comparing the app origin with the configured API origin.
+3. `EXPO_PUBLIC_WEB_AUTH_MODE` *(optional override)*
+	- Overrides the auth transport on web in `__DEV__` when set to `cookie` or `token`.
+	- Leave empty — auth mode is derived automatically from `EXPO_PUBLIC_API_MODE` (`local` → `token`).
+
+Derived config exports (`frontend/utils/config.ts`):
+1. `API_MODE: 'local' | 'web'` — resolved mode; import for conditional behaviour that depends on which backend is active.
+2. `API_BASE_URL: string` — validated, resolved base URL string.
 
 Workflow-level debug flags:
 1. Use `EXPO_PUBLIC_DEBUG_<WORKFLOW>` variables to gate targeted console logging in development.

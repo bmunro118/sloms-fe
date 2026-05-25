@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { API_BASE_URL } from '@utils/config';
+import { API_BASE_URL, API_MODE } from '@utils/config';
 
 const ACCESS_TOKEN_KEY = 'sloms.access-token';
 let secureStoreModulePromise: Promise<typeof import('expo-secure-store')> | null = null;
@@ -41,6 +41,11 @@ function resolveWebAuthMode(): WebAuthMode {
   const configuredMode = (process.env.EXPO_PUBLIC_WEB_AUTH_MODE ?? '').trim().toLowerCase();
   if (configuredMode === 'cookie' || configuredMode === 'token') {
     return configuredMode;
+  }
+
+  // Local mode always uses token auth — the local NestJS backend issues JWT bearer tokens.
+  if (API_MODE === 'local') {
+    return 'token';
   }
 
   try {
