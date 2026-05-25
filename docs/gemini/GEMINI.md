@@ -4,8 +4,8 @@
 
 Before generating code, plans, or project guidance, always read and align with:
 
-1. `sonic_app_v2/sonic_app/docs/1) Application_Overview.md`
-2. `sonic_app_v2/sonic_app/docs/2) SLOMS_API_Surface.md`
+1. `sonic_app/docs/1) Application_Overview.md`
+2. `sonic_app/docs/2) SLOMS_API_Surface.md`
 
 ## Required Behavior
 

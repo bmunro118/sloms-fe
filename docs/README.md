@@ -2,7 +2,7 @@
 
 ## Overview
 
-This folder contains the active project docs for `sonic_app_v2`.
+This folder contains the active project docs for `sonic_app`.
 
 ## Primary Documents
 

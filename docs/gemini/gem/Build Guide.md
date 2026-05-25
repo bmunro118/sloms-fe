@@ -199,5 +199,5 @@ Base URL:
 ## 10. Documentation Source of Truth
 
 This guide is derived from and must stay consistent with:
-1. `sonic_app_v2/sonic_app/docs/1) Application_Overview.md`
-2. `sonic_app_v2/sonic_app/docs/2) SLOMS_API_Surface.md`
+1. `sonic_app/docs/1) Application_Overview.md`
+2. `sonic_app/docs/2) SLOMS_API_Surface.md`

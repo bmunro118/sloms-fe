@@ -9,7 +9,7 @@ This document provides a quick reference for common commands used in this projec
 npm install && npm --prefix frontend install
 ```
 
-## Development
+## Development (from root)
 
 ### Start the application (Interactive)
 ```bash
@@ -31,22 +31,30 @@ npm run android
 npm run ios
 ```
 
-## Testing & Linting
+## Testing & Linting (from root)
 
 ### Run tests (Vitest)
 ```bash
-npm --prefix frontend run test
+npm run test
 ```
 
 ### Run tests in watch mode
 ```bash
-npm --prefix frontend run test:watch
+npm run test:watch
 ```
 
 ### Run linting (ESLint)
 ```bash
-npm --prefix frontend run lint
+npm run lint
 ```
+
+## Advanced: Frontend Script Proxy
+You can run any script defined in `frontend/package.json` directly from the root using the `frontend` script:
+
+```bash
+npm run frontend -- <script-name> [args]
+```
+Example: `npm run frontend -- lint`
 
 ## Direct Frontend Commands
 If you are working directly in the `frontend` directory:
@@ -55,6 +63,6 @@ If you are working directly in the `frontend` directory:
 cd frontend
 npx expo start        # Start Expo
 npx expo start --web  # Start on Web
-npm run test         # Run tests
-npm run lint         # Run linting
+npm run test          # Run tests
+npm run lint          # Run linting
 ```
