@@ -6,8 +6,7 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
-import { suspendCustomer, reinstateCustomer } from '@src/features/customers/api';
-import { CustomerDetails, Address, AddressesResponse } from '@src/features/customers/types';
+import { getCustomer, updateCustomer, suspendCustomer, reinstateCustomer, CustomerRecord, UpdateCustomerPayload } from '@src/features/customers/api';
 import { CustomerInfoCard } from '@src/features/customers/components/CustomerInfoCard';
 import { CustomerContactCard } from '@src/features/customers/components/CustomerContactCard';
 import { CustomerDeliveryAddressesCard } from '@src/features/customers/components/CustomerDeliveryAddressesCard';
@@ -16,8 +15,6 @@ import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { apiRequest } from '@utils/api';
-import { ENDPOINTS } from '@utils/config';
 
 export default function CustomerDetailScreen() {
   const { isStaff, canMutate } = useAuth();
@@ -36,13 +33,12 @@ export default function CustomerDetailScreen() {
     });
   }
 
-  const [customer, setCustomer] = useState<CustomerDetails | null>(null);
-  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState<Partial<CustomerDetails>>({});
+  const [formData, setFormData] = useState<Partial<CustomerRecord>>({});
   const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
 
   useEffect(() => {
@@ -62,10 +58,7 @@ export default function CustomerDetailScreen() {
     const controller = new AbortController();
     (async () => {
       try {
-        const response = await apiRequest<CustomerDetails>(
-          ENDPOINTS.customers.byId(customerId),
-          { method: 'GET', requireAuth: true, signal: controller.signal }
-        );
+        const response = await getCustomer(customerId, { signal: controller.signal });
         if (!controller.signal.aborted) {
           setCustomer(response);
           setFormData(response);
@@ -81,30 +74,11 @@ export default function CustomerDetailScreen() {
     return () => controller.abort();
   }, [customerId, isStaff]);
 
-  useEffect(() => {
-    if (!isStaff || !Number.isFinite(customerId) || !customer) return;
-    const controller = new AbortController();
-    (async () => {
-      try {
-        const response = await apiRequest<AddressesResponse>(
-          ENDPOINTS.customers.addresses(customerId),
-          { method: 'GET', requireAuth: true, signal: controller.signal }
-        );
-        if (!controller.signal.aborted) {
-          setAddresses(Array.isArray(response?.data) ? response.data : []);
-        }
-      } catch (err) {
-        console.warn('Failed to load addresses:', err);
-      }
-    })();
-    return () => controller.abort();
-  }, [customerId, isStaff, customer]);
-
   const performSave = useCallback(async () => {
     if (!Number.isFinite(customerId) || !customer) return;
     setIsSaving(true);
     try {
-      const updatePayload: Partial<CustomerDetails> = {
+      const updatePayload: UpdateCustomerPayload = {
         companyName: formData.companyName,
         accountNumber: formData.accountNumber,
         centreNumber: formData.centreNumber,
@@ -122,10 +96,7 @@ export default function CustomerDetailScreen() {
         contactFax: formData.contactFax,
         band: formData.band,
       };
-      const response = await apiRequest<CustomerDetails>(
-        ENDPOINTS.customers.byId(customerId),
-        { method: 'PUT', requireAuth: true, body: updatePayload }
-      );
+      const response = await updateCustomer(customerId, updatePayload);
       setCustomer(response);
       setFormData(response);
       setIsEditing(false);
@@ -239,10 +210,11 @@ export default function CustomerDetailScreen() {
         onPress: () => setIsEditing(true),
         icon: EditIcon,
         disabled: isLoading || !customer,
+        hidden: !canMutate,
       }),
       backAction,
     ];
-  }, [customer, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
+  }, [canMutate, customer, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
 
   useScreenTopBar({ title: 'Customer Detail', actions: topBarActions });
 
@@ -274,7 +246,7 @@ export default function CustomerDetailScreen() {
             onSuspend={handleSuspend}
             onReinstate={handleReinstate}
           />
-          <CustomerDeliveryAddressesCard addresses={addresses} />
+          <CustomerDeliveryAddressesCard customerId={customerId} canMutate={canMutate} />
         </ScrollView>
       ) : null}
     </ScreenContent>

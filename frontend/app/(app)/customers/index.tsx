@@ -8,6 +8,7 @@ import { ListFilterHeader } from '@components/ui/ListFilterHeader';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import { listCustomers, CustomerRecord } from '@src/features/customers/api';
 import { CustomerCard } from '@src/features/customers/components/CustomerCard';
 import { useListFilters } from '@src/hooks/useListFilters';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -15,29 +16,16 @@ import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { apiRequest } from '@utils/api';
-import { ENDPOINTS } from '@utils/config';
 
-type Customer = {
-  customerId: number;
-  companyName?: string;
-  accountNumber?: string;
-  isSuspended?: boolean;
-};
-
-type CustomerCardRow = Customer & {
+type CustomerCardRow = CustomerRecord & {
   renderKey: string;
-};
-
-type CustomersResponse = {
-  data?: Customer[];
 };
 
 type CustomerFilters = {
   includeSuspended: boolean;
 };
 
-function resolveCustomerKeyBase(customer: Customer): string {
+function resolveCustomerKeyBase(customer: CustomerRecord): string {
   if (typeof customer.customerId === 'number' && Number.isFinite(customer.customerId)) {
     return `id:${customer.customerId}`;
   }
@@ -53,7 +41,7 @@ function resolveCustomerKeyBase(customer: Customer): string {
   return 'unknown-customer';
 }
 
-function normalizeCustomers(rows: Customer[]): CustomerCardRow[] {
+function normalizeCustomers(rows: CustomerRecord[]): CustomerCardRow[] {
   const keyCounts = new Map<string, number>();
 
   return rows.map((customer) => {
@@ -71,7 +59,7 @@ function normalizeCustomers(rows: Customer[]): CustomerCardRow[] {
 const INITIAL_FILTERS: CustomerFilters = { includeSuspended: false };
 
 export default function CustomersListScreen() {
-  const { isStaff, canMutate } = useAuth();
+  const { isStaff, role } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
@@ -103,7 +91,7 @@ export default function CustomersListScreen() {
         onPress: () => router.push('/(app)/customers/create' as never),
         icon: CreateCustomerIcon,
         disabled: isLoading,
-        hidden: !canMutate,
+        hidden: role !== 'Admin' && role !== 'Manager',
       }),
       buildIconTopBarAction({
         id: 'refresh-customers',
@@ -113,7 +101,7 @@ export default function CustomersListScreen() {
         disabled: isLoading,
       }),
     ];
-  }, [isLoading, canMutate, router]);
+  }, [isLoading, role, router]);
 
   useScreenTopBar({ title: 'Customers', actions: topBarActions });
 
@@ -128,11 +116,7 @@ export default function CustomersListScreen() {
 
     (async () => {
       try {
-        const response = await apiRequest<CustomersResponse>(ENDPOINTS.customers.list, {
-          method: 'GET',
-          requireAuth: true,
-          signal: controller.signal,
-        });
+        const response = await listCustomers(undefined, { signal: controller.signal });
         if (!controller.signal.aborted) {
           const normalized = normalizeCustomers(Array.isArray(response?.data) ? response.data : []);
           setCustomers(normalized);

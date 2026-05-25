@@ -186,3 +186,11 @@ export function getAuditLog(
     { method: 'GET', requireAuth: true, signal: requestConfig?.signal }
   );
 }
+
+export function getMe(requestConfig?: RequestConfig): Promise<UserRecord> {
+  return apiRequest<UserRecord>(ENDPOINTS.users.me, {
+    method: 'GET',
+    requireAuth: true,
+    signal: requestConfig?.signal,
+  });
+}

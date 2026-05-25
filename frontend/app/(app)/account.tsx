@@ -1,5 +1,5 @@
 import { RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
@@ -7,6 +7,7 @@ import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import { UserRecord, getMe } from '@src/features/users/api';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -27,6 +28,20 @@ export default function AccountScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profile, setProfile] = useState<UserRecord | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const result = await getMe({ signal: controller.signal });
+        if (!controller.signal.aborted && isMountedRef.current) setProfile(result);
+      } catch {
+        // Non-critical — fall back to auth context user data
+      }
+    })();
+    return () => controller.abort();
+  }, [isMountedRef]);
 
   const canSubmitPasswordChange = useMemo(() => {
     const currentTrimmed = currentPassword.trim();
@@ -107,8 +122,10 @@ export default function AccountScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <Text style={styles.meta}>Username: {user?.username ?? 'Unknown'}</Text>
-      <Text style={styles.meta}>Role: {user?.role ?? 'Unknown'}</Text>
+      <Text style={styles.meta}>Username: {profile?.username ?? user?.username ?? 'Unknown'}</Text>
+      <Text style={styles.meta}>Role: {profile?.role ?? user?.role ?? 'Unknown'}</Text>
+      {profile?.fullName ? <Text style={styles.meta}>Name: {profile.fullName}</Text> : null}
+      {profile?.email ? <Text style={styles.meta}>Email: {profile.email}</Text> : null}
 
       <Text style={styles.sectionTitle}>Change Password</Text>
       <ThemedInput

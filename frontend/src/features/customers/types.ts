@@ -1,25 +1,7 @@
 // ── Customer types ─────────────────────────────────────────────────────────────
 
-export type CustomerDetails = {
-  customerId: number;
-  accountNumber?: string;
-  centreNumber?: string;
-  companyName: string;
-  invBuildingName?: string;
-  invAddressLn1?: string;
-  invAddressLn2?: string;
-  invTownOrCity?: string;
-  invCounty?: string;
-  invPostCode?: string;
-  contactName?: string;
-  contactEmail?: string;
-  reportEmail?: string;
-  contactPhone?: string;
-  contactMobile?: string;
-  contactFax?: string;
-  band?: string;
-  isSuspended?: boolean;
-};
+// Re-export from api.ts as CustomerDetails so existing component imports stay valid
+export type { CustomerRecord as CustomerDetails } from './api';
 
 export type Address = {
   id: number;

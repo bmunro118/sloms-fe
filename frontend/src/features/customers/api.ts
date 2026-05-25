@@ -78,6 +78,23 @@ export type AddressesResponse = {
   data?: Address[];
 };
 
+export type CreateAddressPayload = {
+  siteCompanyName?: string;
+  delBuildingName?: string;
+  delAddressLn1?: string;
+  delAddressLn2?: string;
+  delTownOrCity?: string;
+  delCounty?: string;
+  delPostCode?: string;
+  siteContactName?: string;
+  siteContactEmail?: string;
+  siteContactPhone?: string;
+  siteContactMobile?: string;
+  defaultAddress?: boolean;
+};
+
+export type UpdateAddressPayload = Partial<CreateAddressPayload>;
+
 type RequestConfig = {
   signal?: AbortSignal;
 };
@@ -159,5 +176,49 @@ export function listAddresses(
     method: 'GET',
     requireAuth: true,
     signal: requestConfig?.signal,
+  });
+}
+
+export function getAddress(customerId: number, addressId: number): Promise<Address> {
+  return apiRequest<Address>(ENDPOINTS.customers.addressById(customerId, addressId), {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export function createAddress(
+  customerId: number,
+  payload: CreateAddressPayload
+): Promise<Address> {
+  return apiRequest<Address>(ENDPOINTS.customers.addresses(customerId), {
+    method: 'POST',
+    requireAuth: true,
+    body: payload,
+  });
+}
+
+export function updateAddress(
+  customerId: number,
+  addressId: number,
+  payload: UpdateAddressPayload
+): Promise<Address> {
+  return apiRequest<Address>(ENDPOINTS.customers.addressById(customerId, addressId), {
+    method: 'PUT',
+    requireAuth: true,
+    body: payload,
+  });
+}
+
+export function deleteAddress(customerId: number, addressId: number): Promise<void> {
+  return apiRequest<void>(ENDPOINTS.customers.addressById(customerId, addressId), {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+export function setDefaultAddress(customerId: number, addressId: number): Promise<Address> {
+  return apiRequest<Address>(ENDPOINTS.customers.setDefaultAddress(customerId, addressId), {
+    method: 'PATCH',
+    requireAuth: true,
   });
 }

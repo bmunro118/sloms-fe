@@ -710,6 +710,43 @@ Creates a draft revision from an uploaded CSV. Uses `multipart/form-data`.
 
 ---
 
+### documents — Document List
+
+> **Note:** This endpoint is partially documented. The full documents API surface (download, upload, etc.) has not been confirmed from the OpenAPI spec. The following reflects observed frontend usage.
+
+| Method | Path              | Summary             | Roles |
+|--------|-------------------|---------------------|-------|
+| `GET`  | `/api/documents`  | List documents      | All   |
+
+---
+
+#### `GET /api/documents`
+
+Returns a paginated list of documents. Supports an optional `search` query parameter for filtering.
+
+**Query parameters:**
+
+| Param    | Type   | Description                                      |
+|----------|--------|--------------------------------------------------|
+| `search` | string | Filter by document type, order reference, or ID  |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "type": "Invoice",
+      "generatedDate": "2024-06-01T00:00:00Z",
+      "orderReference": "12345/1"
+    }
+  ]
+}
+```
+
+---
+
 ## Error Handling
 
 Standard HTTP status codes apply across all endpoints:

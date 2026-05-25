@@ -7,31 +7,18 @@ import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import { DocumentRow, listDocuments } from '@src/features/documents/api';
 import { useListFilters } from '@src/hooks/useListFilters';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { apiRequest } from '@utils/api';
-import { API_BASE_URL } from '@utils/config';
-
-type DocumentRow = {
-  id: number;
-  type?: string;
-  generatedDate?: string;
-  orderReference?: string;
-};
-
-type DocumentsResponse = {
-  data?: DocumentRow[];
-};
 
 // Documents has no structured filter params in the current API surface —
 // search is passed as a single query param.
 type DocumentFilters = Record<string, never>;
 
 const INITIAL_FILTERS: DocumentFilters = {};
-const DOCUMENTS_ENDPOINT = `${API_BASE_URL}/api/documents`;
 
 export default function DocumentsScreen() {
   const styles = useThemedStyles(createStyles);
@@ -73,11 +60,10 @@ export default function DocumentsScreen() {
 
     (async () => {
       try {
-        const response = await apiRequest<DocumentsResponse>(DOCUMENTS_ENDPOINT, {
-          method: 'GET',
-          requireAuth: true,
-          signal: controller.signal,
-        });
+        const response = await listDocuments(
+          debouncedSearch.trim() ? { search: debouncedSearch.trim() } : undefined,
+          { signal: controller.signal }
+        );
         if (!controller.signal.aborted) {
           setDocuments(Array.isArray(response?.data) ? response.data : []);
         }
@@ -92,18 +78,7 @@ export default function DocumentsScreen() {
     return () => {
       controller.abort();
     };
-  }, [refreshTick]);
-
-  const filteredDocuments = debouncedSearch.trim()
-    ? documents.filter((d) => {
-        const q = debouncedSearch.trim().toLowerCase();
-        return (
-          (d.type?.toLowerCase().includes(q) ?? false) ||
-          (d.orderReference?.toLowerCase().includes(q) ?? false) ||
-          String(d.id).includes(q)
-        );
-      })
-    : documents;
+  }, [debouncedSearch, refreshTick]);
 
   return (
     <>
@@ -119,8 +94,8 @@ export default function DocumentsScreen() {
 
         {isLoading ? <Text style={styles.muted}>Loading documents...</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {!isLoading && !error && filteredDocuments.length === 0 ? <Text style={styles.muted}>No documents found.</Text> : null}
-        {filteredDocuments.map((doc) => (
+        {!isLoading && !error && documents.length === 0 ? <Text style={styles.muted}>No documents found.</Text> : null}
+        {documents.map((doc) => (
           <ThemedCard key={doc.id} style={styles.card}>
             <Text style={styles.cardTitle}>{doc.type ?? 'Document'} #{doc.id}</Text>
             <Text style={styles.cardMeta}>Order ref: {doc.orderReference ?? 'N/A'}</Text>

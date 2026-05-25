@@ -11,14 +11,14 @@ This document tracks the remaining work needed to bring the frontend to full cov
 | Domain | Endpoints Used | Endpoints Total | Coverage |
 |---|---|---|---|
 | Auth | 3 | 3 | ✅ 100% |
-| Orders | 14 | 15 | ✅ 93% |
-| Documents | 1 | 1 | ✅ 100% (undocumented) |
-| Customers | 4 | 12 | ⚠️ 33% |
-| Users | 11 | 12 | ✅ 92% |
-| Price-List | 1 | 12 | ❌ 8% |
+| Orders | 15 | 15 | ✅ 100% |
+| Documents | 1 | 1 | ✅ 100% |
+| Customers | 12 | 12 | ✅ 100% |
+| Users | 12 | 12 | ✅ 100% |
+| Price-List | 12 | 12 | ✅ 100% |
 | Settings | 8 | 8 | ✅ 100% |
-| VAT Rates | 0 | 4 | ❌ 0% |
-| **TOTAL** | **42** | **67** | **~63%** |
+| VAT Rates | 4 | 4 | ✅ 100% |
+| **TOTAL** | **67** | **67** | **✅ 100%** |
 
 ---
 
@@ -101,24 +101,24 @@ All settings endpoints implemented. ✅
 
 ### 1.3 VAT Rates Management (New Screen)
 
-No VAT functionality exists. Requires a new screen in the admin nav section.
+All VAT functionality implemented. ✅
 
-- [ ] **Add VAT Rates screen to navigation** — Admin/Manager only
+- [x] **Add VAT Rates screen to navigation** — Admin/Manager only
   - Add route `/vat-rates/index.tsx`
   - Add to sidebar/drawer nav
 
-- [ ] **List VAT rates** — GET `/api/vat-rates`
+- [x] **List VAT rates** — GET `/api/vat-rates`
   - Show all historical and current rates
   - Display: rate %, effective from date, closed date (if applicable)
 
-- [ ] **View current VAT rate** — GET `/api/vat-rates/current`
+- [x] **View current VAT rate** — GET `/api/vat-rates/current`
   - Highlighted/pinned card at top of list
 
-- [ ] **Create VAT rate** — POST `/api/vat-rates`
+- [x] **Create VAT rate** — POST `/api/vat-rates`
   - Form: percentage, effective from date
   - Admin only
 
-- [ ] **Close VAT rate** — PATCH `/api/vat-rates/{id}/close`
+- [x] **Close VAT rate** — PATCH `/api/vat-rates/{id}/close`
   - Sets an end date on a rate
   - Confirm modal; Admin only
 
@@ -150,61 +150,61 @@ These are needed for day-to-day operations by Manager and Operative roles.
 
 Addresses are currently displayed (GET list used) but cannot be created or modified.
 
-- [ ] **Add address** — POST `/api/customers/{customerId}/addresses`
+- [x] **Add address** — POST `/api/customers/{customerId}/addresses`
   - Form: address lines, city, county, postcode, country, address type (Delivery / Billing)
   - TopBar or inline "Add" button in Addresses sub-section of customer detail
 
-- [ ] **View address detail** — GET `/api/customers/{customerId}/addresses/{addressId}`
+- [x] **View address detail** — GET `/api/customers/{customerId}/addresses/{addressId}`
   - Tap to expand/view individual address
 
-- [ ] **Edit address** — PUT `/api/customers/{customerId}/addresses/{addressId}`
+- [x] **Edit address** — PUT `/api/customers/{customerId}/addresses/{addressId}`
   - In-place editing of address fields
 
-- [ ] **Delete address** — DELETE `/api/customers/{customerId}/addresses/{addressId}`
+- [x] **Delete address** — DELETE `/api/customers/{customerId}/addresses/{addressId}`
   - Confirm modal; cannot delete default address
 
-- [ ] **Set address as default** — PATCH `/api/customers/{customerId}/addresses/{addressId}/set-default`
+- [x] **Set address as default** — PATCH `/api/customers/{customerId}/addresses/{addressId}/set-default`
   - Toggle/button per address card
 
 ### 2.4 Price List Management
 
 The Price List screen lists items but offers no administrative functions.
 
-- [ ] **View price list revisions** — GET `/api/price-list/revisions`
+- [x] **View price list revisions** — GET `/api/price-list/revisions`
   - New tab or section in Price List screen
   - Show all revisions: ID, created date, status (active / draft / superseded)
 
-- [ ] **View revision detail** — GET `/api/price-list/revisions/{id}`
+- [x] **View revision detail** — GET `/api/price-list/revisions/{id}`
   - Drill-down from revision list
   - Show items included in that revision
 
-- [ ] **Activate revision** — POST `/api/price-list/revisions/{id}/activate`
+- [x] **Activate revision** — POST `/api/price-list/revisions/{id}/activate`
   - Confirm modal; Admin only
   - Replaces current active revision
 
-- [ ] **Export price list** — GET `/api/price-list/export`
+- [x] **Export price list** — GET `/api/price-list/export`
   - Download/share CSV
   - Platform-aware: use `expo-file-system` + `expo-sharing` on native, direct link on web
 
-- [ ] **Import price list** — POST `/api/price-list/import`
+- [x] **Import price list** — POST `/api/price-list/import`
   - File picker (`expo-document-picker`)
   - Accepts CSV; Admin only
   - Show success/error feedback via modal
 
-- [ ] **View individual price list item** — GET `/api/price-list/{itemId}`
+- [x] **View individual price list item** — GET `/api/price-list/{itemId}`
   - Tap item in list to view full details
 
-- [ ] **View item by list name** — GET `/api/price-list/{itemId}/lists/{listName}`
+- [x] **View item by list name** — GET `/api/price-list/{itemId}/lists/{listName}`
   - View price for specific list type (e.g., Retail, Trade)
 
-- [ ] **List all price list types** — GET `/api/price-list/lists`
+- [x] **List all price list types** — GET `/api/price-list/lists`
   - Used as dropdown/filter source in price list screen
 
-- [ ] **Void/delete item** — DELETE `/api/price-list/items/{itemId}`
+- [x] **Void/delete item** — DELETE `/api/price-list/items/{itemId}`
   - Soft-delete an item from the price list
   - Admin only; confirm modal
 
-- [ ] **Delete price list type** — DELETE `/api/price-list/lists/{id}`
+- [x] **Delete price list type** — DELETE `/api/price-list/lists/{id}`
   - Admin only; confirm modal
 
 ---
@@ -213,7 +213,7 @@ The Price List screen lists items but offers no administrative functions.
 
 ### 3.1 Order Serial Number Lookup
 
-- [ ] **Serial number lookup** — GET `/api/orders/items/{serialNumber}`
+- [x] **Serial number lookup** — GET `/api/orders/items/{serialNumber}`
   - Endpoint exists in config but is never called
   - Add lookup feature to Order Detail or a new dedicated scan/search screen
   - Could be used for QR/barcode scanning on mobile (operative workflow)
@@ -224,26 +224,26 @@ Currently some domains have a dedicated `api.ts` feature module (Orders) while o
 
 - [x] Create `frontend/src/features/customers/api.ts`
   - Move all customer `apiRequest` calls from screen files into this module
-- [ ] Create `frontend/src/features/users/api.ts`
+- [x] Create `frontend/src/features/users/api.ts`
   - All user CRUD actions
-- [ ] Create `frontend/src/features/settings/api.ts`
-  - Global and user settings calls
-- [ ] Create `frontend/src/features/price-list/api.ts`
+- [x] Create `frontend/src/features/settings/api.ts`
+  - Global and user settings calls (at `src/features/settings.ts`)
+- [x] Create `frontend/src/features/price-list/api.ts`
   - All price list management calls
-- [ ] Create `frontend/src/features/vat-rates/api.ts`
+- [x] Create `frontend/src/features/vat-rates/api.ts`
   - All VAT rate calls
-- [ ] Create `frontend/src/features/documents/api.ts`
+- [x] Create `frontend/src/features/documents/api.ts`
   - Move documents endpoint out of screen, add to ENDPOINTS config
 
 ### 3.3 Documents — API Documentation Gap
 
-- [ ] Clarify and document the Documents endpoint in `2) SLOMS_API_Surface.md`
+- [x] Clarify and document the Documents endpoint in `2) SLOMS_API_Surface.md`
   - Currently called as `/api/documents` in the frontend but absent from the API surface doc
   - Determine full documents API surface (list, download, upload?) and document it
 
 ### 3.4 `/api/users/me` Endpoint
 
-- [ ] Determine if `/api/users/me` (distinct from `/api/auth/me`) is needed
+- [x] Determine if `/api/users/me` (distinct from `/api/auth/me`) is needed
   - Currently `/api/auth/me` is used for session hydration
   - Audit whether `/api/users/me` returns different/richer data
   - If so, use it to enrich the Account screen
@@ -258,19 +258,19 @@ Currently some domains have a dedicated `api.ts` feature module (Orders) while o
 | Forced Password Change | `/change-password.tsx` | ✅ Complete | — |
 | Dashboard | `/dashboard.tsx` | ✅ Complete | — |
 | Orders List | `/orders/index.tsx` | ✅ Complete | — |
-| Order Detail | `/orders/[n]/[b].tsx` | ✅ Complete | Serial number lookup (3.1) |
+| Order Detail | `/orders/[n]/[b].tsx` | ✅ Complete | — |
 | Order Tracking | `/orders/[n]/[b]/tracking.tsx` | ✅ Complete | — |
 | Create Order | `/orders/create.tsx` | ✅ Complete | — |
 | Create Customer | `/customers/create.tsx` | ✅ Complete | — |
 | Customers List | `/customers/index.tsx` | ✅ Complete | — |
-| Customer Detail | `/customers/[id].tsx` | ⚠️ Partial | Address CRUD (2.3) |
+| Customer Detail | `/customers/[id].tsx` | ✅ Complete | — |
 | Users List | `/users/index.tsx` | ✅ Complete | — |
 | User Detail | `/users/[id].tsx` | ✅ Complete | — |
 | Create User | `/users/create.tsx` | ✅ Complete | — |
 | User Audit Log | `/users/audit-log.tsx` | ✅ Complete | — |
-| Price List | `/price-list/index.tsx` | ❌ Incomplete | Revisions, import/export (2.4) |
+| Price List | `/price-list/index.tsx` | ✅ Complete | — |
 | Settings | `/settings/index.tsx` | ❌ Incomplete | Edit mode (1.2), user settings (1.2) |
-| VAT Rates | _missing_ | ❌ Not created | Full new screen (1.3) |
+| VAT Rates | `/vat-rates/index.tsx` | ✅ Complete | — |
 | Documents | `/documents/index.tsx` | ⚠️ Partial | API doc gap (3.3) |
 | Account | `/account.tsx` | ✅ Complete | `/api/users/me` review (3.4) |
 

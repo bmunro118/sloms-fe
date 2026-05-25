@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   Archive as ArchiveIcon,
   Download as DownloadIcon,
@@ -10,8 +10,12 @@ import {
   RefreshCw,
   RotateCcw as ResetIcon,
   Save as SaveIcon,
+  Search as SearchIcon,
 } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedCard } from '@components/ui/ThemedCard';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -22,7 +26,7 @@ import { downloadAndShareBreakdownPdfNative } from '@src/features/orders/breakdo
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { dispatchOrder, getOrder, getOrderBreakdownPdf, updateOrder, voidOrder } from '@src/features/orders/api';
+import { dispatchOrder, getOrder, getOrderBreakdownPdf, getOrderItemBySerial, OrderItem, updateOrder, voidOrder } from '@src/features/orders/api';
 import { ENDPOINTS } from '@utils/config';
 import { OrderDetails, OrderEditForm, OrderUpdatePayload, toOrderEditForm } from '@src/features/orders/types';
 import { OrderDetailCard } from '@src/features/orders/components/OrderDetailCard';
@@ -51,6 +55,12 @@ export default function OrderDetailScreen() {
   const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
   const [itemsRefreshSignal, setItemsRefreshSignal] = useState(0);
   const isEditingRef = useRef(false);
+
+  // ── Serial number lookup state ──────────────────────────────────────────────
+  const [serialInput, setSerialInput] = useState('');
+  const [isSerialSearching, setIsSerialSearching] = useState(false);
+  const [serialResult, setSerialResult] = useState<OrderItem | null>(null);
+  const [serialError, setSerialError] = useState<string | null>(null);
 
   useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
 
@@ -220,6 +230,22 @@ export default function OrderDetailScreen() {
     }
   }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
 
+  const handleSerialLookup = useCallback(async () => {
+    const serial = serialInput.trim();
+    if (!serial) return;
+    setIsSerialSearching(true);
+    setSerialResult(null);
+    setSerialError(null);
+    try {
+      const result = await getOrderItemBySerial<OrderItem>(serial);
+      setSerialResult(result);
+    } catch (err) {
+      setSerialError(err instanceof Error ? err.message : 'Item not found.');
+    } finally {
+      setIsSerialSearching(false);
+    }
+  }, [serialInput]);
+
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit || !order) return;
     setFormData(toOrderEditForm(order));
@@ -296,6 +322,57 @@ export default function OrderDetailScreen() {
           canMutate={canMutate}
           refreshSignal={itemsRefreshSignal}
         />
+
+        {/* ── Serial Number Lookup ── */}
+        <ThemedCard style={styles.serialCard}>
+          <Text style={styles.sectionTitle}>Serial Number Lookup</Text>
+          <View style={styles.serialRow}>
+            <ThemedInput
+              placeholder="Enter serial number..."
+              value={serialInput}
+              onChangeText={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
+              onSubmitEditing={() => { void handleSerialLookup(); }}
+              style={styles.serialInput}
+              editable={!isSerialSearching}
+            />
+            <ThemedButton
+              label={isSerialSearching ? '...' : 'Search'}
+              onPress={() => { void handleSerialLookup(); }}
+              disabled={isSerialSearching || !serialInput.trim()}
+              style={styles.serialBtn}
+            />
+          </View>
+          {serialError ? <Text style={styles.error}>{serialError}</Text> : null}
+          {serialResult ? (
+            <View style={styles.serialResult}>
+              <Text style={styles.serialResultTitle}>
+                #{serialResult.serialNumber as string}
+              </Text>
+              {serialResult.description ? (
+                <Text style={styles.meta}>{serialResult.description as string}</Text>
+              ) : null}
+              {serialResult.modelCode ? (
+                <Text style={styles.meta}>Model: {serialResult.modelCode as string}</Text>
+              ) : null}
+              {(serialResult.patientInitial || serialResult.patientSurname) ? (
+                <Text style={styles.meta}>
+                  Patient: {[serialResult.patientInitial, serialResult.patientSurname].filter(Boolean).join(' ')}
+                </Text>
+              ) : null}
+              {serialResult.category ? (
+                <Text style={styles.meta}>Category: {serialResult.category as string}</Text>
+              ) : null}
+              {serialResult.side ? (
+                <Text style={styles.meta}>Side: {serialResult.side as string}</Text>
+              ) : null}
+              {serialResult.orderNumber ? (
+                <Text style={styles.meta}>
+                  Order: {serialResult.orderNumber as string}/{serialResult.orderBatch as string}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </ThemedCard>
       </ScrollView>
     </ScreenContent>
   );
@@ -306,5 +383,11 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     ...common,
     scrollContent: { gap: 10, paddingBottom: 8 },
+    serialCard: { gap: 8 },
+    serialRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+    serialInput: { flex: 1 },
+    serialBtn: { flexShrink: 0 },
+    serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
+    serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
   });
 }

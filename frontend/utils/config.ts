@@ -124,4 +124,9 @@ export const ENDPOINTS = {
     current: e('/api/vat-rates/current'),
     close: (id: number) => e(`/api/vat-rates/${id}/close`),
   },
+
+  // ── Documents ──────────────────────────────────────────────────────────────
+  documents: {
+    list: e('/api/documents'),
+  },
 };

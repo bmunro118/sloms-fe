@@ -36,7 +36,7 @@ const INITIAL_FORM: CreateCustomerPayload = {
 };
 
 export default function CreateCustomerScreen() {
-  const { canMutate } = useAuth();
+  const { role } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const { showSuccess, showDanger } = useAppModal();
@@ -106,7 +106,7 @@ export default function CreateCustomerScreen() {
 
   useScreenTopBar({ title: 'Create Customer', actions: topBarActions });
 
-  if (!canMutate) {
+  if (role !== 'Admin' && role !== 'Manager') {
     return <Redirect href="/(app)/dashboard" />;
   }
 
