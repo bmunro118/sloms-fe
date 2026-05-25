@@ -3,13 +3,19 @@ import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import {
+  suspendCustomer,
+  reinstateCustomer,
+} from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -34,6 +40,7 @@ type CustomerDetails = {
   contactMobile?: string;
   contactFax?: string;
   band?: string;
+  isSuspended?: boolean;
 };
 
 type Address = {
@@ -57,9 +64,10 @@ type AddressesResponse = {
 };
 
 export default function CustomerDetailScreen() {
-  const { isStaff } = useAuth();
-  const { showConfirm } = useAppModal();
+  const { isStaff, canMutate } = useAuth();
+  const { showConfirm, showSuccess, showDanger } = useAppModal();
   const router = useRouter();
+  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
   const customerId = Number(params.id);
@@ -226,13 +234,15 @@ export default function CustomerDetailScreen() {
       );
 
       setCustomer(response);
+      setFormData(response);
       setIsEditing(false);
+      showSuccess('Customer updated', 'Changes saved successfully.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save customer.');
+      showDanger('Save failed', err instanceof Error ? err.message : 'Failed to save customer.');
     } finally {
       setIsSaving(false);
     }
-  }, [customer, customerId, formData]);
+  }, [customer, customerId, formData, showSuccess, showDanger]);
 
   const handleConfirmSave = useCallback(async () => {
     if (isSaving) {
@@ -272,6 +282,41 @@ export default function CustomerDetailScreen() {
 
     setFormData(customer);
   }, [customer, isSaving, showConfirm]);
+
+  const handleSuspend = useCallback(async () => {
+    if (!customer || !Number.isFinite(customerId)) return;
+    const confirmed = await showConfirm({
+      title: 'Suspend customer?',
+      message: `${customer.companyName} will be suspended and unable to place new orders.`,
+      confirmLabel: 'Suspend',
+      confirmVariant: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      const updated = await suspendCustomer(customerId);
+      setCustomer(updated);
+      showSuccess('Customer suspended');
+    } catch (err) {
+      showDanger('Suspend failed', err instanceof Error ? err.message : 'Could not suspend customer.');
+    }
+  }, [customer, customerId, showConfirm, showSuccess, showDanger]);
+
+  const handleReinstate = useCallback(async () => {
+    if (!customer || !Number.isFinite(customerId)) return;
+    const confirmed = await showConfirm({
+      title: 'Reinstate customer?',
+      message: `${customer.companyName} will be reinstated and able to place orders again.`,
+      confirmLabel: 'Reinstate',
+    });
+    if (!confirmed) return;
+    try {
+      const updated = await reinstateCustomer(customerId);
+      setCustomer(updated);
+      showSuccess('Customer reinstated');
+    } catch (err) {
+      showDanger('Reinstate failed', err instanceof Error ? err.message : 'Could not reinstate customer.');
+    }
+  }, [customer, customerId, showConfirm, showSuccess, showDanger]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({
@@ -667,6 +712,57 @@ export default function CustomerDetailScreen() {
             </ThemedCard>
           )}
 
+          {/* Status Card */}
+          <ThemedCard style={styles.card}>
+            <Text style={styles.sectionTitle}>Status</Text>
+            <View style={styles.statusBadgeRow}>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    borderColor: customer.isSuspended ? theme.colors.danger : theme.colors.accent,
+                    backgroundColor: customer.isSuspended ? theme.colors.dangerSurface : theme.colors.surface,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusBadgeText,
+                    { color: customer.isSuspended ? theme.colors.danger : theme.colors.accent },
+                  ]}
+                >
+                  {customer.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
+                </Text>
+              </View>
+            </View>
+          </ThemedCard>
+
+          {/* Admin Actions */}
+          {canMutate ? (
+            <ThemedCard style={styles.card}>
+              <Text style={styles.sectionTitle}>Actions</Text>
+              <View style={styles.actionsStack}>
+                {customer.isSuspended ? (
+                  <ThemedButton
+                    label="Reinstate Customer"
+                    onPress={handleReinstate}
+                    style={styles.actionButton}
+                  />
+                ) : (
+                  <View style={[styles.actionButton, styles.dangerButton]}>
+                    <ThemedButton
+                      label="Suspend Customer"
+                      onPress={handleSuspend}
+                      variant="secondary"
+                      style={{ width: '100%' }}
+                      textStyle={{ color: theme.colors.danger }}
+                    />
+                  </View>
+                )}
+              </View>
+            </ThemedCard>
+          ) : null}
+
         </ScrollView>
       ) : null}
     </ScreenContent>
@@ -719,6 +815,36 @@ function createStyles(theme: AppTheme) {
       fontSize: 12,
       fontWeight: '400',
       color: theme.colors.accent,
+    },
+    statusBadgeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 8,
+    },
+    statusBadge: {
+      borderRadius: 6,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    statusBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.2,
+    },
+    actionsStack: {
+      gap: 8,
+      marginTop: 8,
+    },
+    actionButton: {
+      alignSelf: 'flex-start',
+    },
+    dangerButton: {
+      borderColor: theme.colors.danger,
+      borderWidth: 1,
+      borderRadius: theme.radii.md,
+      overflow: 'hidden',
     },
   });
 }

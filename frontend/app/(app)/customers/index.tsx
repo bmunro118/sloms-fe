@@ -1,5 +1,5 @@
-import { Redirect } from 'expo-router';
-import { RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { Redirect, useRouter } from 'expo-router';
+import { Building2 as CreateCustomerIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -71,7 +71,8 @@ function normalizeCustomers(rows: Customer[]): CustomerCardRow[] {
 const INITIAL_FILTERS: CustomerFilters = { includeSuspended: false };
 
 export default function CustomersListScreen() {
-  const { isStaff } = useAuth();
+  const { isStaff, canMutate } = useAuth();
+  const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
   const [refreshTick, setRefreshTick] = useState(0);
@@ -97,6 +98,14 @@ export default function CustomersListScreen() {
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
       buildIconTopBarAction({
+        id: 'create-customer',
+        label: 'Create customer',
+        onPress: () => router.push('/(app)/customers/create' as never),
+        icon: CreateCustomerIcon,
+        disabled: isLoading,
+        hidden: !canMutate,
+      }),
+      buildIconTopBarAction({
         id: 'refresh-customers',
         label: 'Refresh customers',
         onPress: () => setRefreshTick((value) => value + 1),
@@ -104,7 +113,7 @@ export default function CustomersListScreen() {
         disabled: isLoading,
       }),
     ];
-  }, [isLoading]);
+  }, [isLoading, canMutate, router]);
 
   useScreenTopBar({ title: 'Customers', actions: topBarActions });
 

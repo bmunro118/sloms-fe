@@ -1,0 +1,246 @@
+import { Redirect, useRouter } from 'expo-router';
+import { Save as SaveIcon } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScreenContent } from '@components/layout/ScreenContent';
+import { ThemedCard } from '@components/ui/ThemedCard';
+import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedInput } from '@components/ui/ThemedInput';
+import { useAuth } from '@context/AuthContext';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { CreateUserPayload, UserRole, createUser } from '@src/features/users/api';
+import { useAppModal } from '@src/hooks/useAppModal';
+import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useAppTheme } from '@theme/ThemeProvider';
+import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
+import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
+
+type AssignableRole = Exclude<UserRole, 'Customer'>;
+
+const ASSIGNABLE_ROLES: AssignableRole[] = ['Admin', 'Manager', 'Operative', 'ReadOnly'];
+
+const INITIAL_FORM: CreateUserPayload = {
+  username: '',
+  fullName: '',
+  email: '',
+  role: 'Operative',
+  password: '',
+};
+
+export default function CreateUserScreen() {
+  const { isAdmin } = useAuth();
+  const router = useRouter();
+  const styles = useThemedStyles(createStyles);
+  const theme = useAppTheme();
+  const { showSuccess, showDanger } = useAppModal();
+
+  const [form, setForm] = useState<CreateUserPayload>(INITIAL_FORM);
+  const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const setField = useCallback(<K extends keyof CreateUserPayload>(key: K, value: CreateUserPayload[K]) => {
+    setValidationError(null);
+    setForm((f) => ({ ...f, [key]: value }));
+  }, []);
+
+  const validate = useCallback((): string | null => {
+    if (!form.username.trim()) return 'Username is required.';
+    if (!form.fullName.trim()) return 'Full name is required.';
+    if (!form.email.trim()) return 'Email is required.';
+    if (!form.password.trim()) return 'Password is required.';
+    if (!form.role) return 'Role is required.';
+    return null;
+  }, [form]);
+
+  const handleSave = useCallback(async () => {
+    const error = validate();
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await createUser({
+        username: form.username.trim(),
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        role: form.role,
+        password: form.password,
+      });
+      showSuccess('User created', `${form.fullName.trim()} has been created successfully.`);
+      router.replace('/(app)/users' as never);
+    } catch (err) {
+      showDanger('Create failed', err instanceof Error ? err.message : 'Failed to create user.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [form, validate, showSuccess, showDanger, router]);
+
+  const topBarActions = useMemo<TopBarAction[]>(() => [
+    buildBackTopBarAction({ onPress: () => router.back() }),
+    buildIconTopBarAction({
+      id: 'save-new-user',
+      label: 'Save user',
+      onPress: handleSave,
+      icon: SaveIcon,
+      disabled: isSaving,
+    }),
+  ], [handleSave, isSaving, router]);
+
+  useScreenTopBar({ title: 'Create User', actions: topBarActions });
+
+  if (!isAdmin) {
+    return <Redirect href="/(app)/dashboard" />;
+  }
+
+  return (
+    <ScreenContent>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ThemedCard style={styles.card}>
+          <Text style={styles.sectionTitle}>New User Details</Text>
+
+          {validationError ? (
+            <View style={styles.validationBanner}>
+              <Text style={styles.validationText}>{validationError}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Username *</Text>
+            <ThemedInput
+              value={form.username}
+              onChangeText={(text) => setField('username', text)}
+              placeholder="e.g. jsmith"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Full Name *</Text>
+            <ThemedInput
+              value={form.fullName}
+              onChangeText={(text) => setField('fullName', text)}
+              placeholder="e.g. John Smith"
+              style={styles.input}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Email *</Text>
+            <ThemedInput
+              value={form.email}
+              onChangeText={(text) => setField('email', text)}
+              placeholder="e.g. jsmith@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Password *</Text>
+            <ThemedInput
+              value={form.password}
+              onChangeText={(text) => setField('password', text)}
+              placeholder="Temporary password"
+              secureTextEntry
+              style={styles.input}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Role *</Text>
+            <View style={styles.roleRow}>
+              {ASSIGNABLE_ROLES.map((role) => (
+                <ThemedButton
+                  key={role}
+                  label={role}
+                  onPress={() => setField('role', role)}
+                  variant={form.role === role ? 'primary' : 'secondary'}
+                  style={{ minWidth: 90 }}
+                  tooltip={`Select role: ${role}`}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.submitRow}>
+            <ThemedButton
+              label={isSaving ? 'Creating…' : 'Create User'}
+              onPress={handleSave}
+              disabled={isSaving}
+              style={styles.submitButton}
+            />
+            <ThemedButton
+              label="Cancel"
+              onPress={() => router.back()}
+              variant="secondary"
+              disabled={isSaving}
+              style={styles.submitButton}
+            />
+          </View>
+        </ThemedCard>
+      </ScrollView>
+    </ScreenContent>
+  );
+}
+
+function createStyles(theme: AppTheme) {
+  const common = createCommonScreenStyleDefinitions(theme);
+
+  return StyleSheet.create({
+    ...common,
+    scrollContent: {
+      paddingBottom: theme.spacing.xxl,
+    },
+    card: common.card,
+    field: {
+      marginTop: theme.spacing.md,
+    },
+    fieldLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+      marginBottom: theme.spacing.xs,
+    },
+    input: {
+      marginTop: 2,
+    },
+    roleRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.xs,
+    },
+    validationBanner: {
+      marginTop: theme.spacing.md,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.colors.dangerSurface,
+      borderWidth: 1,
+      borderColor: theme.colors.danger,
+      padding: theme.spacing.md,
+    },
+    validationText: {
+      color: theme.colors.danger,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    submitRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.xl,
+      flexWrap: 'wrap',
+    },
+    submitButton: {
+      minWidth: 120,
+    },
+  });
+}

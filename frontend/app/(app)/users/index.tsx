@@ -1,5 +1,6 @@
+import { useRouter } from 'expo-router';
 import { Redirect } from 'expo-router';
-import { RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { RefreshCw as RefreshIcon, UserPlus as UserPlusIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -19,11 +20,13 @@ import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
 
 type UserRow = {
-  id: number;
+  userId: number;
   username?: string;
   role?: string;
   fullName?: string;
+  email?: string;
   isActive?: boolean;
+  isLockedOut?: boolean;
 };
 
 type UserCardRow = UserRow & {
@@ -39,8 +42,8 @@ type UserFilters = {
 };
 
 function resolveUserKeyBase(entry: UserRow): string {
-  if (typeof entry.id === 'number' && Number.isFinite(entry.id)) {
-    return `id:${entry.id}`;
+  if (typeof entry.userId === 'number' && Number.isFinite(entry.userId)) {
+    return `id:${entry.userId}`;
   }
 
   if (entry.username?.trim()) {
@@ -73,6 +76,7 @@ const INITIAL_FILTERS: UserFilters = { includeInactive: false };
 
 export default function UsersScreen() {
   const { isAdmin } = useAuth();
+  const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
   const [refreshTick, setRefreshTick] = useState(0);
@@ -98,6 +102,14 @@ export default function UsersScreen() {
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
       buildIconTopBarAction({
+        id: 'create-user',
+        label: 'Create user',
+        onPress: () => router.push('/(app)/users/create' as never),
+        icon: UserPlusIcon,
+        disabled: isLoading,
+        hidden: !isAdmin,
+      }),
+      buildIconTopBarAction({
         id: 'refresh-users',
         label: 'Refresh users',
         onPress: () => setRefreshTick((value) => value + 1),
@@ -105,7 +117,7 @@ export default function UsersScreen() {
         disabled: isLoading,
       }),
     ];
-  }, [isLoading]);
+  }, [isLoading, isAdmin, router]);
 
   useScreenTopBar({ title: 'Users', actions: topBarActions });
 
