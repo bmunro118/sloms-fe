@@ -7,8 +7,9 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { UserRecord, UpdateUserPayload, UserRole } from '@src/features/users/api';
+import { LinkedCustomerField } from './LinkedCustomerField';
 
-const ASSIGNABLE_ROLES: Exclude<UserRole, 'Customer'>[] = ['Admin', 'Manager', 'Operative', 'ReadOnly'];
+const ASSIGNABLE_ROLES: UserRole[] = ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'];
 
 type Props = {
   user: UserRecord;
@@ -80,7 +81,13 @@ export function UserProfileCard({
               <ThemedButton
                 key={role}
                 label={role}
-                onPress={() => onFormChange((f) => ({ ...f, role }))}
+                onPress={() =>
+                  onFormChange((f) => ({
+                    ...f,
+                    role,
+                    linkedCustomerId: role === 'Customer' ? f.linkedCustomerId : null,
+                  }))
+                }
                 variant={formData.role === role ? 'primary' : 'secondary'}
                 style={{ minWidth: 90 }}
                 tooltip={`Select role: ${role}`}
@@ -91,6 +98,14 @@ export function UserProfileCard({
           <Text style={styles.fieldValue}>{user.role ?? '—'}</Text>
         )}
       </View>
+
+      {(isEditing ? formData.role : user.role) === 'Customer' ? (
+        <LinkedCustomerField
+          isEditing={isEditing}
+          linkedCustomerId={isEditing ? formData.linkedCustomerId : user.linkedCustomerId}
+          onChange={(id) => onFormChange((f) => ({ ...f, linkedCustomerId: id }))}
+        />
+      ) : null}
 
       {isEditing ? (
         <View style={styles.editActionsRow}>

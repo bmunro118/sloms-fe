@@ -37,7 +37,8 @@ export type CreateUserPayload = {
   password: string;
   fullName: string;
   email: string;
-  role: Exclude<UserRole, 'Customer'>;
+  role: UserRole;
+  linkedCustomerId?: number | null;
 };
 
 export type UpdateUserPayload = {
@@ -45,6 +46,7 @@ export type UpdateUserPayload = {
   fullName?: string;
   role?: UserRole;
   isActive?: boolean;
+  linkedCustomerId?: number | null;
 };
 
 export type ResetPasswordPayload = {

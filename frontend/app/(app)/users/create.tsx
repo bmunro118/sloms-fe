@@ -10,6 +10,7 @@ import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { CreateUserPayload, UserRole, createUser } from '@src/features/users/api';
+import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -17,9 +18,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
-type AssignableRole = Exclude<UserRole, 'Customer'>;
-
-const ASSIGNABLE_ROLES: AssignableRole[] = ['Admin', 'Manager', 'Operative', 'ReadOnly'];
+const ASSIGNABLE_ROLES: UserRole[] = ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'];
 
 const INITIAL_FORM: CreateUserPayload = {
   username: '',
@@ -27,6 +26,7 @@ const INITIAL_FORM: CreateUserPayload = {
   email: '',
   role: 'Operative',
   password: '',
+  linkedCustomerId: null,
 };
 
 export default function CreateUserScreen() {
@@ -51,6 +51,7 @@ export default function CreateUserScreen() {
     if (!form.email.trim()) return 'Email is required.';
     if (!form.password.trim()) return 'Password is required.';
     if (!form.role) return 'Role is required.';
+    if (form.role === 'Customer' && !form.linkedCustomerId) return 'A linked customer account is required for Customer users.';
     return null;
   }, [form]);
 
@@ -64,11 +65,12 @@ export default function CreateUserScreen() {
     setIsSaving(true);
     try {
       await createUser({
-        username: form.username.trim(),
+        username: form.username.trim().toLowerCase(),
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         role: form.role,
         password: form.password,
+        ...(form.role === 'Customer' ? { linkedCustomerId: form.linkedCustomerId } : {}),
       });
       showSuccess('User created', `${form.fullName.trim()} has been created successfully.`);
       router.replace('/(app)/users' as never);
@@ -161,7 +163,14 @@ export default function CreateUserScreen() {
                 <ThemedButton
                   key={role}
                   label={role}
-                  onPress={() => setField('role', role)}
+                  onPress={() => {
+                    setValidationError(null);
+                    setForm((f) => ({
+                      ...f,
+                      role,
+                      linkedCustomerId: role === 'Customer' ? f.linkedCustomerId : null,
+                    }));
+                  }}
                   variant={form.role === role ? 'primary' : 'secondary'}
                   style={{ minWidth: 90 }}
                   tooltip={`Select role: ${role}`}
@@ -169,6 +178,14 @@ export default function CreateUserScreen() {
               ))}
             </View>
           </View>
+
+          {form.role === 'Customer' ? (
+            <LinkedCustomerField
+              isEditing
+              linkedCustomerId={form.linkedCustomerId}
+              onChange={(id) => setForm((f) => ({ ...f, linkedCustomerId: id }))}
+            />
+          ) : null}
 
           <View style={styles.submitRow}>
             <ThemedButton

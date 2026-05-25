@@ -49,7 +49,7 @@ export default function LoginScreen() {
         method: 'POST',
         requireAuth: false,
         body: {
-          username: username.trim(),
+          username: username.trim().toLowerCase(),
           password,
           clientType: usesCookieAuth() ? 'web' : 'mobile',
         },

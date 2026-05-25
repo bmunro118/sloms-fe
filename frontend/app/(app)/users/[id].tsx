@@ -66,6 +66,7 @@ export default function UserDetailScreen() {
             email: response.email,
             fullName: response.fullName,
             role: response.role,
+            linkedCustomerId: response.linkedCustomerId ?? null,
           });
         }
       } catch (err) {
@@ -82,14 +83,14 @@ export default function UserDetailScreen() {
 
   const handleStartEdit = useCallback(() => {
     if (!user) return;
-    setFormData({ email: user.email, fullName: user.fullName, role: user.role });
+    setFormData({ email: user.email, fullName: user.fullName, role: user.role, linkedCustomerId: user.linkedCustomerId ?? null });
     setIsEditing(true);
   }, [user]);
 
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
     if (user) {
-      setFormData({ email: user.email, fullName: user.fullName, role: user.role });
+      setFormData({ email: user.email, fullName: user.fullName, role: user.role, linkedCustomerId: user.linkedCustomerId ?? null });
     }
   }, [user]);
 
@@ -99,7 +100,7 @@ export default function UserDetailScreen() {
     try {
       const updated = await updateUser(userId, formData);
       setUser(updated);
-      setFormData({ email: updated.email, fullName: updated.fullName, role: updated.role });
+      setFormData({ email: updated.email, fullName: updated.fullName, role: updated.role, linkedCustomerId: updated.linkedCustomerId ?? null });
       setIsEditing(false);
       showSuccess('User updated', 'Changes saved successfully.');
     } catch (err) {

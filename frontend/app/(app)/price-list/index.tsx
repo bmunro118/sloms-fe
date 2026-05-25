@@ -43,6 +43,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { ENDPOINTS } from '@utils/config';
+import { FEATURE_FLAGS } from '@utils/feature-flags';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ export default function PriceListScreen() {
 
   // ── Load revisions ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isStaff) return;
+    if (!isStaff || !FEATURE_FLAGS.priceListRevisions) return;
     const controller = new AbortController();
     setIsRevisionsLoading(true);
     setRevisionsError(null);
@@ -185,7 +186,7 @@ export default function PriceListScreen() {
 
   // ── Load list types ─────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!isStaff) return;
+    if (!isStaff || !FEATURE_FLAGS.priceListTypes) return;
     const controller = new AbortController();
     setIsTypesLoading(true);
     setTypesError(null);
@@ -422,9 +423,10 @@ export default function PriceListScreen() {
   return (
     <>
       <ScreenContent>
-        {/* Tab bar */}
+        {/* Tab bar — only shown when more than one tab is enabled */}
+        {(FEATURE_FLAGS.priceListRevisions || FEATURE_FLAGS.priceListTypes) ? (
         <View style={styles.tabBar}>
-          {(['items', 'revisions', 'types'] as Tab[]).map((tab) => (
+          {(['items', ...(FEATURE_FLAGS.priceListRevisions ? ['revisions'] : []), ...(FEATURE_FLAGS.priceListTypes ? ['types'] : [])] as Tab[]).map((tab) => (
             <Pressable
               key={tab}
               style={[styles.tab, activeTab === tab && styles.tabActive]}
@@ -436,6 +438,7 @@ export default function PriceListScreen() {
             </Pressable>
           ))}
         </View>
+        ) : null}
 
         {/* ── Items tab ── */}
         {activeTab === 'items' ? (
