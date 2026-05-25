@@ -1,51 +1,38 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  ClipboardList as AuditIcon,
   Pencil as EditIcon,
   PencilOff as CancelEditIcon,
   Save as SaveIcon,
-  Trash2 as DeleteIcon,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedCard } from '@components/ui/ThemedCard';
-import { ThemedButton } from '@components/ui/ThemedButton';
-import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import {
-  UserRecord,
-  UserRole,
   UpdateUserPayload,
-  getUser,
-  updateUser,
+  UserRecord,
   deleteUser,
   deactivateUser,
+  getUser,
   reactivateUser,
-  unlockUser,
   resetUserPassword,
+  unlockUser,
+  updateUser,
 } from '@src/features/users/api';
+import { UserProfileCard } from '@src/features/users/components/UserProfileCard';
+import { UserActionsCard } from '@src/features/users/components/UserActionsCard';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
-import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-
-const ASSIGNABLE_ROLES: Exclude<UserRole, 'Customer'>[] = [
-  'Admin',
-  'Manager',
-  'Operative',
-  'ReadOnly',
-];
 
 export default function UserDetailScreen() {
   const { isAdmin, isStaff, user: currentUser } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
-  const theme = useAppTheme();
   const { showConfirm, showSuccess, showDanger } = useAppModal();
   const params = useLocalSearchParams<{ id: string }>();
   const userId = Number(params.id);
@@ -56,11 +43,6 @@ export default function UserDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<UpdateUserPayload>({});
-
-  // Reset-password inline form state
-  const [showResetForm, setShowResetForm] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const isSelf = currentUser?.userId === userId;
 
@@ -179,27 +161,17 @@ export default function UserDetailScreen() {
     }
   }, [user, userId, showConfirm, showSuccess, showDanger]);
 
-  const handleConfirmPasswordReset = useCallback(async () => {
-    if (!newPassword.trim()) return;
+  const handleResetPassword = useCallback(async (newPassword: string) => {
     const confirmed = await showConfirm({
       title: 'Reset password?',
       message: `Set a new password for ${user?.fullName ?? user?.username}. They will be required to change it on next login.`,
       confirmLabel: 'Reset Password',
       confirmVariant: 'danger',
     });
-    if (!confirmed) return;
-    setIsResettingPassword(true);
-    try {
-      await resetUserPassword(userId, newPassword.trim());
-      setShowResetForm(false);
-      setNewPassword('');
-      showSuccess('Password reset', 'The user will be prompted to change their password on next login.');
-    } catch (err) {
-      showDanger('Reset failed', err instanceof Error ? err.message : 'Could not reset password.');
-    } finally {
-      setIsResettingPassword(false);
-    }
-  }, [newPassword, user, userId, showConfirm, showSuccess, showDanger]);
+    if (!confirmed) throw new Error('cancelled');
+    await resetUserPassword(userId, newPassword);
+    showSuccess('Password reset', 'The user will be prompted to change their password on next login.');
+  }, [user, userId, showConfirm, showSuccess]);
 
   const handleDelete = useCallback(async () => {
     if (!user) return;
@@ -295,315 +267,42 @@ export default function UserDetailScreen() {
     );
   }
 
-  const isInactive = user.isActive === false;
-  const isLocked = user.isLockedOut === true;
-
   return (
     <ScreenContent>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
-        {/* ── Profile card ── */}
-        <ThemedCard style={styles.card}>
-          <Text style={styles.sectionTitle}>Profile</Text>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Username</Text>
-            <Text style={styles.fieldValue}>{user.username ?? '—'}</Text>
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Full Name</Text>
-            {isEditing ? (
-              <ThemedInput
-                value={formData.fullName ?? ''}
-                onChangeText={(text) => setFormData((f) => ({ ...f, fullName: text }))}
-                placeholder="Full name"
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.fieldValue}>{user.fullName ?? '—'}</Text>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Email</Text>
-            {isEditing ? (
-              <ThemedInput
-                value={formData.email ?? ''}
-                onChangeText={(text) => setFormData((f) => ({ ...f, email: text }))}
-                placeholder="Email address"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={styles.input}
-              />
-            ) : (
-              <Text style={styles.fieldValue}>{user.email ?? '—'}</Text>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Role</Text>
-            {isEditing ? (
-              <View style={styles.roleRow}>
-                {ASSIGNABLE_ROLES.map((role) => (
-                  <RoleChip
-                    key={role}
-                    label={role}
-                    selected={formData.role === role}
-                    onPress={() => setFormData((f) => ({ ...f, role }))}
-                  />
-                ))}
-              </View>
-            ) : (
-              <Text style={styles.fieldValue}>{user.role ?? '—'}</Text>
-            )}
-          </View>
-
-          {isEditing ? (
-            <View style={styles.editActionsRow}>
-              <ThemedButton
-                label={isSaving ? 'Saving…' : 'Save Changes'}
-                onPress={handleSave}
-                disabled={isSaving}
-                style={styles.actionButton}
-              />
-              <ThemedButton
-                label="Cancel"
-                onPress={handleCancelEdit}
-                variant="secondary"
-                disabled={isSaving}
-                style={styles.actionButton}
-              />
-            </View>
-          ) : null}
-        </ThemedCard>
-
-        {/* ── Status card ── */}
-        <ThemedCard style={styles.card}>
-          <Text style={styles.sectionTitle}>Status</Text>
-          <View style={styles.badgesRow}>
-            <StatusBadge
-              label={isInactive ? 'Inactive' : 'Active'}
-              variant={isInactive ? 'danger' : 'success'}
-            />
-            {isLocked ? <StatusBadge label="Locked Out" variant="danger" /> : null}
-            {user.mustChangePassword ? <StatusBadge label="Must Change Password" variant="warning" /> : null}
-          </View>
-        </ThemedCard>
-
-        {/* ── Admin actions ── */}
-        {isAdmin ? (
-          <ThemedCard style={styles.card}>
-            <Text style={styles.sectionTitle}>Admin Actions</Text>
-
-            <View style={styles.actionsStack}>
-              {isInactive ? (
-                <ThemedButton
-                  label="Reactivate User"
-                  onPress={handleReactivate}
-                  style={styles.actionButton}
-                />
-              ) : (
-                <ThemedButton
-                  label="Deactivate User"
-                  onPress={handleDeactivate}
-                  variant="secondary"
-                  style={styles.actionButton}
-                />
-              )}
-
-              {isLocked ? (
-                <ThemedButton
-                  label="Unlock Account"
-                  onPress={handleUnlock}
-                  style={styles.actionButton}
-                />
-              ) : null}
-
-              {/* Reset password */}
-              {showResetForm ? (
-                <View style={styles.resetForm}>
-                  <Text style={styles.fieldLabel}>New Password</Text>
-                  <ThemedInput
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="Enter new password"
-                    secureTextEntry
-                    style={styles.input}
-                  />
-                  <View style={styles.resetActionsRow}>
-                    <ThemedButton
-                      label={isResettingPassword ? 'Resetting…' : 'Confirm Reset'}
-                      onPress={handleConfirmPasswordReset}
-                      disabled={!newPassword.trim() || isResettingPassword}
-                      style={styles.actionButton}
-                    />
-                    <ThemedButton
-                      label="Cancel"
-                      onPress={() => { setShowResetForm(false); setNewPassword(''); }}
-                      variant="secondary"
-                      disabled={isResettingPassword}
-                      style={styles.actionButton}
-                    />
-                  </View>
-                </View>
-              ) : (
-                <ThemedButton
-                  label="Reset Password"
-                  onPress={() => setShowResetForm(true)}
-                  variant="secondary"
-                  style={styles.actionButton}
-                />
-              )}
-
-              <ThemedButton
-                label="View Audit Log"
-                onPress={handleViewAuditLog}
-                variant="secondary"
-                style={styles.actionButton}
-              />
-
-              {/* Delete — shown last, only if not self */}
-              {!isSelf ? (
-                <ThemedButton
-                  label="Delete User"
-                  onPress={handleDelete}
-                  variant="secondary"
-                  style={[styles.actionButton, styles.dangerButton]}
-                  textStyle={{ color: theme.colors.danger }}
-                />
-              ) : null}
-            </View>
-          </ThemedCard>
-        ) : null}
+        <UserProfileCard
+          user={user}
+          isEditing={isEditing}
+          isSaving={isSaving}
+          isAdmin={isAdmin}
+          formData={formData}
+          onFormChange={setFormData}
+          onSave={handleSave}
+          onCancelEdit={handleCancelEdit}
+        />
+        <UserActionsCard
+          user={user}
+          isAdmin={isAdmin}
+          isSelf={isSelf}
+          onDeactivate={handleDeactivate}
+          onReactivate={handleReactivate}
+          onUnlock={handleUnlock}
+          onResetPassword={handleResetPassword}
+          onViewAuditLog={handleViewAuditLog}
+          onDelete={handleDelete}
+        />
       </ScrollView>
     </ScreenContent>
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function RoleChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const theme = useAppTheme();
-
-  return (
-    <ThemedButton
-      label={label}
-      onPress={onPress}
-      variant={selected ? 'primary' : 'secondary'}
-      style={{ minWidth: 90 }}
-      tooltip={`Select role: ${label}`}
-    />
-  );
-}
-
-function StatusBadge({
-  label,
-  variant,
-}: {
-  label: string;
-  variant: 'success' | 'danger' | 'warning';
-}) {
-  const theme = useAppTheme();
-
-  const colors = {
-    success: { bg: theme.colors.surface, text: theme.colors.accent, border: theme.colors.accent },
-    danger: { bg: theme.colors.dangerSurface, text: theme.colors.danger, border: theme.colors.danger },
-    warning: { bg: theme.colors.surface, text: theme.colors.textSecondary, border: theme.colors.border },
-  }[variant];
-
-  return (
-    <View
-      style={{
-        borderRadius: 6,
-        borderWidth: 1,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderColor: colors.border,
-        backgroundColor: colors.bg,
-      }}
-    >
-      <Text style={{ color: colors.text, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.2 }}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 function createStyles(theme: AppTheme) {
   const common = createCommonScreenStyleDefinitions(theme);
-
   return StyleSheet.create({
     ...common,
     scrollContent: {
       gap: theme.spacing.md,
       paddingBottom: theme.spacing.xxl,
-    },
-    card: common.card,
-    field: {
-      marginTop: theme.spacing.md,
-    },
-    fieldLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.3,
-      marginBottom: theme.spacing.xs,
-    },
-    fieldValue: {
-      fontSize: 15,
-      color: theme.colors.textPrimary,
-    },
-    input: {
-      marginTop: 2,
-    },
-    roleRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.xs,
-    },
-    editActionsRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.lg,
-      flexWrap: 'wrap',
-    },
-    badgesRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.md,
-    },
-    actionsStack: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.md,
-    },
-    actionButton: {
-      flexShrink: 1,
-    },
-    dangerButton: {
-      borderColor: theme.colors.danger,
-    },
-    resetForm: {
-      gap: theme.spacing.sm,
-      paddingTop: theme.spacing.sm,
-    },
-    resetActionsRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      flexWrap: 'wrap',
     },
   });
 }
