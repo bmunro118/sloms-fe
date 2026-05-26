@@ -140,7 +140,7 @@ export function OrderItemsSection({
         description: itemFormData.description.trim() || undefined,
         patientInitial: itemFormData.patientInitial.trim() || undefined,
         patientSurname: itemFormData.patientSurname.trim() || undefined,
-        side: itemFormData.side.trim() || undefined,
+        orientation: itemFormData.side.trim() || undefined,
         price: parsedPrice,
       });
       setEditingItemSerial(null);

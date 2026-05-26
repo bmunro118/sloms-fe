@@ -9,7 +9,7 @@ import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { OrderDetails, OrderEditForm } from '../types';
+import { OrderDetails, OrderEditForm, resolveOrderStatus } from '../types';
 
 function isHovered(state: PressableStateCallbackType) {
   return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
@@ -50,7 +50,7 @@ export function OrderDetailCard({
   return (
     <>
       <ThemedCard style={styles.card} actions={cardActions}>
-        <Text style={styles.cardItem}>Status: {order.status ?? 'Unknown'}</Text>
+        <Text style={styles.cardItem}>Status: {resolveOrderStatus(order) ?? 'Unknown'}</Text>
         <Text style={styles.cardItem}>Customer: {order.customerAccount ?? 'N/A'}</Text>
 
         {isEditing ? (
@@ -98,7 +98,7 @@ export function OrderDetailCard({
 
       {canMutate && !isEditing ? (
         <View style={styles.contentActionRowRight}>
-          {order.status === 'Dispatched' ? (
+          {resolveOrderStatus(order) === 'Dispatched' ? (
             <TooltipPressable
               tooltip="Order dispatched"
               accessibilityRole="button"

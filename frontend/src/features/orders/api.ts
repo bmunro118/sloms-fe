@@ -23,6 +23,9 @@ export type OrderSummary = {
   orderNumber: number;
   orderBatch: number;
   status?: string;
+  currentStatus?: string;
+  void?: boolean;
+  dispatchedOn?: string | null;
   customerAccount?: number;
   [key: string]: unknown;
 };

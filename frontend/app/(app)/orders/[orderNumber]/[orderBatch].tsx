@@ -30,7 +30,7 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { dispatchOrder, getOrder, getOrderBreakdownPdf, getOrderItemBySerial, OrderItem, updateOrder, voidOrder } from '@src/features/orders/api';
 import { ENDPOINTS } from '@utils/config';
-import { OrderDetails, OrderEditForm, OrderUpdatePayload, toOrderEditForm } from '@src/features/orders/types';
+import { OrderDetails, OrderEditForm, OrderUpdatePayload, resolveOrderStatus, toOrderEditForm } from '@src/features/orders/types';
 import { OrderDetailCard } from '@src/features/orders/components/OrderDetailCard';
 import { OrderItemsSection } from '@src/features/orders/components/OrderItemsSection';
 
@@ -195,7 +195,7 @@ export default function OrderDetailScreen() {
 
   const handleDispatch = useCallback(async () => {
     if (!canMutate) return;
-    console.log('[OrderDetail] Dispatch requested — order:', orderNumber, '/', orderBatch, '— current status:', order?.status);
+    console.log('[OrderDetail] Dispatch requested — order:', orderNumber, '/', orderBatch, '— current status:', resolveOrderStatus(order ?? {}));
     const confirmed = await showConfirm({
       title: 'Mark Order as Dispatched',
       message: `Are you sure you want to mark order ${orderNumber}/${orderBatch} as dispatched? This action cannot be undone.`,
@@ -320,7 +320,7 @@ export default function OrderDetailScreen() {
   useEffect(() => {
     if (!routeWantsDispatch || hasHandledRouteDispatch) return;
     if (isLoading || !order || isDispatching) return;
-    if (order.status?.trim().toLowerCase() === 'dispatched') {
+    if (resolveOrderStatus(order)?.trim().toLowerCase() === 'dispatched') {
       setHasHandledRouteDispatch(true);
       return;
     }

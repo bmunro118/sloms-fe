@@ -6,6 +6,7 @@ import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import { resolveOrderStatus } from '@src/features/orders/types';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -14,6 +15,9 @@ export interface OrderCardData {
   orderNumber: number;
   orderBatch: number;
   status?: string;
+  currentStatus?: string;
+  void?: boolean;
+  dispatchedOn?: string | null;
   customerAccount?: number;
 }
 
@@ -27,7 +31,7 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
   const router = useRouter();
   const { canMutate } = useAuth();
   const styles = useThemedStyles(createStyles);
-  const isDispatched = order.status?.trim().toLowerCase() === 'dispatched';
+  const isDispatched = resolveOrderStatus(order)?.trim().toLowerCase() === 'dispatched';
 
   const handleOpenOrder = useCallback(() => {
     router.push(`/(app)/orders/${order.orderNumber}/${order.orderBatch}` as never);
@@ -79,7 +83,7 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
       actions={actions}
       onPress={handleOpenOrder}
     >
-      <Text style={styles.cardMeta}>Status: {order.status ?? 'Unknown'}</Text>
+      <Text style={styles.cardMeta}>Status: {resolveOrderStatus(order) ?? 'Unknown'}</Text>
       {typeof order.customerAccount === 'number' ? (
         <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
       ) : null}

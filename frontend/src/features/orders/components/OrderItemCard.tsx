@@ -21,9 +21,12 @@ export interface OrderItemCardData {
   description?: string;
   patientInitial?: string;
   patientSurname?: string;
+  orientation?: string;
   side?: string;
   price?: number | string;
-  status?: string;
+  void?: boolean;
+  checkedOut?: boolean;
+  checkoutDateStamp?: string;
   [key: string]: unknown;
 }
 
@@ -136,7 +139,7 @@ export function OrderItemCard({
 
   return (
     <ThemedCard title={`Item ${item.serialNumber}`} actions={actions} style={styles.card}>
-      <Text style={styles.cardMeta}>Status: {typeof item.status === 'string' && item.status.trim() ? item.status : 'Unknown'}</Text>
+      <Text style={styles.cardMeta}>Status: {item.void ? 'Voided' : isCheckedOut ? 'Checked out' : 'Active'}</Text>
 
       {isEditing ? (
         <>
@@ -187,7 +190,7 @@ export function OrderItemCard({
         <>
           <Text style={styles.cardMeta}>Description: {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}</Text>
           <Text style={styles.cardMeta}>Patient: {formatPatient(item)}</Text>
-          <Text style={styles.cardMeta}>Side: {typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A'}</Text>
+          <Text style={styles.cardMeta}>Side: {typeof item.orientation === 'string' && item.orientation.trim() ? item.orientation : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}</Text>
           <Text style={styles.cardMeta}>Checkout: {isCheckedOut ? 'Checked out' : 'Not checked out'}</Text>
         </>
       )}

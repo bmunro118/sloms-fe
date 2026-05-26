@@ -19,12 +19,16 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { dispatchOrder, listOrders } from '@src/features/orders/api';
+import { resolveOrderStatus } from '@src/features/orders/types';
 import { ApiError } from '@utils/api';
 
 type OrderRow = {
   orderNumber: number;
   orderBatch: number;
   status?: string;
+  currentStatus?: string;
+  void?: boolean;
+  dispatchedOn?: string | null;
   customerAccount?: number;
 };
 
@@ -109,7 +113,7 @@ export default function OrdersListScreen() {
 
       setAllOrders((previousOrders) => previousOrders.map((entry) => {
         if (entry.orderNumber === order.orderNumber && entry.orderBatch === order.orderBatch) {
-          return { ...entry, status: 'Dispatched' };
+          return { ...entry, status: 'Dispatched', currentStatus: 'Dispatched', dispatchedOn: new Date().toISOString() };
         }
         return entry;
       }));
@@ -212,12 +216,13 @@ export default function OrdersListScreen() {
   const ordersByFilter = allOrders.filter((o) => {
     const customerIdRaw = appliedFilters.customerId.trim();
     const parsedCustomerId = customerIdRaw ? Number(customerIdRaw) : NaN;
+    const resolvedStatus = resolveOrderStatus(o);
 
-    if (!appliedFilters.includeVoided && o.status === 'Voided') {
+    if (!appliedFilters.includeVoided && resolvedStatus === 'Voided') {
       return false;
     }
 
-    if (appliedFilters.status && o.status !== appliedFilters.status) {
+    if (appliedFilters.status && resolvedStatus !== appliedFilters.status) {
       return false;
     }
 
@@ -234,7 +239,7 @@ export default function OrdersListScreen() {
         return (
           String(o.orderNumber).includes(q) ||
           String(o.orderBatch).includes(q) ||
-          (o.status?.toLowerCase().includes(q) ?? false)
+          (resolveOrderStatus(o)?.toLowerCase().includes(q) ?? false)
         );
       })
     : ordersByFilter;
