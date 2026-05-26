@@ -14,23 +14,17 @@ const ASSIGNABLE_ROLES: UserRole[] = ['Admin', 'Manager', 'Operative', 'ReadOnly
 type Props = {
   user: UserRecord;
   isEditing: boolean;
-  isSaving: boolean;
   isAdmin: boolean;
   formData: UpdateUserPayload;
   onFormChange: (updater: (prev: UpdateUserPayload) => UpdateUserPayload) => void;
-  onSave: () => void;
-  onCancelEdit: () => void;
 };
 
 export function UserProfileCard({
   user,
   isEditing,
-  isSaving,
   isAdmin,
   formData,
   onFormChange,
-  onSave,
-  onCancelEdit,
 }: Props) {
   const styles = useThemedStyles(createStyles);
 
@@ -107,23 +101,6 @@ export function UserProfileCard({
         />
       ) : null}
 
-      {isEditing ? (
-        <View style={styles.editActionsRow}>
-          <ThemedButton
-            label={isSaving ? 'Saving…' : 'Save Changes'}
-            onPress={onSave}
-            disabled={isSaving}
-            style={styles.actionButton}
-          />
-          <ThemedButton
-            label="Cancel"
-            onPress={onCancelEdit}
-            variant="secondary"
-            disabled={isSaving}
-            style={styles.actionButton}
-          />
-        </View>
-      ) : null}
     </ThemedCard>
   );
 }
@@ -150,12 +127,5 @@ function createStyles(theme: AppTheme) {
       gap: theme.spacing.sm,
       marginTop: theme.spacing.xs,
     },
-    editActionsRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.lg,
-      flexWrap: 'wrap',
-    },
-    actionButton: { flexShrink: 1 },
   });
 }

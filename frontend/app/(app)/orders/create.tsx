@@ -1,9 +1,10 @@
 import { Redirect, useRouter } from 'expo-router';
 import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildCloseTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -14,6 +15,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createOrder } from '@src/features/orders/api';
+import { listCustomers, CustomerRecord } from '@src/features/customers/api';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -22,14 +24,37 @@ export default function CreateOrderScreen() {
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
-  const [customerAccount, setCustomerAccount] = useState('');
+  const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [priceBand, setPriceBand] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
 
-  if (!isStaff) {
-    return <Redirect href="/(app)/dashboard" />;
-  }
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsLoadingCustomers(true);
+    listCustomers({ limit: 100 }, { signal: controller.signal })
+      .then((res) => {
+        if (!controller.signal.aborted) {
+          setCustomers(res.data ?? []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingCustomers(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  const customerOptions = useMemo<SelectOption<number>[]>(
+    () =>
+      customers.map((c) => ({
+        value: c.customerId,
+        label: c.accountNumber ? `${c.accountNumber} — ${c.companyName}` : c.companyName,
+      })),
+    [customers]
+  );
 
   const performCreate = useCallback(async () => {
     if (!canMutate) {
@@ -38,9 +63,13 @@ export default function CreateOrderScreen() {
     }
 
     const parsedOrderNumber = Number(orderNumber);
-    const parsedCustomer = Number(customerAccount);
-    if (!Number.isFinite(parsedOrderNumber) || !Number.isFinite(parsedCustomer)) {
-      setError('Order number and customer account must be numeric.');
+    if (!Number.isFinite(parsedOrderNumber) || parsedOrderNumber <= 0) {
+      setError('Order number must be a valid number.');
+      return;
+    }
+
+    if (customerAccount === null) {
+      setError('Please select a customer account.');
       return;
     }
 
@@ -51,7 +80,7 @@ export default function CreateOrderScreen() {
 
       await createOrder({
         orderNumber: parsedOrderNumber,
-        customerAccount: parsedCustomer,
+        customerAccount,
         priceBand: trimmedPriceBand || undefined,
       });
       router.replace('/(app)/orders');
@@ -71,9 +100,16 @@ export default function CreateOrderScreen() {
       return;
     }
 
+    const selectedCustomer = customers.find((c) => c.customerId === customerAccount);
+    const customerLabel = selectedCustomer
+      ? selectedCustomer.accountNumber
+        ? `${selectedCustomer.accountNumber} — ${selectedCustomer.companyName}`
+        : selectedCustomer.companyName
+      : `customer account ${customerAccount}`;
+
     const confirmed = await showConfirm({
       title: 'Create new order?',
-      message: `A new order will be created for customer account ${customerAccount} with order number ${orderNumber}.`,
+      message: `A new order will be created for ${customerLabel} with order number ${orderNumber}.`,
       confirmLabel: 'Create',
       cancelLabel: 'Cancel',
     });
@@ -83,7 +119,7 @@ export default function CreateOrderScreen() {
     }
 
     await performCreate();
-  }, [isSaving, showConfirm, customerAccount, orderNumber, performCreate]);
+  }, [isSaving, showConfirm, customerAccount, customers, orderNumber, performCreate]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
@@ -100,7 +136,7 @@ export default function CreateOrderScreen() {
         label: 'Reset form',
         onPress: () => {
           setOrderNumber('');
-          setCustomerAccount('');
+          setCustomerAccount(null);
           setPriceBand('');
           setError(null);
         },
@@ -116,6 +152,10 @@ export default function CreateOrderScreen() {
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
+  if (!isStaff) {
+    return <Redirect href="/(app)/dashboard" />;
+  }
+
   return (
     <ScreenContent gap={10}>
       <ThemedInput
@@ -126,14 +166,19 @@ export default function CreateOrderScreen() {
         onChangeText={setOrderNumber}
         editable={!isSaving}
       />
-      <ThemedInput
-        keyboardType="number-pad"
-        placeholder="Customer account"
-        style={styles.input}
-        value={customerAccount}
-        onChangeText={setCustomerAccount}
-        editable={!isSaving}
-      />
+      {isLoadingCustomers ? (
+        <ActivityIndicator size="small" style={styles.loader} />
+      ) : (
+        <ThemedSelect<number>
+          value={customerAccount}
+          options={customerOptions}
+          onChange={setCustomerAccount}
+          placeholder="Select customer account…"
+          nullLabel="None"
+          disabled={isSaving}
+          style={styles.input}
+        />
+      )}
       <ThemedInput
         placeholder="Price band (optional)"
         style={styles.input}
@@ -152,5 +197,6 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    loader: { alignSelf: 'flex-start', marginTop: 4 },
   });
 }

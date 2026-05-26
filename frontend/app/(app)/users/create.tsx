@@ -11,6 +11,7 @@ import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { CreateUserPayload, UserRole, createUser } from '@src/features/users/api';
 import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
+import { generatePassword } from '@src/features/users/utils/generatePassword';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -47,25 +48,8 @@ export default function CreateUserScreen() {
   }, []);
 
   const handleGeneratePassword = useCallback(() => {
-    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lower = 'abcdefghjkmnpqrstuvwxyz';
-    const digits = '23456789';
-    const special = '!@#$%*';
-    const all = upper + lower + digits + special;
-    const required = [
-      upper[Math.floor(Math.random() * upper.length)],
-      upper[Math.floor(Math.random() * upper.length)],
-      lower[Math.floor(Math.random() * lower.length)],
-      lower[Math.floor(Math.random() * lower.length)],
-      digits[Math.floor(Math.random() * digits.length)],
-      digits[Math.floor(Math.random() * digits.length)],
-      special[Math.floor(Math.random() * special.length)],
-      special[Math.floor(Math.random() * special.length)],
-    ];
-    const fill = Array.from({ length: 4 }, () => all[Math.floor(Math.random() * all.length)]);
-    const password = [...required, ...fill].sort(() => Math.random() - 0.5).join('');
     setValidationError(null);
-    setForm((f) => ({ ...f, password }));
+    setForm((f) => ({ ...f, password: generatePassword() }));
     setPasswordRevealed(true);
   }, []);
 
@@ -230,22 +214,6 @@ export default function CreateUserScreen() {
               onChange={(id) => setForm((f) => ({ ...f, linkedCustomerId: id }))}
             />
           ) : null}
-
-          <View style={styles.submitRow}>
-            <ThemedButton
-              label={isSaving ? 'Creating…' : 'Create User'}
-              onPress={handleSave}
-              disabled={isSaving}
-              style={styles.submitButton}
-            />
-            <ThemedButton
-              label="Cancel"
-              onPress={() => router.back()}
-              variant="secondary"
-              disabled={isSaving}
-              style={styles.submitButton}
-            />
-          </View>
         </ThemedCard>
       </ScrollView>
     </ScreenContent>
@@ -304,14 +272,6 @@ function createStyles(theme: AppTheme) {
       fontSize: 14,
       fontWeight: '600',
     },
-    submitRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.xl,
-      flexWrap: 'wrap',
-    },
-    submitButton: {
-      minWidth: 120,
-    },
+
   });
 }

@@ -17,7 +17,7 @@ export const radii: ThemeRadii = {
 };
 
 export const layout: ThemeLayout = {
-  contentMaxWidth: 1080,
+  contentMaxWidth: 800,
   compactSidebarWidth: 84,
   expandedSidebarWidth: 240,
   drawerWidth: 260,

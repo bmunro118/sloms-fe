@@ -274,12 +274,9 @@ export default function UserDetailScreen() {
         <UserProfileCard
           user={user}
           isEditing={isEditing}
-          isSaving={isSaving}
           isAdmin={isAdmin}
           formData={formData}
           onFormChange={setFormData}
-          onSave={handleSave}
-          onCancelEdit={handleCancelEdit}
         />
         <UserActionsCard
           user={user}

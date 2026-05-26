@@ -8,6 +8,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { UserRecord } from '@src/features/users/api';
+import { generatePassword } from '@src/features/users/utils/generatePassword';
 
 type Props = {
   user: UserRecord;
@@ -62,6 +63,7 @@ export function UserActionsCard({
   const theme = useAppTheme();
   const [showResetForm, setShowResetForm] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [passwordRevealed, setPasswordRevealed] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const isInactive = user.isActive === false;
@@ -74,29 +76,48 @@ export function UserActionsCard({
       await onResetPassword(newPassword.trim());
       setShowResetForm(false);
       setNewPassword('');
+      setPasswordRevealed(false);
     } finally {
       setIsResettingPassword(false);
     }
   };
 
+  const handleGeneratePassword = () => {
+    const pwd = generatePassword();
+    setNewPassword(pwd);
+    setPasswordRevealed(true);
+  };
+
+  const handleCancelReset = () => {
+    setShowResetForm(false);
+    setNewPassword('');
+    setPasswordRevealed(false);
+  };
+
   return (
     <>
-      {/* Status card */}
-      <ThemedCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Status</Text>
-        <View style={styles.badgesRow}>
-          <StatusBadge label={isInactive ? 'Inactive' : 'Active'} variant={isInactive ? 'danger' : 'success'} />
-          {isLocked ? <StatusBadge label="Locked Out" variant="danger" /> : null}
-          {user.mustChangePassword ? <StatusBadge label="Must Change Password" variant="warning" /> : null}
-        </View>
-      </ThemedCard>
-
       {/* Admin actions card */}
       {isAdmin ? (
         <ThemedCard style={styles.card}>
-          <Text style={styles.sectionTitle}>Admin Actions</Text>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Admin Actions</Text>
+            <View style={styles.badgesRow}>
+              <StatusBadge label={isInactive ? 'Inactive' : 'Active'} variant={isInactive ? 'danger' : 'success'} />
+              {isLocked ? <StatusBadge label="Locked Out" variant="danger" /> : null}
+              {user.mustChangePassword ? <StatusBadge label="Must Change Password" variant="warning" /> : null}
+            </View>
+          </View>
 
           <View style={styles.actionsStack}>
+            {!showResetForm ? (
+              <ThemedButton
+                label="Reset Password"
+                onPress={() => setShowResetForm(true)}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+            ) : null}
+
             {isInactive ? (
               <ThemedButton label="Reactivate User" onPress={onReactivate} style={styles.actionButton} />
             ) : (
@@ -106,41 +127,6 @@ export function UserActionsCard({
             {isLocked ? (
               <ThemedButton label="Unlock Account" onPress={onUnlock} style={styles.actionButton} />
             ) : null}
-
-            {showResetForm ? (
-              <View style={styles.resetForm}>
-                <Text style={styles.fieldLabel}>New Password</Text>
-                <ThemedInput
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  placeholder="Enter new password"
-                  secureTextEntry
-                  style={styles.input}
-                />
-                <View style={styles.resetActionsRow}>
-                  <ThemedButton
-                    label={isResettingPassword ? 'Resetting…' : 'Confirm Reset'}
-                    onPress={handleConfirmReset}
-                    disabled={!newPassword.trim() || isResettingPassword}
-                    style={styles.actionButton}
-                  />
-                  <ThemedButton
-                    label="Cancel"
-                    onPress={() => { setShowResetForm(false); setNewPassword(''); }}
-                    variant="secondary"
-                    disabled={isResettingPassword}
-                    style={styles.actionButton}
-                  />
-                </View>
-              </View>
-            ) : (
-              <ThemedButton
-                label="Reset Password"
-                onPress={() => setShowResetForm(true)}
-                variant="secondary"
-                style={styles.actionButton}
-              />
-            )}
 
             <ThemedButton label="View Audit Log" onPress={onViewAuditLog} variant="secondary" style={styles.actionButton} />
 
@@ -154,6 +140,41 @@ export function UserActionsCard({
               />
             ) : null}
           </View>
+
+          {showResetForm ? (
+            <View style={styles.resetForm}>
+              <Text style={styles.fieldLabel}>New Password</Text>
+              <ThemedInput
+                value={newPassword}
+                onChangeText={(text) => { setPasswordRevealed(false); setNewPassword(text); }}
+                placeholder="Enter new password"
+                secureTextEntry={!passwordRevealed}
+                style={[styles.input, styles.passwordInput]}
+              />
+              <ThemedButton
+                label="Generate Temporary Password"
+                onPress={handleGeneratePassword}
+                variant="secondary"
+                style={styles.generateButton}
+                tooltip="Generate a random password that meets complexity requirements"
+              />
+              <View style={styles.resetActionsRow}>
+                <ThemedButton
+                  label={isResettingPassword ? 'Resetting…' : 'Confirm Reset'}
+                  onPress={handleConfirmReset}
+                  disabled={!newPassword.trim() || isResettingPassword}
+                  style={styles.actionButton}
+                />
+                <ThemedButton
+                  label="Cancel"
+                  onPress={handleCancelReset}
+                  variant="secondary"
+                  disabled={isResettingPassword}
+                  style={styles.actionButton}
+                />
+              </View>
+            </View>
+          ) : null}
         </ThemedCard>
       ) : null}
     </>
@@ -169,7 +190,6 @@ function createStyles(theme: AppTheme) {
       fontSize: 16,
       fontWeight: '600',
       color: theme.colors.text,
-      marginBottom: 4,
     },
     fieldLabel: {
       fontSize: 12,
@@ -184,17 +204,33 @@ function createStyles(theme: AppTheme) {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: theme.spacing.sm,
-      marginTop: theme.spacing.md,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.md,
     },
     actionsStack: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: theme.spacing.sm,
-      marginTop: theme.spacing.md,
     },
     actionButton: { flexShrink: 1 },
     dangerButton: { borderColor: theme.colors.danger },
-    resetForm: { gap: theme.spacing.sm, paddingTop: theme.spacing.sm },
+    resetForm: {
+      gap: theme.spacing.sm,
+      paddingTop: theme.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+      marginTop: theme.spacing.sm,
+    },
+    generateButton: {
+      alignSelf: 'flex-start',
+    },
+    passwordInput: { maxWidth: 440 },
     resetActionsRow: {
       flexDirection: 'row',
       gap: theme.spacing.sm,

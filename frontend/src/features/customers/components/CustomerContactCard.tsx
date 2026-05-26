@@ -36,7 +36,7 @@ export function CustomerContactCard({
     <>
       {/* Contact Information */}
       <ThemedCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Contact Information</Text>
+        <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Contact Information</Text>
 
         {isEditing ? (
           <>
@@ -76,35 +76,30 @@ export function CustomerContactCard({
         )}
       </ThemedCard>
 
-      {/* Status */}
-      <ThemedCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Status</Text>
-        <View style={styles.statusBadgeRow}>
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                borderColor: customer.isSuspended ? theme.colors.danger : theme.colors.accent,
-                backgroundColor: customer.isSuspended ? theme.colors.dangerSurface : theme.colors.surface,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                { color: customer.isSuspended ? theme.colors.danger : theme.colors.accent },
-              ]}
-            >
-              {customer.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
-            </Text>
-          </View>
-        </View>
-      </ThemedCard>
-
       {/* Admin Actions */}
       {canMutate ? (
         <ThemedCard style={styles.card}>
-          <Text style={styles.sectionTitle}>Actions</Text>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Actions</Text>
+            <View
+              style={[
+                styles.statusBadge,
+                {
+                  borderColor: customer.isSuspended ? theme.colors.danger : theme.colors.accent,
+                  backgroundColor: customer.isSuspended ? theme.colors.dangerSurface : theme.colors.surface,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusBadgeText,
+                  { color: customer.isSuspended ? theme.colors.danger : theme.colors.accent },
+                ]}
+              >
+                {customer.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
+              </Text>
+            </View>
+          </View>
           <View style={styles.actionsStack}>
             {customer.isSuspended ? (
               <ThemedButton
@@ -118,7 +113,6 @@ export function CustomerContactCard({
                   label="Suspend Customer"
                   onPress={onSuspend}
                   variant="secondary"
-                  style={{ width: '100%' }}
                   textStyle={{ color: theme.colors.danger }}
                 />
               </View>
@@ -139,7 +133,6 @@ function createStyles(theme: AppTheme) {
       fontSize: 16,
       fontWeight: '600',
       color: theme.colors.text,
-      marginBottom: 12,
     },
     item: common.cardItem,
     label: {
@@ -148,7 +141,15 @@ function createStyles(theme: AppTheme) {
       marginBottom: 4,
     },
     formGroup: { marginBottom: 12 },
-    statusBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    sectionTitleSpaced: { marginBottom: 12 },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 12,
+    },
     statusBadge: {
       paddingHorizontal: 10,
       paddingVertical: 4,
@@ -157,12 +158,14 @@ function createStyles(theme: AppTheme) {
     },
     statusBadgeText: { fontSize: 12, fontWeight: '600' },
     actionsStack: { gap: 12 },
-    actionButton: { width: '100%' },
+    actionButton: { alignSelf: 'flex-start', minWidth: 160 },
     dangerButton: {
       borderWidth: 1,
       borderColor: theme.colors.danger,
       borderRadius: 8,
       overflow: 'hidden',
+      alignSelf: 'flex-start',
+      minWidth: 160,
     },
   });
 }

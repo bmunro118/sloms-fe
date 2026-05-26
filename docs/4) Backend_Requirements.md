@@ -1,6 +1,6 @@
 # SLOMS Backend — Additional Requirements
 
-_Last updated: 2026-05-25_
+_Last updated: 2026-05-26_
 
 This document captures backend work required to support the full frontend feature set of the Sonic App. Items here represent confirmed gaps between what the frontend expects and what the current SLOMS backend provides.
 
@@ -137,7 +137,61 @@ Price list items should carry a `revisionId` foreign key. The existing `GET /pri
 
 ---
 
-## 3. Notes on Scope
+---
+
+## 3. Auto-assign Order Number on Create
+
+### Status
+❌ **Not implemented** — `orderNumber` is a required field in `CreateOrderDto` with no auto-generation logic.
+
+### Problem
+The frontend Create Order screen requires staff to manually enter an order number. This is error-prone (duplicates, gaps) and shouldn't be a client responsibility. The server is in the best position to assign the next available order number atomically.
+
+**Confirmed by inspecting the backend source:**
+- `CreateOrderDto` has `orderNumber` as required (`@IsInt() @Min(0)`, no `@IsOptional()`)
+- `orders.service.ts` `create()` uses `dto.orderNumber` directly with no fallback
+- No `next-number` or equivalent endpoint exists
+
+### Required Change
+
+#### 1. `create-order.dto.ts` — make `orderNumber` optional
+
+```ts
+@IsOptional()
+@IsInt()
+@Min(0)
+orderNumber?: number;
+```
+
+#### 2. `orders.service.ts` — auto-assign if omitted
+
+In `create()`, before saving, if `dto.orderNumber` is absent query the max and increment:
+
+```ts
+if (dto.orderNumber == null) {
+  const result = await this.orderRepo
+    .createQueryBuilder('o')
+    .select('MAX(o.orderNumber)', 'max')
+    .getRawOne<{ max: number | null }>();
+  dto.orderNumber = (result?.max ?? 0) + 1;
+}
+```
+
+This must be done within a transaction (or using a DB sequence) to prevent a race condition if two orders are created simultaneously.
+
+#### 3. API surface doc update
+`POST /api/orders` minimal body becomes:
+```json
+{ "customerAccount": 42 }
+```
+`orderNumber` remains accepted when supplied (e.g. for imports or externally-issued numbers) — existing callers are unaffected.
+
+### Frontend impact
+Once this backend change is deployed, remove the `orderNumber` text input from the Create Order screen (`frontend/app/(app)/orders/create.tsx`) entirely — the server will assign it and return it in the `201` response.
+
+---
+
+## 4. Notes on Scope
 
 The following modules **are** confirmed to exist in the current backend and are not blocking:
 

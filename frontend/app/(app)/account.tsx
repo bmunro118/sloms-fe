@@ -131,7 +131,7 @@ export default function AccountScreen() {
       <ThemedInput
         secureTextEntry
         placeholder="Current password"
-        style={styles.input}
+        style={[styles.input, styles.passwordInput]}
         value={currentPassword}
         onChangeText={setCurrentPassword}
         editable={!isSubmitting}
@@ -139,7 +139,7 @@ export default function AccountScreen() {
       <ThemedInput
         secureTextEntry
         placeholder="New password"
-        style={styles.input}
+        style={[styles.input, styles.passwordInput]}
         value={newPassword}
         onChangeText={setNewPassword}
         editable={!isSubmitting}
@@ -178,5 +178,8 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    passwordInput: {
+      maxWidth: 440,
+    },
   });
 }
