@@ -28,7 +28,6 @@ import {
 import { createStyles } from '@src/features/orders/tracking-styles';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { ApiError } from '@utils/api';
 
 export default function OrderTrackingScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
@@ -57,13 +56,18 @@ export default function OrderTrackingScreen() {
     try {
       const response = await getOrderTracking<OrderTrackingPayload>(orderNumber, orderBatch, { signal });
       if (!signal?.aborted) {
+        console.log('[OrderTracking] Tracking loaded for order', orderNumber, '/', orderBatch, '— status:', (response as OrderTrackingPayload).currentStatus ?? (response as OrderTrackingPayload).status);
         setTracking(response);
       }
     } catch (err) {
       if (!signal?.aborted) {
-        console.error('[OrderTracking] Failed to load tracking data:', err);
+        // Use duck-typing for status check — instanceof may not work across module boundaries in some bundler configurations
+        const errStatus = typeof (err as { status?: unknown }).status === 'number'
+          ? (err as { status: number }).status
+          : undefined;
+        console.error('[OrderTracking] Failed to load tracking data for order', orderNumber, '/', orderBatch, '— status:', errStatus, err);
         const message =
-          err instanceof ApiError && err.status === 404
+          errStatus === 404
             ? 'Tracking data is not available for this order. The order may not have tracking history yet.'
             : err instanceof Error
               ? err.message

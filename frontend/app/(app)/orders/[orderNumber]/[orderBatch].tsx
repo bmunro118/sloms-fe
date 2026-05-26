@@ -16,9 +16,11 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { Address, listAddresses } from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -51,6 +53,8 @@ export default function OrderDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<OrderEditForm>(toOrderEditForm(null));
+  const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
+  const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
   const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
   const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
   const [itemsRefreshSignal, setItemsRefreshSignal] = useState(0);
@@ -65,6 +69,17 @@ export default function OrderDetailScreen() {
   useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
 
   const canUpdate = (signal?: AbortSignal) => isMountedRef.current && !signal?.aborted;
+  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() => {
+    return deliveryAddresses.map((address, index) => {
+      const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
+      const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
+      const defaultBadge = address.defaultAddress ? ' (Default)' : '';
+      return {
+        value: address.id,
+        label: `${line}${city}${defaultBadge}`,
+      };
+    });
+  }, [deliveryAddresses]);
 
   const reload = useCallback(async (signal?: AbortSignal) => {
     if (!canUpdate(signal)) return;
@@ -94,19 +109,41 @@ export default function OrderDetailScreen() {
     return () => { controller.abort(); };
   }, [orderBatch, orderNumber, reload]);
 
-  const performSave = async () => {
-    if (!canMutate || isSaving) return;
-    const deliveryAddressRaw = formData.deliveryAddress.trim();
-    const hasDeliveryAddress = deliveryAddressRaw.length > 0;
-    const parsedDeliveryAddress = hasDeliveryAddress ? Number(deliveryAddressRaw) : undefined;
-    if (hasDeliveryAddress && !Number.isFinite(parsedDeliveryAddress)) {
-      setError('Delivery address must be numeric.');
+  useEffect(() => {
+    if (!order?.customerAccount) {
+      setDeliveryAddresses([]);
       return;
     }
+    const controller = new AbortController();
+    setIsLoadingDeliveryAddresses(true);
+    listAddresses(order.customerAccount, { signal: controller.signal })
+      .then((response) => {
+        if (!controller.signal.aborted) {
+          setDeliveryAddresses(Array.isArray(response.data) ? response.data : []);
+        }
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          console.error('[OrderDetail] Failed to load customer delivery addresses:', err);
+          setDeliveryAddresses([]);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingDeliveryAddresses(false);
+        }
+      });
+    return () => {
+      controller.abort();
+    };
+  }, [order?.customerAccount]);
+
+  const performSave = async () => {
+    if (!canMutate || isSaving) return;
     const payload: OrderUpdatePayload = {
       customerRef: formData.customerRef?.trim() || undefined,
       orderContact: formData.orderContact?.trim() || undefined,
-      deliveryAddress: parsedDeliveryAddress,
+      deliveryAddress: formData.deliveryAddress ?? undefined,
       priceBand: formData.priceBand?.trim() || undefined,
     };
     setIsSaving(true);
@@ -158,6 +195,7 @@ export default function OrderDetailScreen() {
 
   const handleDispatch = useCallback(async () => {
     if (!canMutate) return;
+    console.log('[OrderDetail] Dispatch requested — order:', orderNumber, '/', orderBatch, '— current status:', order?.status);
     const confirmed = await showConfirm({
       title: 'Mark Order as Dispatched',
       message: `Are you sure you want to mark order ${orderNumber}/${orderBatch} as dispatched? This action cannot be undone.`,
@@ -168,20 +206,40 @@ export default function OrderDetailScreen() {
     setIsDispatching(true);
     setError(null);
     try {
+      console.log('[OrderDetail] Sending dispatch PATCH for order', orderNumber, '/', orderBatch);
       await dispatchOrder(orderNumber, orderBatch);
+      console.log('[OrderDetail] Dispatch succeeded — reloading order...');
       await reload();
     } catch (err) {
-      console.error('[OrderDetail] Dispatch failed:', err);
+      console.error('[OrderDetail] Dispatch failed for order', orderNumber, '/', orderBatch, ':', err);
       if (isMountedRef.current) {
-        await showDanger({
-          title: 'Dispatch failed',
-          message: err instanceof Error ? err.message : 'Failed to dispatch order. Please try again.',
-        });
+        const status = typeof (err as { status?: unknown }).status === 'number'
+          ? (err as { status: number }).status
+          : undefined;
+        const code = typeof (err as { code?: unknown }).code === 'string'
+          ? (err as { code: string }).code.toLowerCase()
+          : '';
+        const noDeliveryAddressError =
+          status === 400 &&
+          (
+            code.includes('delivery') ||
+            code.includes('address') ||
+            !order?.deliveryAddress
+          );
+        if (noDeliveryAddressError) {
+          showDanger(
+            'Customer has no delivery address',
+            'This order cannot be dispatched because no valid delivery address is selected. Add a customer delivery address, set it on the order, then try dispatch again.'
+          );
+          return;
+        }
+        const errMessage = err instanceof Error ? err.message : 'Failed to dispatch order. Please try again.';
+        showDanger('Dispatch failed', errMessage);
       }
     } finally {
       if (isMountedRef.current) setIsDispatching(false);
     }
-  }, [canMutate, isMountedRef, orderBatch, orderNumber, reload, showConfirm]);
+  }, [canMutate, isMountedRef, order, orderBatch, orderNumber, reload, showConfirm, showDanger]);
 
   const handleOpenTracking = useCallback(() => {
     router.push(`/(app)/orders/${orderNumber}/${orderBatch}/tracking` as never);
@@ -319,6 +377,8 @@ export default function OrderDetailScreen() {
             cardActions={orderCardActions}
             isDispatching={isDispatching}
             canMutate={canMutate}
+            deliveryAddressOptions={deliveryAddressOptions}
+            isLoadingDeliveryAddresses={isLoadingDeliveryAddresses}
             onDispatch={() => { void handleDispatch(); }}
           />
         ) : null}

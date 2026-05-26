@@ -15,7 +15,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createOrder } from '@src/features/orders/api';
-import { listCustomers, CustomerRecord } from '@src/features/customers/api';
+import { Address, CustomerRecord, listAddresses, listCustomers } from '@src/features/customers/api';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -24,12 +24,19 @@ export default function CreateOrderScreen() {
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
+  const [orderBatch, setOrderBatch] = useState('');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
+  const [customerRef, setCustomerRef] = useState('');
+  const [orderContact, setOrderContact] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState<number | null>(null);
+  const [receivedOn, setReceivedOn] = useState('');
   const [priceBand, setPriceBand] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
+  const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -56,20 +63,90 @@ export default function CreateOrderScreen() {
     [customers]
   );
 
+  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() => {
+    return deliveryAddresses.map((address, index) => {
+      const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
+      const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
+      const defaultBadge = address.defaultAddress ? ' (Default)' : '';
+      return {
+        value: address.id,
+        label: `${line}${city}${defaultBadge}`,
+      };
+    });
+  }, [deliveryAddresses]);
+
+  useEffect(() => {
+    if (customerAccount === null) {
+      setDeliveryAddresses([]);
+      setDeliveryAddress(null);
+      return;
+    }
+    const controller = new AbortController();
+    setIsLoadingDeliveryAddresses(true);
+    listAddresses(customerAccount, { signal: controller.signal })
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        const nextAddresses = Array.isArray(response.data) ? response.data : [];
+        setDeliveryAddresses(nextAddresses);
+        setDeliveryAddress((current) => {
+          if (nextAddresses.some((address) => address.id === current)) {
+            return current;
+          }
+          const defaultAddress = nextAddresses.find((address) => address.defaultAddress);
+          return defaultAddress?.id ?? null;
+        });
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted) {
+          console.error('[OrderCreate] Failed to load customer addresses:', err);
+          setDeliveryAddresses([]);
+          setDeliveryAddress(null);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingDeliveryAddresses(false);
+      });
+
+    return () => controller.abort();
+  }, [customerAccount]);
+
   const performCreate = useCallback(async () => {
     if (!canMutate) {
-      setError('Your role does not allow creating orders.');
+      const msg = 'Your role does not allow creating orders.';
+      setError(msg);
+      showDanger('Permission denied', msg);
       return;
     }
 
     const parsedOrderNumber = Number(orderNumber);
     if (!Number.isFinite(parsedOrderNumber) || parsedOrderNumber <= 0) {
-      setError('Order number must be a valid positive number.');
+      const msg = 'Order number must be a valid positive number.';
+      setError(msg);
+      showDanger('Required field', msg);
+      return;
+    }
+
+    const trimmedOrderBatch = orderBatch.trim();
+    const parsedOrderBatch = trimmedOrderBatch.length > 0 ? Number(trimmedOrderBatch) : undefined;
+    if (trimmedOrderBatch.length > 0 && (!Number.isFinite(parsedOrderBatch) || parsedOrderBatch <= 0)) {
+      const msg = 'Order batch must be a valid positive number.';
+      setError(msg);
+      showDanger('Required field', msg);
       return;
     }
 
     if (customerAccount === null) {
-      setError('Please select a customer account.');
+      const msg = 'Please select a customer account.';
+      setError(msg);
+      showDanger('Required field', msg);
+      return;
+    }
+
+    const trimmedReceivedOn = receivedOn.trim();
+    if (trimmedReceivedOn.length > 0 && Number.isNaN(Date.parse(trimmedReceivedOn))) {
+      const msg = 'Received on must be a valid ISO date/time value.';
+      setError(msg);
+      showDanger('Invalid date', msg);
       return;
     }
 
@@ -78,9 +155,16 @@ export default function CreateOrderScreen() {
     console.log('[OrderCreate] Submitting order — orderNumber:', parsedOrderNumber, 'customerAccount:', customerAccount);
     try {
       const trimmedPriceBand = priceBand.trim();
+      const trimmedCustomerRef = customerRef.trim();
+      const trimmedOrderContact = orderContact.trim();
       const payload = {
         orderNumber: parsedOrderNumber,
+        orderBatch: parsedOrderBatch,
         customerAccount,
+        customerRef: trimmedCustomerRef || undefined,
+        orderContact: trimmedOrderContact || undefined,
+        deliveryAddress: deliveryAddress ?? undefined,
+        receivedOn: trimmedReceivedOn || undefined,
         priceBand: trimmedPriceBand || undefined,
       };
       console.log('[OrderCreate] Payload:', payload);
@@ -91,17 +175,14 @@ export default function CreateOrderScreen() {
     } catch (err) {
       console.error('[OrderCreate] API error:', err);
       if (isMountedRef.current) {
-        await showDanger({
-          title: 'Create Order Failed',
-          message: err instanceof Error ? err.message : 'Failed to create order. Please try again.',
-        });
+        showDanger('Create Order Failed', err instanceof Error ? err.message : 'Failed to create order. Please try again.');
       }
     } finally {
       if (isMountedRef.current) {
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, isMountedRef, orderNumber, priceBand, router, showDanger]);
+  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderBatch, orderContact, orderNumber, priceBand, receivedOn, router, showDanger]);
 
   const handleCreate = useCallback(async () => {
     if (isSaving) {
@@ -117,7 +198,7 @@ export default function CreateOrderScreen() {
 
     const confirmed = await showConfirm({
       title: 'Create new order?',
-      message: `A new order will be created for ${customerLabel} with order number ${orderNumber}.`,
+        message: `A new order will be created for ${customerLabel} with order number ${orderNumber}.`,
       confirmLabel: 'Create',
       cancelLabel: 'Cancel',
     });
@@ -144,7 +225,13 @@ export default function CreateOrderScreen() {
         label: 'Reset form',
         onPress: () => {
           setOrderNumber('');
+          setOrderBatch('');
           setCustomerAccount(null);
+          setCustomerRef('');
+          setOrderContact('');
+          setDeliveryAddress(null);
+          setReceivedOn('');
+          setDeliveryAddresses([]);
           setPriceBand('');
           setError(null);
         },
@@ -187,6 +274,48 @@ export default function CreateOrderScreen() {
           style={styles.input}
         />
       )}
+      <ThemedInput
+        keyboardType="number-pad"
+        placeholder="Order batch (optional)"
+        style={styles.input}
+        value={orderBatch}
+        onChangeText={setOrderBatch}
+        editable={!isSaving}
+      />
+      <ThemedInput
+        placeholder="Customer reference (optional)"
+        style={styles.input}
+        value={customerRef}
+        onChangeText={setCustomerRef}
+        editable={!isSaving}
+      />
+      <ThemedInput
+        placeholder="Order contact (optional)"
+        style={styles.input}
+        value={orderContact}
+        onChangeText={setOrderContact}
+        editable={!isSaving}
+      />
+      {isLoadingDeliveryAddresses ? (
+        <ActivityIndicator size="small" style={styles.loader} />
+      ) : (
+        <ThemedSelect<number>
+          value={deliveryAddress}
+          options={deliveryAddressOptions}
+          onChange={setDeliveryAddress}
+          placeholder={customerAccount === null ? 'Select customer first…' : 'Select delivery address…'}
+          nullLabel="No delivery address"
+          disabled={isSaving || customerAccount === null}
+          style={styles.input}
+        />
+      )}
+      <ThemedInput
+        placeholder="Received on (ISO, optional) e.g. 2024-06-01T09:00:00.000Z"
+        style={styles.input}
+        value={receivedOn}
+        onChangeText={setReceivedOn}
+        editable={!isSaving}
+      />
       <ThemedInput
         placeholder="Price band (optional)"
         style={styles.input}

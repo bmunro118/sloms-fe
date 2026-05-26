@@ -39,7 +39,7 @@ export default function CreateCustomerScreen() {
   const { role } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
-  const { showSuccess, showDanger } = useAppModal();
+  const { showConfirm, showSuccess, showDanger } = useAppModal();
 
   const [form, setForm] = useState<CreateCustomerPayload>(INITIAL_FORM);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,6 +59,17 @@ export default function CreateCustomerScreen() {
     const error = validate();
     if (error) {
       setValidationError(error);
+      showDanger('Required field', error);
+      return;
+    }
+
+    const confirmed = await showConfirm({
+      title: 'Warning: Customer has no delivery address',
+      message: 'Create customer without a delivery address?',
+      confirmLabel: 'Yes',
+      cancelLabel: 'No',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -83,6 +94,7 @@ export default function CreateCustomerScreen() {
       if (form.contactFax?.trim()) payload.contactFax = form.contactFax.trim();
       if (form.band?.trim()) payload.band = form.band.trim();
 
+      console.log('[CustomerCreate] Submitting payload:', payload);
       await createCustomer(payload);
       showSuccess('Customer created', `${form.companyName.trim()} has been created successfully.`);
       router.replace('/(app)/customers' as never);
@@ -92,7 +104,7 @@ export default function CreateCustomerScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [form, validate, showSuccess, showDanger, router]);
+  }, [form, validate, showConfirm, showSuccess, showDanger, router]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
     buildBackTopBarAction({ onPress: () => router.back() }),

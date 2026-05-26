@@ -2,6 +2,7 @@ import { CheckSquare2, Send } from 'lucide-react-native';
 import { PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { SelectOption, ThemedSelect } from '@components/ui/ThemedSelect';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -23,6 +24,8 @@ interface OrderDetailCardProps {
   cardActions: TopBarAction[];
   isDispatching: boolean;
   canMutate: boolean;
+  deliveryAddressOptions: SelectOption<number>[];
+  isLoadingDeliveryAddresses: boolean;
   onDispatch: () => void;
 }
 
@@ -35,6 +38,8 @@ export function OrderDetailCard({
   cardActions,
   isDispatching,
   canMutate,
+  deliveryAddressOptions,
+  isLoadingDeliveryAddresses,
   onDispatch,
 }: OrderDetailCardProps) {
   const theme = useAppTheme();
@@ -65,12 +70,13 @@ export function OrderDetailCard({
               editable={!isSaving}
             />
             <Text style={styles.label}>Delivery Address</Text>
-            <ThemedInput
-              placeholder="Delivery address"
-              keyboardType="number-pad"
+            <ThemedSelect<number>
               value={formData.deliveryAddress}
-              onChangeText={(text) => onFormChange({ ...formData, deliveryAddress: text })}
-              editable={!isSaving}
+              options={deliveryAddressOptions}
+              onChange={(value) => onFormChange({ ...formData, deliveryAddress: value })}
+              placeholder={isLoadingDeliveryAddresses ? 'Loading addresses…' : 'Select delivery address…'}
+              nullLabel="No delivery address"
+              disabled={isSaving || isLoadingDeliveryAddresses}
             />
             <Text style={styles.label}>Price Band</Text>
             <ThemedInput

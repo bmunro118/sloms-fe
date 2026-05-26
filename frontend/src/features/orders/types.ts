@@ -23,7 +23,7 @@ export type OrderUpdatePayload = {
 export type OrderEditForm = {
   customerRef: string;
   orderContact: string;
-  deliveryAddress: string;
+  deliveryAddress: number | null;
   priceBand: string;
 };
 
@@ -33,7 +33,7 @@ export function toOrderEditForm(order: OrderDetails | null): OrderEditForm {
   return {
     customerRef: order?.customerRef ?? '',
     orderContact: order?.orderContact ?? '',
-    deliveryAddress: order?.deliveryAddress !== undefined ? String(order.deliveryAddress) : '',
+    deliveryAddress: typeof order?.deliveryAddress === 'number' ? order.deliveryAddress : null,
     priceBand: order?.priceBand ?? '',
   };
 }

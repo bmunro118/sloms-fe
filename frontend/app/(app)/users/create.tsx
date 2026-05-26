@@ -74,19 +74,22 @@ export default function CreateUserScreen() {
     const error = validate();
     if (error) {
       setValidationError(error);
+      showDanger('Validation Error', error);
       return;
     }
 
     setIsSaving(true);
     try {
-      await createUser({
+      const userPayload = {
         username: form.username.trim().toLowerCase(),
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         role: form.role,
         password: form.password,
         ...(form.role === 'Customer' ? { linkedCustomerId: form.linkedCustomerId } : {}),
-      });
+      };
+      console.log('[UserCreate] Submitting new user — username:', userPayload.username, 'role:', userPayload.role);
+      await createUser(userPayload);
       showSuccess('User created', `${form.fullName.trim()} has been created successfully.`);
       router.replace('/(app)/users' as never);
     } catch (err) {
