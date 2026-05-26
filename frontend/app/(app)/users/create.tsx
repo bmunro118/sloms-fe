@@ -90,6 +90,7 @@ export default function CreateUserScreen() {
       showSuccess('User created', `${form.fullName.trim()} has been created successfully.`);
       router.replace('/(app)/users' as never);
     } catch (err) {
+      console.error('[UserCreate] API error:', err);
       showDanger('Create failed', err instanceof Error ? err.message : 'Failed to create user.');
     } finally {
       setIsSaving(false);

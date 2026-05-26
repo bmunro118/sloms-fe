@@ -20,7 +20,7 @@ import { listCustomers, CustomerRecord } from '@src/features/customers/api';
 export default function CreateOrderScreen() {
   const router = useRouter();
   const { isStaff, canMutate } = useAuth();
-  const { showConfirm } = useAppModal();
+  const { showConfirm, showDanger } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [orderNumber, setOrderNumber] = useState('');
@@ -64,7 +64,7 @@ export default function CreateOrderScreen() {
 
     const parsedOrderNumber = Number(orderNumber);
     if (!Number.isFinite(parsedOrderNumber) || parsedOrderNumber <= 0) {
-      setError('Order number must be a valid number.');
+      setError('Order number must be a valid positive number.');
       return;
     }
 
@@ -75,25 +75,33 @@ export default function CreateOrderScreen() {
 
     setIsSaving(true);
     setError(null);
+    console.log('[OrderCreate] Submitting order — orderNumber:', parsedOrderNumber, 'customerAccount:', customerAccount);
     try {
       const trimmedPriceBand = priceBand.trim();
-
-      await createOrder({
+      const payload = {
         orderNumber: parsedOrderNumber,
         customerAccount,
         priceBand: trimmedPriceBand || undefined,
-      });
+      };
+      console.log('[OrderCreate] Payload:', payload);
+
+      const result = await createOrder(payload);
+      console.log('[OrderCreate] Order created successfully:', result);
       router.replace('/(app)/orders');
     } catch (err) {
+      console.error('[OrderCreate] API error:', err);
       if (isMountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to create order.');
+        await showDanger({
+          title: 'Create Order Failed',
+          message: err instanceof Error ? err.message : 'Failed to create order. Please try again.',
+        });
       }
     } finally {
       if (isMountedRef.current) {
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, isMountedRef, orderNumber, priceBand, router]);
+  }, [canMutate, customerAccount, isMountedRef, orderNumber, priceBand, router, showDanger]);
 
   const handleCreate = useCallback(async () => {
     if (isSaving) {

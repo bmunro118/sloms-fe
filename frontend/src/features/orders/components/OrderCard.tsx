@@ -55,6 +55,7 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
         label: 'Edit order',
         onPress: handleOpenOrderEdit,
         icon: EditOrderIcon,
+        hidden: !canMutate,
       }),
     ];
 

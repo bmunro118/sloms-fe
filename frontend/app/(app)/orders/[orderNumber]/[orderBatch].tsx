@@ -171,7 +171,13 @@ export default function OrderDetailScreen() {
       await dispatchOrder(orderNumber, orderBatch);
       await reload();
     } catch (err) {
-      if (isMountedRef.current) setError(err instanceof Error ? err.message : 'Failed to dispatch order.');
+      console.error('[OrderDetail] Dispatch failed:', err);
+      if (isMountedRef.current) {
+        await showDanger({
+          title: 'Dispatch failed',
+          message: err instanceof Error ? err.message : 'Failed to dispatch order. Please try again.',
+        });
+      }
     } finally {
       if (isMountedRef.current) setIsDispatching(false);
     }

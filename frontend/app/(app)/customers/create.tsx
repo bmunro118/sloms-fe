@@ -87,6 +87,7 @@ export default function CreateCustomerScreen() {
       showSuccess('Customer created', `${form.companyName.trim()} has been created successfully.`);
       router.replace('/(app)/customers' as never);
     } catch (err) {
+      console.error('[CustomerCreate] API error:', err);
       showDanger('Create failed', err instanceof Error ? err.message : 'Failed to create customer.');
     } finally {
       setIsSaving(false);

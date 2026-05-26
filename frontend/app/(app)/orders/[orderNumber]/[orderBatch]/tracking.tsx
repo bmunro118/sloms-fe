@@ -4,124 +4,31 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Clock3,
-  Factory,
   Filter,
-  Package,
   RefreshCw as RefreshIcon,
-  Truck,
-  type LucideIcon,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { getOrderTracking } from '@src/features/orders/api';
+import {
+  FilterOption,
+  ORDER_STEPS,
+  OrderTrackingPayload,
+  StepState,
+  TimelineUpdate,
+  formatStatusLabel,
+  formatTrackingDate,
+  getStatusIcon,
+  normalizeTrackingTimestamp,
+} from '@src/features/orders/tracking-types';
+import { createStyles } from '@src/features/orders/tracking-styles';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
-import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
-import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-
-type TrackingEntry = {
-  timestamp?: string;
-  changedOn?: string;
-  status?: string;
-  note?: string;
-  message?: string;
-  [key: string]: unknown;
-};
-
-type TrackingItem = {
-  serialNumber?: string;
-  description?: string;
-  side?: string;
-  status?: string;
-  [key: string]: unknown;
-};
-
-type OrderTrackingPayload = {
-  orderNumber?: number;
-  orderBatch?: number;
-  customerRef?: string;
-  status?: string;
-  currentStatus?: string;
-  statusChangedOn?: string;
-  history?: TrackingEntry[];
-  items?: TrackingItem[];
-  itemProgress?: unknown;
-  [key: string]: unknown;
-};
-
-type TimelineUpdate = {
-  id: string;
-  status: string;
-  statusLabel: string;
-  timestamp?: string;
-  timestampLabel: string;
-  note?: string;
-  message?: string;
-};
-
-type FilterOption = {
-  label: string;
-  value: string;
-};
-
-type StepState = 'complete' | 'current' | 'upcoming';
-
-const ORDER_STEPS = ['Received', 'InProduction', 'Ready', 'Dispatched'] as const;
-
-function formatTrackingDate(value?: string): string {
-  if (!value) {
-    return 'Unknown';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-}
-
-function formatStatusLabel(value?: string): string {
-  if (!value) {
-    return 'Unknown';
-  }
-
-  return value.replace(/([a-z])([A-Z])/g, '$1 $2');
-}
-
-function normalizeTrackingTimestamp(entry: TrackingEntry): string | undefined {
-  if (typeof entry.changedOn === 'string' && entry.changedOn.trim().length > 0) {
-    return entry.changedOn;
-  }
-
-  if (typeof entry.timestamp === 'string' && entry.timestamp.trim().length > 0) {
-    return entry.timestamp;
-  }
-
-  return undefined;
-}
-
-function getStatusIcon(status?: string): LucideIcon {
-  switch (status) {
-    case 'Received':
-      return Package;
-    case 'InProduction':
-      return Factory;
-    case 'Ready':
-      return CheckCircle2;
-    case 'Dispatched':
-      return Truck;
-    case 'Voided':
-      return AlertTriangle;
-    default:
-      return Clock3;
-  }
-}
+import { ApiError } from '@utils/api';
 
 export default function OrderTrackingScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
@@ -154,7 +61,14 @@ export default function OrderTrackingScreen() {
       }
     } catch (err) {
       if (!signal?.aborted) {
-        setError(err instanceof Error ? err.message : 'Failed to load tracking.');
+        console.error('[OrderTracking] Failed to load tracking data:', err);
+        const message =
+          err instanceof ApiError && err.status === 404
+            ? 'Tracking data is not available for this order. The order may not have tracking history yet.'
+            : err instanceof Error
+              ? err.message
+              : 'Failed to load tracking.';
+        setError(message);
       }
     } finally {
       if (!signal?.aborted) {
@@ -563,264 +477,3 @@ export default function OrderTrackingScreen() {
   );
 }
 
-function createStyles(theme: AppTheme) {
-  const common = createCommonScreenStyleDefinitions(theme);
-
-  return StyleSheet.create({
-    ...common,
-    scrollContent: {
-      gap: 10,
-      paddingBottom: 8,
-    },
-    card: {
-      ...common.card,
-      gap: 8,
-    },
-    summaryHeadRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-      flexWrap: 'wrap',
-    },
-    statusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: theme.radii.md,
-      borderWidth: 1,
-      borderColor: theme.colors.borderStrong,
-      backgroundColor: theme.colors.accentMuted,
-      alignSelf: 'flex-start',
-    },
-    badgeText: {
-      color: theme.colors.textPrimary,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    stepRail: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    stepChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.surfaceMuted,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-    },
-    stepChipComplete: {
-      borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.accentMuted,
-    },
-    stepChipCurrent: {
-      borderColor: theme.colors.borderStrong,
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    stepChipText: {
-      color: theme.colors.textSecondary,
-      fontWeight: '600',
-      fontSize: 12,
-    },
-    stepChipStateText: {
-      color: theme.colors.textPrimary,
-    },
-    problemRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 8,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      borderRadius: theme.radii.md,
-      borderWidth: 1,
-    },
-    problemRowWarn: {
-      borderColor: theme.colors.danger,
-      backgroundColor: theme.colors.dangerSurface,
-    },
-    problemRowOk: {
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surfaceMuted,
-    },
-    problemWarnText: {
-      color: theme.colors.danger,
-      flex: 1,
-    },
-    problemOkText: {
-      color: theme.colors.textSecondary,
-      flex: 1,
-    },
-    updatesToolbar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-      flexWrap: 'wrap',
-    },
-    filterGroup: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    filterLabel: {
-      color: theme.colors.textSecondary,
-      fontWeight: '600',
-      fontSize: 12,
-      textTransform: 'uppercase',
-      letterSpacing: 0.4,
-    },
-    filterContainer: {
-      minWidth: 170,
-      position: 'relative',
-      zIndex: 20,
-    },
-    filterButton: {
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.inputBackground,
-      borderRadius: theme.radii.md,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-    },
-    filterButtonPressed: {
-      backgroundColor: theme.colors.surfaceMuted,
-    },
-    filterButtonText: {
-      color: theme.colors.textPrimary,
-      fontWeight: '600',
-      fontSize: 13,
-      flexShrink: 1,
-    },
-    filterDropdown: {
-      position: 'absolute',
-      top: 42,
-      left: 0,
-      right: 0,
-      borderWidth: 1,
-      borderColor: theme.colors.borderStrong,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.surfaceElevated,
-      padding: 4,
-      gap: 2,
-    },
-    filterOption: {
-      paddingHorizontal: 8,
-      paddingVertical: 8,
-      borderRadius: theme.radii.sm,
-    },
-    filterOptionActive: {
-      backgroundColor: theme.colors.accentMuted,
-    },
-    filterOptionPressed: {
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    filterOptionText: {
-      color: theme.colors.textSecondary,
-      fontSize: 13,
-    },
-    filterOptionTextActive: {
-      color: theme.colors.textPrimary,
-      fontWeight: '600',
-    },
-    updateRow: {
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.surfaceMuted,
-      overflow: 'hidden',
-    },
-    updateHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-    },
-    updateHeaderPressed: {
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    updateHeaderMain: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      flex: 1,
-      gap: 8,
-      flexWrap: 'wrap',
-    },
-    updateStatusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: theme.radii.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-      alignSelf: 'flex-start',
-    },
-    updateTimestamp: {
-      color: theme.colors.textMuted,
-      fontSize: 12,
-      fontWeight: '500',
-    },
-    updateBody: {
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border,
-      paddingHorizontal: 10,
-      paddingVertical: 10,
-      gap: 6,
-      backgroundColor: theme.colors.surface,
-    },
-    itemRow: {
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.surfaceMuted,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-      gap: 4,
-    },
-    itemTitleRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-      flexWrap: 'wrap',
-    },
-    itemStatusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: theme.radii.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-    },
-    itemBadgeText: {
-      color: theme.colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    rawPayload: {
-      color: theme.colors.textSecondary,
-      fontFamily: 'monospace',
-      fontSize: 12,
-      lineHeight: 18,
-    },
-  });
-}
