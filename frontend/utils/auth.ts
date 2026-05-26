@@ -1,17 +1,9 @@
 import { Platform } from 'react-native';
-import { API_BASE_URL, API_MODE } from '@utils/config';
+import { usesCookieAuth } from '@utils/config';
 
 const ACCESS_TOKEN_KEY = 'sloms.access-token';
 let secureStoreModulePromise: Promise<typeof import('expo-secure-store')> | null = null;
 let inMemoryAccessToken: string | null | undefined;
-type WebAuthMode = 'cookie' | 'token';
-
-function isLocalWebHost(hostname: string): boolean {
-  const normalizedHost = hostname.trim().toLowerCase();
-  return (
-    normalizedHost === 'localhost' || normalizedHost === '127.0.0.1' || normalizedHost === '[::1]'
-  );
-}
 
 function getWebStorage(): Storage | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined') {
@@ -25,40 +17,6 @@ function getWebStorage(): Storage | null {
   }
 }
 
-function resolveWebAuthMode(): WebAuthMode {
-  if (Platform.OS !== 'web') {
-    return 'token';
-  }
-
-  if (!__DEV__) {
-    return 'cookie';
-  }
-
-  if (typeof window === 'undefined' || !isLocalWebHost(window.location.hostname)) {
-    return 'cookie';
-  }
-
-  const configuredMode = (process.env.EXPO_PUBLIC_WEB_AUTH_MODE ?? '').trim().toLowerCase();
-  if (configuredMode === 'cookie' || configuredMode === 'token') {
-    return configuredMode;
-  }
-
-  // Local mode always uses token auth — the local NestJS backend issues JWT bearer tokens.
-  if (API_MODE === 'local') {
-    return 'token';
-  }
-
-  try {
-    if (new URL(API_BASE_URL).origin !== window.location.origin) {
-      return 'token';
-    }
-  } catch {
-    return 'token';
-  }
-
-  return 'cookie';
-}
-
 async function getSecureStoreModule(): Promise<typeof import('expo-secure-store')> {
   if (!secureStoreModulePromise) {
     secureStoreModulePromise = import('expo-secure-store');
@@ -66,9 +24,7 @@ async function getSecureStoreModule(): Promise<typeof import('expo-secure-store'
   return secureStoreModulePromise;
 }
 
-export function usesCookieAuth(): boolean {
-  return resolveWebAuthMode() === 'cookie';
-}
+export { usesCookieAuth };
 
 // ---------------------------------------------------------------------------
 // Storage — mobile uses expo-secure-store; web relies on HttpOnly cookies

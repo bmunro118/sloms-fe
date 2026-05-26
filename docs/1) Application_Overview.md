@@ -82,18 +82,30 @@ Rules:
 
 #### API profiles: web vs local
 
-Switch between the hosted Azure API and the local SQLite backend by changing one value in `frontend/.env`:
+Switch between the hosted Azure API and the local Docker stack by changing one value in `frontend/.env`:
 
 ```dotenv
-EXPO_PUBLIC_API_MODE=web    # hosted Azure SLOMS API (default)
-EXPO_PUBLIC_API_MODE=local  # local NestJS SQLite backend on http://localhost:3000
+EXPO_PUBLIC_API_MODE=web    # hosted Azure SLOMS API (default — no .env required)
+EXPO_PUBLIC_API_MODE=local  # local Docker stack on http://localhost:3000
 ```
 
-Start the local backend before switching: `cd sloms/backend && npm run start:dev`
+Start the local stack first: `cd sloms_local_dev && docker compose -f docker-compose.local.yml up`
 
 The resolved URL and auth transport are derived automatically from `API_MODE`. No other changes are needed.
 
-Current variables:
+**Auth transport rules (derived, not configurable):**
+
+| Platform | Environment | Auth mode |
+|----------|-------------|-----------|
+| Native (iOS / Android) | any | Bearer token |
+| Web | production (not `__DEV__`) | Cookie (HttpOnly) |
+| Web | non-localhost browser | Cookie |
+| Web | localhost + `local` mode | Bearer token |
+| Web | localhost + cross-origin API | Bearer token |
+| Web | localhost + same-origin API | Cookie |
+
+#### Environment variables
+
 1. `EXPO_PUBLIC_API_MODE` *(required)*
 	- Controls which API environment is active: `web` or `local`.
 	- `web` → hosted Azure SLOMS API; uses cookie auth on web production.
@@ -103,13 +115,11 @@ Current variables:
 	- Overrides the URL resolved from `EXPO_PUBLIC_API_MODE` when set explicitly.
 	- Must be a full URL including protocol.
 	- Production requires HTTPS; dev-only HTTP is allowed only for localhost origins.
-3. `EXPO_PUBLIC_WEB_AUTH_MODE` *(optional override)*
-	- Overrides the auth transport on web in `__DEV__` when set to `cookie` or `token`.
-	- Leave empty — auth mode is derived automatically from `EXPO_PUBLIC_API_MODE` (`local` → `token`).
 
 Derived config exports (`frontend/utils/config.ts`):
 1. `API_MODE: 'local' | 'web'` — resolved mode; import for conditional behaviour that depends on which backend is active.
 2. `API_BASE_URL: string` — validated, resolved base URL string.
+3. `usesCookieAuth(): boolean` — returns `true` when the current runtime should use cookie auth. Import from `@utils/config` or `@utils/auth` (re-exported).
 
 Workflow-level debug flags:
 1. Use `EXPO_PUBLIC_DEBUG_<WORKFLOW>` variables to gate targeted console logging in development.
@@ -124,11 +134,9 @@ Implementation pattern for screen/workflow logging:
 2. Always pair flag checks with `__DEV__` so logs are development-only and removed from production bundles by dead-code elimination.
 3. Keep logs scoped and structured (prefix log messages with workflow tags like `[customers]`).
 
-Example `.env` entries:
+Example `.env` entry (add to your local `.env` when you need verbose logging):
 ```dotenv
-EXPO_PUBLIC_DEBUG_CUSTOMERS=false
-EXPO_PUBLIC_DEBUG_ORDERS=false
-EXPO_PUBLIC_DEBUG_AUTH=false
+EXPO_PUBLIC_DEBUG_AUTH=true
 ```
 
 Example usage in code:

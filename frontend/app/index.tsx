@@ -51,7 +51,7 @@ export default function LoginScreen() {
         body: {
           username: username.trim().toLowerCase(),
           password,
-          clientType: usesCookieAuth() ? 'web' : 'mobile',
+          ...(usesCookieAuth() ? { clientType: 'web' } : {}),
         },
       });
 

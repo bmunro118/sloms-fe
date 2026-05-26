@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// ── API mode ─────────────────────────────────────────────────────────────────
-// Set EXPO_PUBLIC_API_MODE to 'local' or 'web' in frontend/.env to switch
-// between the local SQLite backend and the hosted Azure API.
-// EXPO_PUBLIC_API_URL overrides the resolved URL entirely when set explicitly.
+// ── API mode ──────────────────────────────────────────────────────────────────
+// Set EXPO_PUBLIC_API_MODE in frontend/.env to switch environments.
+// Default (no .env) = 'web' → hosted Azure SLOMS API.
+// 'local' → local SLOMS backend on http://localhost:3000.
 
 export type ApiMode = 'local' | 'web';
 
@@ -15,7 +16,7 @@ export const API_MODE: ApiMode = (() => {
   return mode === 'local' ? 'local' : 'web';
 })();
 
-// ── API base URL ─────────────────────────────────────────────────────────────
+// ── API base URL ──────────────────────────────────────────────────────────────
 
 const RAW_API_BASE_URL: string =
   process.env.EXPO_PUBLIC_API_URL ??
@@ -49,6 +50,46 @@ function assertValidApiBaseUrl(url: string): string {
 }
 
 export const API_BASE_URL: string = assertValidApiBaseUrl(RAW_API_BASE_URL);
+
+// ── Auth transport ────────────────────────────────────────────────────────────
+// Production web: cookie auth (HttpOnly cookies managed by SLOMS).
+// Native mobile: bearer token auth.
+// Local dev web: token auth (avoids credentialed cross-origin CORS issues).
+//
+// Rules (in priority order):
+//  1. Native (non-web) → always token
+//  2. Production build (not __DEV__) → always cookie
+//  3. Non-localhost browser → cookie
+//  4. local mode → token
+//  5. Cross-origin API → token
+//  6. Same-origin API → cookie
+
+function resolveUsesCookieAuth(): boolean {
+  if (Platform.OS !== 'web') return false;
+  if (!__DEV__) return true;
+
+  if (typeof window === 'undefined') return true;
+
+  const host = window.location.hostname.trim().toLowerCase();
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+  if (!isLocalHost) return true;
+
+  if (API_MODE === 'local') return false;
+
+  try {
+    return new URL(API_BASE_URL).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+export const USES_COOKIE_AUTH: boolean = resolveUsesCookieAuth();
+
+export function usesCookieAuth(): boolean {
+  return USES_COOKIE_AUTH;
+}
+
+// ── Endpoints ─────────────────────────────────────────────────────────────────
 
 const e = (path: string) => `${API_BASE_URL}${path}`;
 
