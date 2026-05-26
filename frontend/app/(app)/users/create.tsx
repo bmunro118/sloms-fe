@@ -39,17 +39,48 @@ export default function CreateUserScreen() {
   const [form, setForm] = useState<CreateUserPayload>(INITIAL_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [passwordRevealed, setPasswordRevealed] = useState(false);
 
   const setField = useCallback(<K extends keyof CreateUserPayload>(key: K, value: CreateUserPayload[K]) => {
     setValidationError(null);
     setForm((f) => ({ ...f, [key]: value }));
   }, []);
 
+  const handleGeneratePassword = useCallback(() => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghjkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const special = '!@#$%*';
+    const all = upper + lower + digits + special;
+    const required = [
+      upper[Math.floor(Math.random() * upper.length)],
+      upper[Math.floor(Math.random() * upper.length)],
+      lower[Math.floor(Math.random() * lower.length)],
+      lower[Math.floor(Math.random() * lower.length)],
+      digits[Math.floor(Math.random() * digits.length)],
+      digits[Math.floor(Math.random() * digits.length)],
+      special[Math.floor(Math.random() * special.length)],
+      special[Math.floor(Math.random() * special.length)],
+    ];
+    const fill = Array.from({ length: 4 }, () => all[Math.floor(Math.random() * all.length)]);
+    const password = [...required, ...fill].sort(() => Math.random() - 0.5).join('');
+    setValidationError(null);
+    setForm((f) => ({ ...f, password }));
+    setPasswordRevealed(true);
+  }, []);
+
   const validate = useCallback((): string | null => {
     if (!form.username.trim()) return 'Username is required.';
+    if (/\s/.test(form.username)) return 'Username must not contain spaces.';
+    if (!/^[a-zA-Z0-9_.\-]+$/.test(form.username.trim())) return 'Username may only contain letters, numbers, underscores, hyphens, and dots.';
     if (!form.fullName.trim()) return 'Full name is required.';
     if (!form.email.trim()) return 'Email is required.';
     if (!form.password.trim()) return 'Password is required.';
+    if (form.password.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[A-Z]/.test(form.password)) return 'Password must contain at least one uppercase letter.';
+    if (!/[a-z]/.test(form.password)) return 'Password must contain at least one lowercase letter.';
+    if (!/[0-9]/.test(form.password)) return 'Password must contain at least one number.';
+    if (!/[^a-zA-Z0-9]/.test(form.password)) return 'Password must contain at least one special character (e.g. !@#$).';
     if (!form.role) return 'Role is required.';
     if (form.role === 'Customer' && !form.linkedCustomerId) return 'A linked customer account is required for Customer users.';
     return null;
@@ -149,10 +180,23 @@ export default function CreateUserScreen() {
             <Text style={styles.fieldLabel}>Password *</Text>
             <ThemedInput
               value={form.password}
-              onChangeText={(text) => setField('password', text)}
+              onChangeText={(text) => {
+                setPasswordRevealed(false);
+                setField('password', text);
+              }}
               placeholder="Temporary password"
-              secureTextEntry
+              secureTextEntry={!passwordRevealed}
               style={styles.input}
+            />
+            <Text style={styles.fieldHint}>
+              Min. 8 characters — must include uppercase, lowercase, number, and special character (e.g. Password1!)
+            </Text>
+            <ThemedButton
+              label="Generate Temporary Password"
+              onPress={handleGeneratePassword}
+              variant="secondary"
+              style={styles.generateButton}
+              tooltip="Generate a random password that meets complexity requirements"
             />
           </View>
 
@@ -230,6 +274,16 @@ function createStyles(theme: AppTheme) {
     },
     input: {
       marginTop: 2,
+    },
+    fieldHint: {
+      fontSize: 11,
+      color: theme.colors.textMuted,
+      marginTop: theme.spacing.xs,
+      lineHeight: 16,
+    },
+    generateButton: {
+      marginTop: theme.spacing.sm,
+      alignSelf: 'flex-start',
     },
     roleRow: {
       flexDirection: 'row',
