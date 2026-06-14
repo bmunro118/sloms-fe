@@ -1,0 +1,70 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      sloms:
+        image: ghcr.io/org/sloms-local:latest  # Replace with actual image
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd "curl -f http://localhost:3000/api/auth/me || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://localhost:8081
+          EXPO_PUBLIC_API_MODE: local
+          EXPO_PUBLIC_API_URL: http://localhost:3000
+          SONIC_ADMIN_USER: ${{ secrets.SONIC_ADMIN_USER }}
+          SONIC_ADMIN_PASS: ${{ secrets.SONIC_ADMIN_PASS }}
+          SONIC_MANAGER_USER: ${{ secrets.SONIC_MANAGER_USER }}
+          SONIC_MANAGER_PASS: ${{ secrets.SONIC_MANAGER_PASS }}
+          SONIC_OPERATIVE_USER: ${{ secrets.SONIC_OPERATIVE_USER }}
+          SONIC_OPERATIVE_PASS: ${{ secrets.SONIC_OPERATIVE_PASS }}
+          SONIC_READONLY_USER: ${{ secrets.SONIC_READONLY_USER }}
+          SONIC_READONLY_PASS: ${{ secrets.SONIC_READONLY_PASS }}
+          SONIC_CUSTOMER_USER: ${{ secrets.SONIC_CUSTOMER_USER }}
+          SONIC_CUSTOMER_PASS: ${{ secrets.SONIC_CUSTOMER_PASS }}
+        run: npm run test:e2e
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports
+          path: |
+            frontend/e2e/reports/
+            frontend/e2e/test-results/
+          retention-days: 7

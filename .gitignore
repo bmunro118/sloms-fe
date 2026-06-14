@@ -43,3 +43,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Playwright E2E
+frontend/e2e/.auth/
+frontend/e2e/reports/
+frontend/e2e/test-results/
+frontend/e2e/playwright/.cache/

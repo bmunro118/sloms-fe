@@ -1,0 +1,6 @@
+# Playwright auth states (contain tokens)
+.auth/
+
+# Test run artifacts
+reports/
+test-results/
