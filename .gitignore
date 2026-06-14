@@ -49,3 +49,4 @@ frontend/e2e/.auth/
 frontend/e2e/reports/
 frontend/e2e/test-results/
 frontend/e2e/playwright/.cache/
+/frontend/test-results

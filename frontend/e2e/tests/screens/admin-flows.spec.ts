@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { waitForAppShell, goTo } from '../fixtures/pages';
-import { captureConsoleErrors } from '../fixtures/assertions';
+import { waitForAppShell, goTo } from '../../fixtures/pages';
+import { captureConsoleErrors } from '../../fixtures/assertions';
 
 test.describe('VAT Rates Flows', () => {
   test('VAT rates screen shows current rate and history', async ({ page }) => {
