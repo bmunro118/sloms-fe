@@ -89,6 +89,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="Username"
+        accessibilityLabel="Username"
         style={styles.formInput}
         value={username}
         onChangeText={setUsername}
@@ -98,6 +99,7 @@ export default function LoginScreen() {
         autoCorrect={false}
         secureTextEntry
         placeholder="Password"
+        accessibilityLabel="Password"
         style={styles.formInput}
         value={password}
         onChangeText={setPassword}
