@@ -65,6 +65,6 @@ jobs:
         with:
           name: playwright-reports
           path: |
-            frontend/e2e/reports/
-            frontend/e2e/test-results/
+            sonic_dev_tools/test_suite/e2e/reports/
+            sonic_dev_tools/test_suite/e2e/test-results/
           retention-days: 7
