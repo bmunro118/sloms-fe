@@ -1,4 +1,3 @@
-import { Redirect } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
@@ -26,10 +25,6 @@ export default function ChangePasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!mustChangePassword) {
-    return <Redirect href="/(app)/dashboard" />;
-  }
-
   const handleSubmit = async () => {
     if (!token && !usesCookieAuth()) {
       setError('Missing change-password token. Please sign in again.');
@@ -56,6 +51,7 @@ export default function ChangePasswordScreen() {
         token: usesCookieAuth() ? undefined : (token ?? undefined),
         body: {
           newPassword,
+          clientType: usesCookieAuth() ? 'web' : 'mobile',
         },
       });
 
@@ -79,8 +75,8 @@ export default function ChangePasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Password Update Required</Text>
-      <Text style={styles.subtitle}>Set a new password to continue.</Text>
+      <Text style={styles.title}>First-Time Password Setup</Text>
+      <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Choose a secure password below.</Text>
 
       <ThemedInput
         secureTextEntry

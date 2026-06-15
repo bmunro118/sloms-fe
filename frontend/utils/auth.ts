@@ -126,10 +126,11 @@ export async function clearAccessToken(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export interface JwtPayload {
-  userId: number;
+  sub: number;
   username: string;
   role: string;
   fullName?: string;
+  linkedCustomerId?: number | null;
   scope?: string; // 'password_change' for forced-change scoped tokens
   iat?: number;
   exp?: number;

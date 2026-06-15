@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { apiRequest, clearUnauthorizedHandler, setUnauthorizedHandler } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
@@ -73,7 +73,7 @@ function mapRole(rawRole: string | undefined): UserRole {
 
 function mapPayloadUser(payload: JwtPayload): AuthUser {
   return {
-    userId: Number(payload.userId),
+    userId: Number(payload.sub),
     username: payload.username,
     fullName: payload.fullName ?? payload.username,
     role: mapRole(payload.role),
@@ -116,7 +116,7 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
     return {
       isLoading: false,
       token,
-      user: null,
+      user: mapPayloadUser(payload),
       mustChangePassword: true,
     };
   }
@@ -131,6 +131,12 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(() => getInitialAuthSnapshot());
+  const authSequenceRef = useRef(0);
+
+  const bumpAuthSequence = useCallback(() => {
+    authSequenceRef.current += 1;
+    return authSequenceRef.current;
+  }, []);
 
   const setSignedOutState = useCallback(() => {
     setAuthState({
@@ -142,15 +148,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hydrateSession = useCallback(async () => {
+    const sequenceId = bumpAuthSequence();
+
     try {
       const storedToken = await getStoredAccessToken();
       if (!storedToken && !usesCookieAuth()) {
+        if (authSequenceRef.current !== sequenceId) return;
         setSignedOutState();
         return;
       }
 
       const payload = storedToken ? decodeJwt(storedToken) : null;
       if (storedToken && !payload) {
+        if (authSequenceRef.current !== sequenceId) return;
         await clearAccessToken();
         setSignedOutState();
         return;
@@ -158,10 +168,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // If token is scoped for forced password change, block app access.
       if (payload?.scope === 'password_change') {
+        if (authSequenceRef.current !== sequenceId) return;
         setAuthState({
           isLoading: false,
           token: storedToken,
-          user: null,
+          user: mapPayloadUser(payload),
           mustChangePassword: true,
         });
         return;
@@ -174,11 +185,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token: usesCookieAuth() ? undefined : (storedToken ?? undefined),
       });
 
+      if (authSequenceRef.current !== sequenceId) return;
       setAuthState({
         isLoading: false,
         token: storedToken,
         user: {
-          userId: Number(me.userId ?? payload?.userId),
+          userId: Number(me.userId ?? payload?.sub),
           username: me.username ?? payload?.username ?? '',
           fullName: payload?.fullName ?? me.username,
           role: mapRole(me.role ?? payload?.role),
@@ -186,10 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword: false,
       });
     } catch {
+      if (authSequenceRef.current !== sequenceId) return;
       await clearAccessToken();
       setSignedOutState();
     }
-  }, [setSignedOutState]);
+  }, [bumpAuthSequence, setSignedOutState]);
 
   useEffect(() => {
     hydrateSession();
@@ -200,16 +213,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // The handler is unregistered on unmount to prevent stale closures.
   useEffect(() => {
     setUnauthorizedHandler(async () => {
+      bumpAuthSequence();
       await clearAccessToken();
       setSignedOutState();
     });
     return () => {
       clearUnauthorizedHandler();
     };
-  }, [setSignedOutState]);
+  }, [bumpAuthSequence, setSignedOutState]);
 
   const signIn = useCallback(
     async ({ accessToken, mustChangePassword: mustChange = false }: SignInPayload) => {
+      bumpAuthSequence();
       await persistAccessToken(accessToken);
 
       const payload = accessToken ? decodeJwt(accessToken) : null;
@@ -221,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthState({
           isLoading: false,
           token: accessToken ?? null,
-          user: null,
+          user: payload ? mapPayloadUser(payload) : null,
           mustChangePassword: true,
         });
         return;
@@ -236,7 +251,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: false,
         token: accessToken ?? null,
         user: {
-          userId: Number(payload.userId),
+          userId: Number(payload.sub),
           username: payload.username,
           fullName: payload.fullName ?? payload.username,
           role: mapRole(payload.role),
@@ -244,11 +259,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword: false,
       });
     },
-    [hydrateSession]
+    [bumpAuthSequence, hydrateSession]
   );
 
   const completePasswordChange = useCallback(
     async (newAccessToken?: string | null) => {
+      bumpAuthSequence();
+
       if (!newAccessToken) {
         await hydrateSession();
         return;
@@ -264,7 +281,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: false,
         token: newAccessToken,
         user: {
-          userId: Number(payload.userId),
+          userId: Number(payload.sub),
           username: payload.username,
           fullName: payload.fullName ?? payload.username,
           role: mapRole(payload.role),
@@ -272,13 +289,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         mustChangePassword: false,
       });
     },
-    [hydrateSession]
+    [bumpAuthSequence, hydrateSession]
   );
 
   const signOut = useCallback(async () => {
+    bumpAuthSequence();
     await clearAccessToken();
     setSignedOutState();
-  }, [setSignedOutState]);
+  }, [bumpAuthSequence, setSignedOutState]);
 
   const { isLoading, token, user, mustChangePassword } = authState;
 

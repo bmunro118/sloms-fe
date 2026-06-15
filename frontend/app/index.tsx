@@ -1,4 +1,3 @@
-import { Redirect } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Image, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -27,14 +26,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  if (mustChangePassword) {
-    return <Redirect href="/change-password" />;
-  }
-
-  if (isAuthenticated) {
-    return <Redirect href="/(app)/dashboard" />;
-  }
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {

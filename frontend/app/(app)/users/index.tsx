@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Redirect } from 'expo-router';
 import { RefreshCw as RefreshIcon, UserPlus as UserPlusIcon } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
@@ -121,9 +121,10 @@ export default function UsersScreen() {
 
   useScreenTopBar({ title: 'Users', actions: topBarActions });
 
-  useEffect(() => {
+  const fetchUsers = useCallback(() => {
     if (!isAdmin) {
-      return;
+      setIsLoading(false);
+      return null;
     }
 
     const controller = new AbortController();
@@ -149,10 +150,17 @@ export default function UsersScreen() {
         if (!controller.signal.aborted) setIsLoading(false);
       }
     })();
-    return () => {
-      controller.abort();
-    };
-  }, [isAdmin, refreshTick]);
+    return controller;
+  }, [isAdmin]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const controller = fetchUsers();
+      return () => {
+        controller?.abort();
+      };
+    }, [fetchUsers, refreshTick])
+  );
 
   const usersByFilter = appliedFilters.includeInactive
     ? users

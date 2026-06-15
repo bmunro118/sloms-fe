@@ -1,5 +1,5 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { NavLayout } from '@components/navigation/NavLayout';
 import { useAuth } from '@context/AuthContext';
 import { ScreenTitleProvider } from '@context/ScreenTitleContext';
@@ -9,15 +9,26 @@ export default function AppLayout() {
   const { role, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const redirectGate = useRef<string | null>(null);
 
   const navItems = useMemo(() => resolveNavItemsForRole(role), [role]);
   const fallbackHref = useMemo(() => navItems[0]?.href ?? '/(app)/dashboard', [navItems]);
 
   // Role-based path guard — fires after paint, never blocks Slot from mounting.
   // Auth guard (unauthenticated redirect) is handled by AuthGuard in app/_layout.tsx.
+  // Uses redirectGate ref to suppress duplicate redirects during navigation
+  // transitions that could cause bounce loops in NativeStackNavigator.
   useEffect(() => {
-    if (role && !canRoleAccessPath(role, pathname)) {
-      router.replace(fallbackHref as never);
+    if (!role) return;
+    if (!pathname || pathname === '/') return;
+
+    if (!canRoleAccessPath(role, pathname)) {
+      const target = fallbackHref;
+      if (redirectGate.current === target) return;
+      redirectGate.current = target;
+      router.replace(target as never);
+    } else {
+      redirectGate.current = null;
     }
   }, [role, pathname, fallbackHref, router]);
 

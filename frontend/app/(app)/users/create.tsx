@@ -90,7 +90,10 @@ export default function CreateUserScreen() {
       };
       console.log('[UserCreate] Submitting new user — username:', userPayload.username, 'role:', userPayload.role);
       await createUser(userPayload);
-      showSuccess('User created', `${form.fullName.trim()} has been created successfully.`);
+      await showSuccess(
+        'User created',
+        `${form.fullName.trim()} has been created successfully.\n\nThey will be required to set a new password on first login.`
+      );
       router.replace('/(app)/users' as never);
     } catch (err) {
       console.error('[UserCreate] API error:', err);
