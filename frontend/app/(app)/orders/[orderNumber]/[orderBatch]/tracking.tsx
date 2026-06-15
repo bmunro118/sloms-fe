@@ -288,7 +288,12 @@ export default function OrderTrackingScreen() {
                 </View>
                 <Text style={styles.cardMeta}>#{tracking.orderNumber ?? orderNumber}/{tracking.orderBatch ?? orderBatch}</Text>
               </View>
-              {tracking.customerRef ? <Text style={styles.cardItem}>Customer ref: {tracking.customerRef}</Text> : null}
+              {tracking.customerRef ? (
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Customer Ref</Text>
+                  <Text style={styles.fieldValue}>{tracking.customerRef}</Text>
+                </View>
+              ) : null}
               <Text style={styles.cardMeta}>Last changed: {formatTrackingDate(lastUpdateTimestamp)}</Text>
               <Text style={styles.cardMeta}>
                 {updates.length} update{updates.length === 1 ? '' : 's'} • {items.length} item{items.length === 1 ? '' : 's'}
@@ -438,8 +443,16 @@ export default function OrderTrackingScreen() {
                         <View style={styles.updateBody}>
                           <Text style={styles.cardMeta}>Event #{filteredUpdates.length - index}</Text>
                           {entry.message ? <Text style={styles.cardItem}>{entry.message}</Text> : null}
-                          {entry.note ? <Text style={styles.cardMeta}>Note: {entry.note}</Text> : null}
-                          <Text style={styles.cardMeta}>Raw status: {entry.status}</Text>
+                          {entry.note ? (
+                            <View style={styles.field}>
+                              <Text style={styles.fieldLabel}>Note</Text>
+                              <Text style={styles.fieldValue}>{entry.note}</Text>
+                            </View>
+                          ) : null}
+                          <View style={styles.field}>
+                            <Text style={styles.fieldLabel}>Raw Status</Text>
+                            <Text style={styles.fieldValue}>{entry.status}</Text>
+                          </View>
                         </View>
                       ) : null}
                     </View>
@@ -464,7 +477,12 @@ export default function OrderTrackingScreen() {
                         </View>
                       </View>
                       <Text style={styles.cardMeta}>{item.description ?? 'No description'}</Text>
-                      {item.side ? <Text style={styles.cardMeta}>Side: {item.side}</Text> : null}
+                      {item.side ? (
+                        <View style={styles.field}>
+                          <Text style={styles.fieldLabel}>Side</Text>
+                          <Text style={styles.fieldValue}>{item.side}</Text>
+                        </View>
+                      ) : null}
                     </View>
                   );
                 })

@@ -43,6 +43,18 @@ export function createCommonScreenStyleDefinitions(theme: AppTheme) {
     cardItem: {
       color: theme.colors.textPrimary,
     },
+    fieldLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: theme.colors.textMuted,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.3,
+      marginBottom: theme.spacing.xs,
+    },
+    fieldValue: {
+      fontSize: 15,
+      color: theme.colors.textPrimary,
+    },
     input: {
       borderWidth: 1,
       borderColor: theme.colors.border,

@@ -7,7 +7,7 @@ import {
   Square as MarkCheckoutIcon,
 } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -139,59 +139,87 @@ export function OrderItemCard({
 
   return (
     <ThemedCard title={`Item ${item.serialNumber}`} actions={actions} style={styles.card}>
-      <Text style={styles.cardMeta}>Status: {item.void ? 'Voided' : isCheckedOut ? 'Checked out' : 'Active'}</Text>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Status</Text>
+        <Text style={styles.fieldValue}>{item.void ? 'Voided' : isCheckedOut ? 'Checked out' : 'Active'}</Text>
+      </View>
 
       {isEditing ? (
         <>
-          <Text style={styles.label}>Description</Text>
-          <ThemedInput
-            placeholder="Description"
-            value={resolvedEditValues.description}
-            onChangeText={(text) => onEditValueChange?.('description', text)}
-            editable={!isBusy}
-          />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Description</Text>
+            <ThemedInput
+              placeholder="Description"
+              value={resolvedEditValues.description}
+              onChangeText={(text) => onEditValueChange?.('description', text)}
+              editable={!isBusy}
+            />
+          </View>
 
-          <Text style={styles.label}>Patient Initial</Text>
-          <ThemedInput
-            placeholder="Patient initial"
-            value={resolvedEditValues.patientInitial}
-            onChangeText={(text) => onEditValueChange?.('patientInitial', text)}
-            editable={!isBusy}
-          />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Patient Initial</Text>
+            <ThemedInput
+              placeholder="Patient initial"
+              value={resolvedEditValues.patientInitial}
+              onChangeText={(text) => onEditValueChange?.('patientInitial', text)}
+              editable={!isBusy}
+            />
+          </View>
 
-          <Text style={styles.label}>Patient Surname</Text>
-          <ThemedInput
-            placeholder="Patient surname"
-            value={resolvedEditValues.patientSurname}
-            onChangeText={(text) => onEditValueChange?.('patientSurname', text)}
-            editable={!isBusy}
-          />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Patient Surname</Text>
+            <ThemedInput
+              placeholder="Patient surname"
+              value={resolvedEditValues.patientSurname}
+              onChangeText={(text) => onEditValueChange?.('patientSurname', text)}
+              editable={!isBusy}
+            />
+          </View>
 
-          <Text style={styles.label}>Side</Text>
-          <ThemedInput
-            placeholder="L or R"
-            value={resolvedEditValues.side}
-            onChangeText={(text) => onEditValueChange?.('side', text)}
-            editable={!isBusy}
-          />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Side</Text>
+            <ThemedInput
+              placeholder="L or R"
+              value={resolvedEditValues.side}
+              onChangeText={(text) => onEditValueChange?.('side', text)}
+              editable={!isBusy}
+            />
+          </View>
 
-          <Text style={styles.label}>Price</Text>
-          <ThemedInput
-            placeholder="Price"
-            keyboardType="decimal-pad"
-            value={resolvedEditValues.price}
-            onChangeText={(text) => onEditValueChange?.('price', text)}
-            editable={!isBusy}
-          />
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Price</Text>
+            <ThemedInput
+              placeholder="Price"
+              keyboardType="decimal-pad"
+              value={resolvedEditValues.price}
+              onChangeText={(text) => onEditValueChange?.('price', text)}
+              editable={!isBusy}
+            />
+          </View>
 
-          <Text style={styles.cardMeta}>Checkout: {isCheckedOut ? 'Checked out' : 'Not checked out'}</Text>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Checkout</Text>
+            <Text style={styles.fieldValue}>{isCheckedOut ? 'Checked out' : 'Not checked out'}</Text>
+          </View>
         </>
       ) : (
         <>
-          <Text style={styles.cardMeta}>Description: {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}</Text>
-          <Text style={styles.cardMeta}>Patient: {formatPatient(item)}</Text>
-          <Text style={styles.cardMeta}>Side: {typeof item.orientation === 'string' && item.orientation.trim() ? item.orientation : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}</Text>
-          <Text style={styles.cardMeta}>Checkout: {isCheckedOut ? 'Checked out' : 'Not checked out'}</Text>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Description</Text>
+            <Text style={styles.fieldValue}>{typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Patient</Text>
+            <Text style={styles.fieldValue}>{formatPatient(item)}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Side</Text>
+            <Text style={styles.fieldValue}>{typeof item.orientation === 'string' && item.orientation.trim() ? item.orientation : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Checkout</Text>
+            <Text style={styles.fieldValue}>{isCheckedOut ? 'Checked out' : 'Not checked out'}</Text>
+          </View>
         </>
       )}
     </ThemedCard>
@@ -203,10 +231,8 @@ function createStyles(theme: AppTheme) {
 
   return {
     card: common.card,
-    cardMeta: common.cardMeta,
-    label: {
-      ...common.meta,
-      marginTop: 4,
-    },
+    field: { marginTop: theme.spacing.md },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
   };
 }

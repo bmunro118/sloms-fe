@@ -50,48 +50,74 @@ export function OrderDetailCard({
   return (
     <>
       <ThemedCard style={styles.card} actions={cardActions}>
-        <Text style={styles.cardItem}>Status: {resolveOrderStatus(order) ?? 'Unknown'}</Text>
-        <Text style={styles.cardItem}>Customer: {order.customerAccount ?? 'N/A'}</Text>
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Status</Text>
+          <Text style={styles.fieldValue}>{resolveOrderStatus(order) ?? 'Unknown'}</Text>
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Customer</Text>
+          <Text style={styles.fieldValue}>{order.customerAccount ?? 'N/A'}</Text>
+        </View>
 
         {isEditing ? (
           <>
-            <Text style={styles.label}>Customer Ref</Text>
-            <ThemedInput
-              placeholder="Customer ref"
-              value={formData.customerRef ?? ''}
-              onChangeText={(text) => onFormChange({ ...formData, customerRef: text })}
-              editable={!isSaving}
-            />
-            <Text style={styles.label}>Order Contact</Text>
-            <ThemedInput
-              placeholder="Order contact"
-              value={formData.orderContact ?? ''}
-              onChangeText={(text) => onFormChange({ ...formData, orderContact: text })}
-              editable={!isSaving}
-            />
-            <Text style={styles.label}>Delivery Address</Text>
-            <ThemedSelect<number>
-              value={formData.deliveryAddress}
-              options={deliveryAddressOptions}
-              onChange={(value) => onFormChange({ ...formData, deliveryAddress: value })}
-              placeholder={isLoadingDeliveryAddresses ? 'Loading addresses…' : 'Select delivery address…'}
-              nullLabel="No delivery address"
-              disabled={isSaving || isLoadingDeliveryAddresses}
-            />
-            <Text style={styles.label}>Price Band</Text>
-            <ThemedInput
-              placeholder="Price band"
-              value={formData.priceBand ?? ''}
-              onChangeText={(text) => onFormChange({ ...formData, priceBand: text })}
-              editable={!isSaving}
-            />
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Customer Ref</Text>
+              <ThemedInput
+                placeholder="Customer ref"
+                value={formData.customerRef ?? ''}
+                onChangeText={(text) => onFormChange({ ...formData, customerRef: text })}
+                editable={!isSaving}
+              />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Order Contact</Text>
+              <ThemedInput
+                placeholder="Order contact"
+                value={formData.orderContact ?? ''}
+                onChangeText={(text) => onFormChange({ ...formData, orderContact: text })}
+                editable={!isSaving}
+              />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Delivery Address</Text>
+              <ThemedSelect<number>
+                value={formData.deliveryAddress}
+                options={deliveryAddressOptions}
+                onChange={(value) => onFormChange({ ...formData, deliveryAddress: value })}
+                placeholder={isLoadingDeliveryAddresses ? 'Loading addresses…' : 'Select delivery address…'}
+                nullLabel="No delivery address"
+                disabled={isSaving || isLoadingDeliveryAddresses}
+              />
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Price Band</Text>
+              <ThemedInput
+                placeholder="Price band"
+                value={formData.priceBand ?? ''}
+                onChangeText={(text) => onFormChange({ ...formData, priceBand: text })}
+                editable={!isSaving}
+              />
+            </View>
           </>
         ) : (
           <>
-            <Text style={styles.cardItem}>Ref: {order.customerRef ?? 'N/A'}</Text>
-            <Text style={styles.cardItem}>Order Contact: {order.orderContact ?? 'N/A'}</Text>
-            <Text style={styles.cardItem}>Delivery Address: {order.deliveryAddress ?? 'N/A'}</Text>
-            <Text style={styles.cardItem}>Price Band: {order.priceBand ?? 'N/A'}</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Customer Ref</Text>
+              <Text style={styles.fieldValue}>{order.customerRef ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Order Contact</Text>
+              <Text style={styles.fieldValue}>{order.orderContact ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Delivery Address</Text>
+              <Text style={styles.fieldValue}>{order.deliveryAddress ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Price Band</Text>
+              <Text style={styles.fieldValue}>{order.priceBand ?? 'N/A'}</Text>
+            </View>
           </>
         )}
       </ThemedCard>
@@ -142,7 +168,9 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     ...common,
     card: { ...common.card, gap: 6 },
-    label: { ...common.meta, marginTop: 8 },
+    field: { marginTop: theme.spacing.md },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
     contentActionRowRight: { ...common.contentActionRowRight, marginTop: 4 },
   });
 }

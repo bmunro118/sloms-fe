@@ -16,6 +16,28 @@ const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 interface ChangePasswordResponse {
   accessToken?: string;
   token?: string;
+  message?: string;
+  error?: string;
+  code?: string;
+}
+
+const SAME_AS_CURRENT_HINT = 'same as current';
+
+function containsSameAsCurrent(...parts: Array<string | null | undefined>): boolean {
+  return parts.join(' ').toLowerCase().includes(SAME_AS_CURRENT_HINT);
+}
+
+// The SLOMS backend rejects a new password identical to the current one. Some
+// deployments signal this with a 400 (detail surfaced on `ApiError.code`, since
+// the user-facing `message` is a generic status string); others return a 200
+// whose body carries a "same as current" message and NO new access token. Both
+// paths must be detected so the user is prompted for a different password.
+function isSameAsCurrentError(err: ApiError): boolean {
+  return containsSameAsCurrent(err.code, err.message);
+}
+
+function isSameAsCurrentResponse(response: ChangePasswordResponse): boolean {
+  return containsSameAsCurrent(response.message, response.error, response.code);
 }
 
 export default function PromptPasswordChangeScreen() {
@@ -25,7 +47,6 @@ export default function PromptPasswordChangeScreen() {
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,18 +90,14 @@ export default function PromptPasswordChangeScreen() {
   const handleSubmit = async () => {
     resetInactivityTimer();
 
+    const promptForDifferentPassword = () => {
+      setNewPassword('');
+      setConfirmPassword('');
+      setError('New password must be different from your current password. Please choose a different one.');
+    };
+
     if (!token && !usesCookieAuth()) {
       setError('Missing password-change token. Please sign in again.');
-      return;
-    }
-
-    if (!currentPassword) {
-      setError('Please enter your current (temporary) password.');
-      return;
-    }
-
-    if (newPassword === currentPassword) {
-      setError('New password must be different from your current password.');
       return;
     }
 
@@ -108,17 +125,40 @@ export default function PromptPasswordChangeScreen() {
         },
       });
 
-      await completePasswordChange(response.accessToken ?? response.token ?? null);
+      // The backend may accept the request (HTTP 200) yet signal "same as
+      // current" in the body without issuing a new token. Detect that before
+      // completing — otherwise completePasswordChange(null) would fall back to
+      // hydrating a full session from the stored password-change-scoped token,
+      // logging the user straight in with their old password unchanged.
+      if (isSameAsCurrentResponse(response)) {
+        promptForDifferentPassword();
+        return;
+      }
+
+      const newToken = response.accessToken ?? response.token ?? null;
+
+      // Token-auth clients must receive a fresh full-access token on success. A
+      // missing token means the password was not actually changed, so we must
+      // not hydrate from the stale scoped token.
+      if (!usesCookieAuth() && !newToken) {
+        promptForDifferentPassword();
+        return;
+      }
+
+      await completePasswordChange(newToken);
     } catch (err) {
       if (isMountedRef.current) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           setError('Your password-change session expired. Please sign in again.');
         } else if (err instanceof ApiError && err.status === 400) {
-          setError(
-            err.message?.toLowerCase().includes('same as current')
-              ? 'New password must be different from your current password.'
-              : err.message
-          );
+          // The backend's raw detail is surfaced on `err.code`; `err.message`
+          // is a generic status string. Detect the "same as current" rejection
+          // so the user is clearly prompted to choose a different password.
+          if (isSameAsCurrentError(err)) {
+            promptForDifferentPassword();
+          } else {
+            setError(err.code ?? err.message);
+          }
         } else if (err instanceof Error) {
           setError(err.message);
         } else {
@@ -135,18 +175,8 @@ export default function PromptPasswordChangeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>First-Time Password Setup</Text>
-      <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Enter your temporary password and choose a different new password.</Text>
+      <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Choose a new password that is different from your temporary one.</Text>
 
-      <ThemedInput
-        secureTextEntry
-        placeholder="Current (temporary) password"
-        style={styles.formInput}
-        value={currentPassword}
-        onChangeText={(text) => {
-          setCurrentPassword(text);
-          resetInactivityTimer();
-        }}
-      />
       <ThemedInput
         secureTextEntry
         placeholder="New password"

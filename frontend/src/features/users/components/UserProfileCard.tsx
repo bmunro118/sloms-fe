@@ -111,15 +111,8 @@ function createStyles(theme: AppTheme) {
     ...common,
     card: common.card,
     field: { marginTop: theme.spacing.md },
-    fieldLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.3,
-      marginBottom: theme.spacing.xs,
-    },
-    fieldValue: { fontSize: 15, color: theme.colors.textPrimary },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
     input: { marginTop: 2 },
     roleRow: {
       flexDirection: 'row',

@@ -51,8 +51,8 @@ export function CustomerContactCard({
                 { key: 'band', label: 'Price Band', placeholder: 'Price Band (e.g. NHS1)', kb: 'default' },
               ] as const
             ).map(({ key, label, placeholder, kb }) => (
-              <View key={key} style={styles.formGroup}>
-                <Text style={styles.label}>{label}</Text>
+              <View key={key} style={styles.field}>
+                <Text style={styles.fieldLabel}>{label}</Text>
                 <ThemedInput
                   placeholder={placeholder}
                   value={(formData[key] as string) ?? ''}
@@ -65,13 +65,34 @@ export function CustomerContactCard({
           </>
         ) : (
           <>
-            <Text style={styles.item}>Contact: {customer.contactName ?? 'N/A'}</Text>
-            <Text style={styles.item}>Email: {customer.contactEmail ?? 'N/A'}</Text>
-            <Text style={styles.item}>Phone: {customer.contactPhone ?? 'N/A'}</Text>
-            <Text style={styles.item}>Mobile: {customer.contactMobile ?? 'N/A'}</Text>
-            <Text style={styles.item}>Fax: {customer.contactFax ?? 'N/A'}</Text>
-            <Text style={styles.item}>Report Email: {customer.reportEmail ?? 'N/A'}</Text>
-            <Text style={styles.item}>Price Band: {customer.band ?? 'N/A'}</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Contact Name</Text>
+              <Text style={styles.fieldValue}>{customer.contactName ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Email</Text>
+              <Text style={styles.fieldValue}>{customer.contactEmail ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Phone</Text>
+              <Text style={styles.fieldValue}>{customer.contactPhone ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Mobile</Text>
+              <Text style={styles.fieldValue}>{customer.contactMobile ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Fax</Text>
+              <Text style={styles.fieldValue}>{customer.contactFax ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Report Email</Text>
+              <Text style={styles.fieldValue}>{customer.reportEmail ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Price Band</Text>
+              <Text style={styles.fieldValue}>{customer.band ?? 'N/A'}</Text>
+            </View>
           </>
         )}
       </ThemedCard>
@@ -132,16 +153,12 @@ function createStyles(theme: AppTheme) {
     sectionTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: theme.colors.text,
+      color: theme.colors.textPrimary,
     },
-    item: common.cardItem,
-    label: {
-      fontSize: 13,
-      color: theme.colors.muted,
-      marginBottom: 4,
-    },
-    formGroup: { marginBottom: 12 },
     sectionTitleSpaced: { marginBottom: 12 },
+    field: { marginTop: theme.spacing.md },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
     cardHeader: {
       flexDirection: 'row',
       alignItems: 'center',

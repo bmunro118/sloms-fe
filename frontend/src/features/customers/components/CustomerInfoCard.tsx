@@ -24,8 +24,8 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
         <Text style={styles.sectionTitle}>Company Information</Text>
 
         {isEditing ? (
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Company Name *</Text>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Company Name *</Text>
             <ThemedInput
               placeholder="Company Name"
               value={formData.companyName ?? ''}
@@ -34,13 +34,16 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
             />
           </View>
         ) : (
-          <Text style={styles.item}>Company: {customer.companyName ?? 'N/A'}</Text>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Company Name</Text>
+            <Text style={styles.fieldValue}>{customer.companyName ?? 'N/A'}</Text>
+          </View>
         )}
 
         {isEditing ? (
           <>
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Account Number</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Account Number</Text>
               <ThemedInput
                 placeholder="Account Number"
                 value={formData.accountNumber ?? ''}
@@ -48,8 +51,8 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
                 editable={!isSaving}
               />
             </View>
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Centre Number</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Centre Number</Text>
               <ThemedInput
                 placeholder="Centre Number"
                 value={formData.centreNumber ?? ''}
@@ -60,8 +63,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           </>
         ) : (
           <>
-            <Text style={styles.item}>Account: {customer.accountNumber ?? 'N/A'}</Text>
-            <Text style={styles.item}>Centre: {customer.centreNumber ?? 'N/A'}</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Account Number</Text>
+              <Text style={styles.fieldValue}>{customer.accountNumber ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Centre Number</Text>
+              <Text style={styles.fieldValue}>{customer.centreNumber ?? 'N/A'}</Text>
+            </View>
           </>
         )}
       </ThemedCard>
@@ -82,8 +91,8 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
                 { key: 'invPostCode', label: 'Postcode', placeholder: 'Postcode' },
               ] as const
             ).map(({ key, label, placeholder }) => (
-              <View key={key} style={styles.formGroup}>
-                <Text style={styles.label}>{label}</Text>
+              <View key={key} style={styles.field}>
+                <Text style={styles.fieldLabel}>{label}</Text>
                 <ThemedInput
                   placeholder={placeholder}
                   value={(formData[key] as string) ?? ''}
@@ -95,12 +104,42 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           </>
         ) : (
           <>
-            {customer.invBuildingName && <Text style={styles.item}>{customer.invBuildingName}</Text>}
-            {customer.invAddressLn1 && <Text style={styles.item}>{customer.invAddressLn1}</Text>}
-            {customer.invAddressLn2 && <Text style={styles.item}>{customer.invAddressLn2}</Text>}
-            {customer.invTownOrCity && <Text style={styles.item}>{customer.invTownOrCity}</Text>}
-            {customer.invCounty && <Text style={styles.item}>{customer.invCounty}</Text>}
-            {customer.invPostCode && <Text style={styles.item}>{customer.invPostCode}</Text>}
+            {customer.invBuildingName ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Building Name</Text>
+                <Text style={styles.fieldValue}>{customer.invBuildingName}</Text>
+              </View>
+            ) : null}
+            {customer.invAddressLn1 ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Address Line 1</Text>
+                <Text style={styles.fieldValue}>{customer.invAddressLn1}</Text>
+              </View>
+            ) : null}
+            {customer.invAddressLn2 ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Address Line 2</Text>
+                <Text style={styles.fieldValue}>{customer.invAddressLn2}</Text>
+              </View>
+            ) : null}
+            {customer.invTownOrCity ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Town / City</Text>
+                <Text style={styles.fieldValue}>{customer.invTownOrCity}</Text>
+              </View>
+            ) : null}
+            {customer.invCounty ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>County</Text>
+                <Text style={styles.fieldValue}>{customer.invCounty}</Text>
+              </View>
+            ) : null}
+            {customer.invPostCode ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Postcode</Text>
+                <Text style={styles.fieldValue}>{customer.invPostCode}</Text>
+              </View>
+            ) : null}
           </>
         )}
       </ThemedCard>
@@ -116,15 +155,11 @@ function createStyles(theme: AppTheme) {
     sectionTitle: {
       fontSize: 16,
       fontWeight: '600',
-      color: theme.colors.text,
+      color: theme.colors.textPrimary,
       marginBottom: 12,
     },
-    item: common.cardItem,
-    label: {
-      fontSize: 13,
-      color: theme.colors.muted,
-      marginBottom: 4,
-    },
-    formGroup: { marginBottom: 12 },
+    field: { marginTop: theme.spacing.md },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
   });
 }

@@ -1,6 +1,6 @@
 import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { FilterModal } from '@components/ui/FilterModal';
@@ -98,8 +98,14 @@ export default function DocumentsScreen() {
         {documents.map((doc) => (
           <ThemedCard key={doc.id} style={styles.card}>
             <Text style={styles.cardTitle}>{doc.type ?? 'Document'} #{doc.id}</Text>
-            <Text style={styles.cardMeta}>Order ref: {doc.orderReference ?? 'N/A'}</Text>
-            <Text style={styles.cardMeta}>Generated: {doc.generatedDate ?? 'N/A'}</Text>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Order Ref</Text>
+              <Text style={styles.fieldValue}>{doc.orderReference ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Generated</Text>
+              <Text style={styles.fieldValue}>{doc.generatedDate ?? 'N/A'}</Text>
+            </View>
           </ThemedCard>
         ))}
       </ScreenContent>
@@ -120,5 +126,8 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    field: { marginTop: theme.spacing.sm },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
   });
 }

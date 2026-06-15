@@ -387,12 +387,7 @@ function createStyles(theme: AppTheme) {
     formField: {
       marginTop: theme.spacing.md,
     },
-    fieldLabel: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: theme.colors.textSecondary,
-      marginBottom: theme.spacing.xs,
-    },
+    fieldLabel: common.fieldLabel,
     formActions: {
       flexDirection: 'row',
       flexWrap: 'wrap',

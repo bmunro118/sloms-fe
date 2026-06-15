@@ -418,23 +418,38 @@ export default function OrderDetailScreen() {
                 <Text style={styles.meta}>{serialResult.description as string}</Text>
               ) : null}
               {serialResult.modelCode ? (
-                <Text style={styles.meta}>Model: {serialResult.modelCode as string}</Text>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Model</Text>
+                  <Text style={styles.fieldValue}>{serialResult.modelCode as string}</Text>
+                </View>
               ) : null}
               {(serialResult.patientInitial || serialResult.patientSurname) ? (
-                <Text style={styles.meta}>
-                  Patient: {[serialResult.patientInitial, serialResult.patientSurname].filter(Boolean).join(' ')}
-                </Text>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Patient</Text>
+                  <Text style={styles.fieldValue}>{
+                    [serialResult.patientInitial, serialResult.patientSurname].filter(Boolean).join(' ')
+                  }</Text>
+                </View>
               ) : null}
               {serialResult.category ? (
-                <Text style={styles.meta}>Category: {serialResult.category as string}</Text>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Category</Text>
+                  <Text style={styles.fieldValue}>{serialResult.category as string}</Text>
+                </View>
               ) : null}
               {serialResult.side ? (
-                <Text style={styles.meta}>Side: {serialResult.side as string}</Text>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Side</Text>
+                  <Text style={styles.fieldValue}>{serialResult.side as string}</Text>
+                </View>
               ) : null}
               {serialResult.orderNumber ? (
-                <Text style={styles.meta}>
-                  Order: {serialResult.orderNumber as string}/{serialResult.orderBatch as string}
-                </Text>
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Order</Text>
+                  <Text style={styles.fieldValue}>
+                    {serialResult.orderNumber as string}/{serialResult.orderBatch as string}
+                  </Text>
+                </View>
               ) : null}
             </View>
           ) : null}
@@ -455,5 +470,8 @@ function createStyles(theme: AppTheme) {
     serialBtn: { flexShrink: 0 },
     serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
     serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
+    field: { marginTop: theme.spacing.sm },
+    fieldLabel: common.fieldLabel,
+    fieldValue: common.fieldValue,
   });
 }

@@ -15,6 +15,7 @@ export function createStyles(theme: AppTheme) {
       ...common.card,
       gap: 8,
     },
+    field: { marginTop: theme.spacing.sm },
     summaryHeadRow: {
       flexDirection: 'row',
       alignItems: 'center',
