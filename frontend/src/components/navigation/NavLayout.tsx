@@ -6,6 +6,7 @@ import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-sh
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
+import { useSidebarCookiePreference } from '@src/hooks/useSidebarCookiePreference';
 import { MobileNavLayout } from './MobileNavLayout';
 import { NavItemIcon } from './NavItemIcon';
 import { NavLayoutProps } from './navigationTypes';
@@ -19,7 +20,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   const showDrawer = shellMode === 'drawer';
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useSidebarCookiePreference();
   const [showSidebarText, setShowSidebarText] = useState(false);
   const isCollapsed = !isSidebarExpanded;
   const animatedSidebarWidth = useRef(new Animated.Value(theme.layout.compactSidebarWidth)).current;

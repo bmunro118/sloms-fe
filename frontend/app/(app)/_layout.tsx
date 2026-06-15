@@ -1,12 +1,14 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { NavLayout } from '@components/navigation/NavLayout';
 import { useAuth } from '@context/AuthContext';
 import { ScreenTitleProvider } from '@context/ScreenTitleContext';
+import { useAppModal } from '@src/hooks/useAppModal';
 import { canRoleAccessPath, resolveNavItemsForRole } from '@src/features/app-shell';
 
 export default function AppLayout() {
   const { role, signOut } = useAuth();
+  const { showConfirm } = useAppModal();
   const pathname = usePathname();
   const router = useRouter();
   const redirectGate = useRef<string | null>(null);
@@ -32,9 +34,22 @@ export default function AppLayout() {
     }
   }, [role, pathname, fallbackHref, router]);
 
+  const handleSignOut = useCallback(async () => {
+    const confirmed = await showConfirm({
+      title: 'Sign out',
+      message: 'Are you sure you want to sign out?',
+      confirmLabel: 'Sign out',
+      cancelLabel: 'Cancel',
+      confirmVariant: 'primary',
+    });
+    if (confirmed) {
+      await signOut();
+    }
+  }, [showConfirm, signOut]);
+
   return (
     <ScreenTitleProvider>
-      <NavLayout items={navItems} onSignOut={signOut}>
+      <NavLayout items={navItems} onSignOut={handleSignOut}>
         <Slot />
       </NavLayout>
     </ScreenTitleProvider>
