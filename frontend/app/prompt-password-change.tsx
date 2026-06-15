@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
@@ -10,29 +11,81 @@ import { ApiError, apiRequest } from '@utils/api';
 import { usesCookieAuth } from '@utils/auth';
 import { ENDPOINTS } from '@utils/config';
 
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
 interface ChangePasswordResponse {
   accessToken?: string;
   token?: string;
 }
 
-export default function ChangePasswordScreen() {
+export default function PromptPasswordChangeScreen() {
   const { mustChangePassword, token, completePasswordChange, signOut } = useAuth();
   const isMountedRef = useIsMountedRef();
+  const router = useRouter();
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(async () => {
+      if (isMountedRef.current) {
+        await signOut();
+        router.replace('/');
+      }
+    }, INACTIVITY_TIMEOUT_MS);
+  }, [signOut, router, isMountedRef]);
+
+  // Set up the inactivity timer and attach window-level interaction listeners on web
+  useEffect(() => {
+    resetInactivityTimer();
+
+    const interactionEvents = ['mousedown', 'touchstart', 'keydown', 'scroll'] as const;
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      for (const event of interactionEvents) {
+        window.addEventListener(event, resetInactivityTimer);
+      }
+    }
+
+    return () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        for (const event of interactionEvents) {
+          window.removeEventListener(event, resetInactivityTimer);
+        }
+      }
+    };
+  }, [resetInactivityTimer]);
+
   const handleSubmit = async () => {
+    resetInactivityTimer();
+
     if (!token && !usesCookieAuth()) {
-      setError('Missing change-password token. Please sign in again.');
+      setError('Missing password-change token. Please sign in again.');
+      return;
+    }
+
+    if (!currentPassword) {
+      setError('Please enter your current (temporary) password.');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setError('New password must be different from your current password.');
       return;
     }
 
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError('New password must be at least 8 characters.');
       return;
     }
 
@@ -60,6 +113,12 @@ export default function ChangePasswordScreen() {
       if (isMountedRef.current) {
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           setError('Your password-change session expired. Please sign in again.');
+        } else if (err instanceof ApiError && err.status === 400) {
+          setError(
+            err.message?.toLowerCase().includes('same as current')
+              ? 'New password must be different from your current password.'
+              : err.message
+          );
         } else if (err instanceof Error) {
           setError(err.message);
         } else {
@@ -76,21 +135,37 @@ export default function ChangePasswordScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>First-Time Password Setup</Text>
-      <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Choose a secure password below.</Text>
+      <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Enter your temporary password and choose a different new password.</Text>
 
+      <ThemedInput
+        secureTextEntry
+        placeholder="Current (temporary) password"
+        style={styles.formInput}
+        value={currentPassword}
+        onChangeText={(text) => {
+          setCurrentPassword(text);
+          resetInactivityTimer();
+        }}
+      />
       <ThemedInput
         secureTextEntry
         placeholder="New password"
         style={styles.formInput}
         value={newPassword}
-        onChangeText={setNewPassword}
+        onChangeText={(text) => {
+          setNewPassword(text);
+          resetInactivityTimer();
+        }}
       />
       <ThemedInput
         secureTextEntry
         placeholder="Confirm new password"
         style={styles.formInput}
         value={confirmPassword}
-        onChangeText={setConfirmPassword}
+        onChangeText={(text) => {
+          setConfirmPassword(text);
+          resetInactivityTimer();
+        }}
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -98,7 +173,10 @@ export default function ChangePasswordScreen() {
       <ThemedButton
         label={isSubmitting ? 'Updating...' : 'Update password'}
         disabled={isSubmitting}
-        onPress={handleSubmit}
+        onPress={() => {
+          resetInactivityTimer();
+          handleSubmit();
+        }}
         style={styles.primaryButton}
         textStyle={styles.primaryButtonText}
       />
@@ -106,7 +184,10 @@ export default function ChangePasswordScreen() {
       <ThemedButton
         label="Cancel and sign out"
         variant="secondary"
-        onPress={signOut}
+        onPress={() => {
+          resetInactivityTimer();
+          signOut();
+        }}
         style={styles.secondaryButton}
         textStyle={styles.secondaryButtonText}
       />
@@ -133,6 +214,7 @@ function createStyles(theme: AppTheme) {
       fontSize: 15,
       color: theme.colors.textMuted,
       marginBottom: 20,
+      textAlign: 'center',
     },
     formInput: {
       width: '100%',

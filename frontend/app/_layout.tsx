@@ -31,7 +31,7 @@ function AuthGuard() {
   // Stable string key derived from segments — prevents effect re-fires
   // when useSegments() returns a new array reference with same values.
   const segmentKey = useMemo(() => segments.join('/'), [segments]);
-  const onChangePasswordRoute = isRouteMatch(pathname, '/change-password');
+  const onPromptPasswordChangeRoute = isRouteMatch(pathname, '/prompt-password-change');
 
   useEffect(() => {
     if (isLoading) return;
@@ -41,13 +41,13 @@ function AuthGuard() {
     let target: string | null = null;
 
     if (mustChangePassword) {
-      // Forced password change: keep the user on the change-password screen.
-      if (!onChangePasswordRoute) {
-        target = '/change-password';
+      // Forced password change: keep the user on the prompt-password-change screen.
+      if (!onPromptPasswordChangeRoute) {
+        target = '/prompt-password-change';
       }
     } else if (!isAuthenticated) {
       // Signed out (and not mid password-change): only login route is allowed.
-      if (inApp || onChangePasswordRoute) {
+      if (inApp || onPromptPasswordChangeRoute) {
         target = '/';
       }
     } else if (!inApp) {
@@ -64,7 +64,7 @@ function AuthGuard() {
     } else {
       redirectGate.current = null;
     }
-  }, [isLoading, isAuthenticated, mustChangePassword, segmentKey, onChangePasswordRoute, router]);
+  }, [isLoading, isAuthenticated, mustChangePassword, segmentKey, onPromptPasswordChangeRoute, router]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
