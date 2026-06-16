@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
+import { tokens } from '@src/theme/tokens';
 
 export function createStyles(theme: AppTheme) {
   const common = createCommonScreenStyleDefinitions(theme);
@@ -119,7 +120,7 @@ export function createStyles(theme: AppTheme) {
     filterContainer: {
       minWidth: 170,
       position: 'relative',
-      zIndex: 20,
+      zIndex: tokens.zIndex.filterDropdown,
     },
     filterButton: {
       borderWidth: 1,

@@ -3,6 +3,7 @@ import { LogOut as SignOutIcon, PanelLeftClose as CollapseIcon, PanelLeftOpen as
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, PressableStateCallbackType, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppShellNavItem, isRouteMatch, useAppShell } from '@src/features/app-shell';
+import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
@@ -290,13 +291,13 @@ function createStyles(theme: AppTheme) {
     },
     topBarLayer: {
       position: 'relative',
-      zIndex: 200,
-      elevation: 200,
+      zIndex: tokens.zIndex.topBar,
+      elevation: tokens.zIndex.topBar,
       overflow: 'visible',
     },
     contentScroll: {
-      zIndex: 1,
-      elevation: 1,
+      zIndex: tokens.zIndex.content,
+      elevation: tokens.zIndex.content,
     },
     sidebar: {
       backgroundColor: theme.colors.navBackground,
@@ -309,8 +310,8 @@ function createStyles(theme: AppTheme) {
     navList: {
       gap: 8,
       marginTop: -5,
-      zIndex: 2,
-      elevation: 2,
+      zIndex: tokens.zIndex.floatingAction,
+      elevation: tokens.zIndex.floatingAction,
       overflow: 'visible',
     },
     sidebarToggleButton: {
@@ -387,8 +388,8 @@ function createStyles(theme: AppTheme) {
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
       justifyContent: 'center',
-      zIndex: 1,
-      elevation: 1,
+      zIndex: tokens.zIndex.content,
+      elevation: tokens.zIndex.content,
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,

@@ -1,21 +1,25 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Modal,
   Pressable,
   PressableProps,
   StyleProp,
   StyleSheet,
   Text,
   TextStyle,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
+import { zIndex as zIndexScale } from '@theme/tokens';
 
 const TOOLTIP_SHOW_DELAY_MS = 160;
 const TOOLTIP_FADE_IN_MS = 120;
 const TOOLTIP_FADE_OUT_MS = 90;
-const TOOLTIP_STACK_LEVEL = 10000;
+const TOOLTIP_ESTIMATED_HEIGHT = 36;
+const TOOLTIP_EDGE_PADDING = 8;
 
 interface TooltipPressableProps extends PressableProps {
   tooltip?: string;
@@ -40,7 +44,15 @@ export function TooltipPressable({
   ...pressableProps
 }: TooltipPressableProps) {
   const { colors, radii } = useAppTheme();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const pressableRef = useRef<View>(null);
   const [isTooltipMounted, setTooltipMounted] = useState(false);
+  const [tooltipAnchorPos, setTooltipAnchorPos] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const showDelayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks whether the most recent intent was to hide; prevents a stale fade-out
@@ -74,8 +86,20 @@ export function TooltipPressable({
     }
     // Cancel any in-flight hide so its callback does not unmount the tooltip.
     hideRequestedRef.current = false;
-    setTooltipMounted(true);
-    animateTooltipIn();
+
+    if (pressableRef.current) {
+      pressableRef.current.measureInWindow((x, y, width, height) => {
+        if (isMountedRef.current) {
+          setTooltipAnchorPos({ x, y, width, height });
+          setTooltipMounted(true);
+          animateTooltipIn();
+        }
+      });
+    } else {
+      setTooltipAnchorPos(null);
+      setTooltipMounted(true);
+      animateTooltipIn();
+    }
   }, [animateTooltipIn, hasTooltip]);
 
   const showTooltip = useCallback(() => {
@@ -103,6 +127,7 @@ export function TooltipPressable({
       // or was stopped early — as long as a show hasn't superseded this hide.
       if (hideRequestedRef.current && isMountedRef.current) {
         setTooltipMounted(false);
+        setTooltipAnchorPos(null);
       }
     });
   }, [clearShowDelay, tooltipOpacity]);
@@ -172,62 +197,103 @@ export function TooltipPressable({
   const resolvePressableStyle: NonNullable<PressableProps['style']> = useCallback(
     (state) => {
       const incomingStyle = typeof style === 'function' ? style(state) : style;
-
-      return [
-        incomingStyle,
-        styles.pressableBase,
-        isTooltipMounted ? styles.pressableRaised : null,
-      ];
+      return [incomingStyle, styles.pressableBase];
     },
-    [isTooltipMounted, style]
+    [style]
   );
 
+  // Compute tooltip screen position with edge-avoidance flip logic
+  const tooltipPlacement = (() => {
+    if (!tooltipAnchorPos) {
+      return { top: 0, left: 0, flipAbove: false };
+    }
+
+    const spaceBelow = windowHeight - (tooltipAnchorPos.y + tooltipAnchorPos.height);
+    const flipAbove =
+      spaceBelow < TOOLTIP_ESTIMATED_HEIGHT + TOOLTIP_EDGE_PADDING + 8;
+
+    const top = flipAbove
+      ? tooltipAnchorPos.y - TOOLTIP_ESTIMATED_HEIGHT - 8
+      : tooltipAnchorPos.y + tooltipAnchorPos.height + 8;
+
+    // Center over the button, clamped to viewport edges
+    const centerX = tooltipAnchorPos.x + tooltipAnchorPos.width / 2;
+    const left = Math.max(
+      TOOLTIP_EDGE_PADDING,
+      Math.min(centerX - 110, windowWidth - 220 - TOOLTIP_EDGE_PADDING)
+    );
+
+    return { top, left, flipAbove };
+  })();
+
   return (
-    <Pressable
-      {...pressableProps}
-      style={resolvePressableStyle}
-      onHoverIn={handleHoverIn}
-      onHoverOut={handleHoverOut}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onPress={handlePress}
-      onLongPress={handleLongPress}
-      onPressOut={handlePressOut}
-    >
-      {children}
+    <>
+      <Pressable
+        ref={pressableRef}
+        {...pressableProps}
+        style={resolvePressableStyle}
+        onHoverIn={handleHoverIn}
+        onHoverOut={handleHoverOut}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        onPressOut={handlePressOut}
+      >
+        {children}
+      </Pressable>
+
       {isTooltipMounted && hasTooltip ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.tooltipAnchor,
-            {
-              opacity: tooltipOpacity,
-              transform: [
-                {
-                  translateY: tooltipOpacity.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-3, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
+        <Modal
+          animationType="none"
+          transparent
+          visible
+          statusBarTranslucent
+          onRequestClose={() => {}}
         >
-          <View
+          <Animated.View
+            pointerEvents="none"
             style={[
-              styles.tooltip,
+              styles.tooltipModal,
               {
-                borderRadius: radii.sm,
-                backgroundColor: colors.textPrimary,
+                top: tooltipPlacement.top,
+                left: tooltipPlacement.left,
+                opacity: tooltipOpacity,
+                transform: [
+                  {
+                    translateY: tooltipOpacity.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: tooltipPlacement.flipAbove ? [3, 0] : [-3, 0],
+                    }),
+                  },
+                ],
               },
-              tooltipContainerStyle,
             ]}
           >
-            <Text style={[styles.tooltipText, { color: colors.surface }, tooltipTextStyle]}>{tooltip}</Text>
-          </View>
-        </Animated.View>
+            <View
+              style={[
+                styles.tooltip,
+                {
+                  borderRadius: radii.sm,
+                  backgroundColor: colors.textPrimary,
+                },
+                tooltipContainerStyle,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tooltipText,
+                  { color: colors.surface },
+                  tooltipTextStyle,
+                ]}
+              >
+                {tooltip}
+              </Text>
+            </View>
+          </Animated.View>
+        </Modal>
       ) : null}
-    </Pressable>
+    </>
   );
 }
 
@@ -236,20 +302,13 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
   },
-  pressableRaised: {
-    zIndex: TOOLTIP_STACK_LEVEL,
-    elevation: TOOLTIP_STACK_LEVEL,
-  },
-  tooltipAnchor: {
+  tooltipModal: {
     position: 'absolute',
-    top: '100%',
-    right: 0,
-    left: 0,
-    marginTop: 8,
-    alignItems: 'center',
-    zIndex: TOOLTIP_STACK_LEVEL + 1,
-    elevation: TOOLTIP_STACK_LEVEL + 1,
-  },
+    zIndex: zIndexScale.tooltip,
+    elevation: zIndexScale.tooltip,
+    maxWidth: 220,
+    pointerEvents: 'none',
+  } as any,
   tooltip: {
     maxWidth: 220,
     paddingHorizontal: 8,

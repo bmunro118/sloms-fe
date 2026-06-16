@@ -5,6 +5,7 @@ import { Menu as MenuIcon, MoreHorizontal as MoreIcon, X as CloseIcon } from 'lu
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
+import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 
@@ -253,7 +254,7 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     bar: {
       position: 'relative',
-      zIndex: 300,
+      zIndex: tokens.zIndex.topBarSurface,
       overflow: 'visible',
       flexDirection: 'row',
       alignItems: 'center',

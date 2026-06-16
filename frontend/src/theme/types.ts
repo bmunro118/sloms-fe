@@ -57,6 +57,17 @@ export interface ThemeLayout {
   drawerWidth: number;
 }
 
+export interface ThemeZIndex {
+  content: number;
+  floatingAction: number;
+  drawer: number;
+  filterDropdown: number;
+  bottomBar: number;
+  topBar: number;
+  topBarSurface: number;
+  tooltip: number;
+}
+
 export interface AppTheme {
   mode: 'light' | 'dark';
   isDark: boolean;

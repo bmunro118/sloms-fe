@@ -26,6 +26,7 @@ import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { downloadAndShareBreakdownPdfNative } from '@src/features/orders/breakdown-download';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -40,6 +41,7 @@ export default function OrderDetailScreen() {
   const { canMutate } = useAuth();
   const router = useRouter();
   const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
+  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
@@ -392,22 +394,23 @@ export default function OrderDetailScreen() {
             {/* ── Serial Number Lookup ── */}
             <ThemedCard style={styles.serialCard}>
               <Text style={styles.sectionTitle}>Serial Number Lookup</Text>
-              <View style={styles.serialRow}>
-                <ThemedInput
+              <ThemedInput
                   placeholder="Enter serial number..."
                   value={serialInput}
                   onChangeText={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
                   onSubmitEditing={() => { void handleSerialLookup(); }}
-                  style={styles.serialInput}
                   editable={!isSerialSearching}
+                  rightAccessory={
+                    <ThemedButton
+                      variant="icon"
+                      icon={<SearchIcon size={18} color={isSerialSearching || !serialInput.trim() ? theme.colors.textMuted : theme.colors.navTextStrong} />}
+                      onPress={() => { void handleSerialLookup(); }}
+                      disabled={isSerialSearching || !serialInput.trim()}
+                      tooltip="Look up serial number"
+                      style={{ backgroundColor: 'transparent', borderWidth: 0 }}
+                    />
+                  }
                 />
-                <ThemedButton
-                  label={isSerialSearching ? '...' : 'Search'}
-                  onPress={() => { void handleSerialLookup(); }}
-                  disabled={isSerialSearching || !serialInput.trim()}
-                  style={styles.serialBtn}
-                />
-              </View>
               {serialError ? <Text style={styles.error}>{serialError}</Text> : null}
               {serialResult ? (
                 <View style={styles.serialResult}>
@@ -466,9 +469,6 @@ function createStyles(theme: AppTheme) {
     ...common,
     scrollContent: { gap: 10, paddingBottom: 8 },
     serialCard: { gap: 8 },
-    serialRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-    serialInput: { flex: 1 },
-    serialBtn: { flexShrink: 0 },
     serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
     serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
     field: { marginTop: theme.spacing.sm },

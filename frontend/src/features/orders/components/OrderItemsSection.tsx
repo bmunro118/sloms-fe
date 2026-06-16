@@ -230,6 +230,7 @@ export function OrderItemsSection({
                 onPress={() => { void handleAddItem(); }}
                 disabled={isMutatingItems}
                 tooltip="Look up serial number"
+                style={{ backgroundColor: 'transparent', borderWidth: 0 }}
               />
             }
           />

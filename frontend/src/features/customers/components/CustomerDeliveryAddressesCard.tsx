@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
-import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAppModal } from '@src/hooks/useAppModal';
-import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
-import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import {
   Address,
@@ -17,6 +14,9 @@ import {
   setDefaultAddress,
   updateAddress,
 } from '../api';
+import { AddressDetail } from './AddressDetail';
+import { AddressForm } from './AddressForm';
+import { createStyles } from './addresses-styles';
 
 const EMPTY_FORM: CreateAddressPayload = {
   siteCompanyName: '',
@@ -311,192 +311,4 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
       ) : null}
     </ThemedCard>
   );
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-type StylesRef = ReturnType<typeof createStyles>;
-
-function AddressDetail({ address, styles }: { address: Address; styles: StylesRef }) {
-  return (
-    <View style={styles.detailBlock}>
-      {address.delBuildingName ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Building Name</Text>
-          <Text style={styles.fieldValue}>{address.delBuildingName}</Text>
-        </View>
-      ) : null}
-      {address.delAddressLn1 ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Address Line 1</Text>
-          <Text style={styles.fieldValue}>{address.delAddressLn1}</Text>
-        </View>
-      ) : null}
-      {address.delAddressLn2 ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Address Line 2</Text>
-          <Text style={styles.fieldValue}>{address.delAddressLn2}</Text>
-        </View>
-      ) : null}
-      {address.delTownOrCity ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Town / City</Text>
-          <Text style={styles.fieldValue}>{address.delTownOrCity}</Text>
-        </View>
-      ) : null}
-      {address.delCounty ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>County</Text>
-          <Text style={styles.fieldValue}>{address.delCounty}</Text>
-        </View>
-      ) : null}
-      {address.delPostCode ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Postcode</Text>
-          <Text style={styles.fieldValue}>{address.delPostCode}</Text>
-        </View>
-      ) : null}
-      {address.siteContactName ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Site Contact Name</Text>
-          <Text style={styles.fieldValue}>{address.siteContactName}</Text>
-        </View>
-      ) : null}
-      {address.siteContactEmail ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Site Contact Email</Text>
-          <Text style={styles.fieldValue}>{address.siteContactEmail}</Text>
-        </View>
-      ) : null}
-      {address.siteContactPhone ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Site Contact Phone</Text>
-          <Text style={styles.fieldValue}>{address.siteContactPhone}</Text>
-        </View>
-      ) : null}
-      {address.siteContactMobile ? (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Site Contact Mobile</Text>
-          <Text style={styles.fieldValue}>{address.siteContactMobile}</Text>
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-const ADDRESS_FIELDS: {
-  key: keyof CreateAddressPayload;
-  label: string;
-  placeholder: string;
-  kb?: 'default' | 'email-address' | 'phone-pad';
-}[] = [
-  { key: 'siteCompanyName', label: 'Site Company Name', placeholder: 'Site Company Name' },
-  { key: 'delBuildingName', label: 'Building Name', placeholder: 'Building Name' },
-  { key: 'delAddressLn1', label: 'Address Line 1', placeholder: 'Address Line 1' },
-  { key: 'delAddressLn2', label: 'Address Line 2', placeholder: 'Address Line 2' },
-  { key: 'delTownOrCity', label: 'Town / City', placeholder: 'Town or City' },
-  { key: 'delCounty', label: 'County', placeholder: 'County' },
-  { key: 'delPostCode', label: 'Postcode', placeholder: 'Postcode' },
-  { key: 'siteContactName', label: 'Site Contact Name', placeholder: 'Site Contact Name' },
-  { key: 'siteContactEmail', label: 'Site Contact Email', placeholder: 'Email', kb: 'email-address' },
-  { key: 'siteContactPhone', label: 'Site Contact Phone', placeholder: 'Phone', kb: 'phone-pad' },
-  { key: 'siteContactMobile', label: 'Site Contact Mobile', placeholder: 'Mobile', kb: 'phone-pad' },
-];
-
-function AddressForm({
-  form,
-  onChange,
-  disabled,
-  styles,
-}: {
-  form: CreateAddressPayload;
-  onChange: (patch: Partial<CreateAddressPayload>) => void;
-  disabled: boolean;
-  styles: StylesRef;
-}) {
-  return (
-    <>
-      {ADDRESS_FIELDS.map(({ key, label, placeholder, kb }) => (
-        <View key={key} style={styles.formGroup}>
-          <Text style={styles.label}>{label}</Text>
-          <ThemedInput
-            placeholder={placeholder}
-            value={(form[key] as string) ?? ''}
-            onChangeText={(text) => onChange({ [key]: text })}
-            keyboardType={kb ?? 'default'}
-            editable={!disabled}
-          />
-        </View>
-      ))}
-    </>
-  );
-}
-
-// ── Styles ─────────────────────────────────────────────────────────────────────
-
-function createStyles(theme: AppTheme) {
-  const common = createCommonScreenStyleDefinitions(theme);
-  return StyleSheet.create({
-    ...common,
-    card: { ...common.card, marginBottom: 16 },
-    sectionTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: theme.colors.textPrimary,
-      marginBottom: 12,
-    },
-    muted: {
-      fontSize: 14,
-      color: theme.colors.textMuted,
-    },
-    field: { marginTop: theme.spacing.sm },
-    fieldLabel: common.fieldLabel,
-    fieldValue: common.fieldValue,
-    label: {
-      fontSize: 13,
-      color: theme.colors.textSecondary,
-      marginBottom: 4,
-    },
-    formGroup: { marginBottom: 12 },
-    addressBlock: {
-      paddingBottom: 12,
-      marginBottom: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.colors.border,
-    },
-    addressBlockLast: {
-      borderBottomWidth: 0,
-      marginBottom: 0,
-      paddingBottom: 0,
-    },
-    addressHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    addressTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: theme.colors.textPrimary,
-      flex: 1,
-    },
-    defaultBadge: {
-      fontSize: 12,
-      color: theme.colors.accent,
-      fontWeight: '400',
-    },
-    detailBlock: { marginBottom: 8 },
-    actionRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginTop: 8,
-    },
-    actionBtn: { flex: 1, minWidth: 80 },
-    rowBtn: { marginLeft: 8 },
-    dangerText: { color: theme.colors.danger },
-    addRow: { marginTop: 12, alignItems: 'flex-start' },
-    addBtn: {},
-  });
 }

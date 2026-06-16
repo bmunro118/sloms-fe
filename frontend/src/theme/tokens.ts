@@ -1,4 +1,4 @@
-import { ThemeLayout, ThemeRadii, ThemeSpacing } from '@theme/types';
+import { ThemeLayout, ThemeRadii, ThemeSpacing, ThemeZIndex } from '@theme/types';
 
 export const spacing: ThemeSpacing = {
   xs: 4,
@@ -21,4 +21,15 @@ export const layout: ThemeLayout = {
   compactSidebarWidth: 84,
   expandedSidebarWidth: 240,
   drawerWidth: 260,
+};
+
+export const zIndex: ThemeZIndex = {
+  content: 1,
+  floatingAction: 2,
+  drawer: 10,
+  filterDropdown: 20,
+  bottomBar: 100,
+  topBar: 200,
+  topBarSurface: 300,
+  tooltip: 9999,
 };

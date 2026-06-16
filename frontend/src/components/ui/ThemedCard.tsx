@@ -4,6 +4,7 @@ import { TopBarAction } from '@context/ScreenTitleContext';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { ActionOverflowRow } from './ActionOverflowRow';
 import { TooltipPressable } from './TooltipPressable';
+import { tokens } from '@src/theme/tokens';
 
 interface ThemedCardProps extends PropsWithChildren {
   style?: StyleProp<ViewStyle>;
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   },
   floatingActionRow: {
     position: 'absolute',
-    zIndex: 2,
+    zIndex: tokens.zIndex.floatingAction,
   },
   disabled: {
     opacity: 0.7,

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { TooltipPressable } from './TooltipPressable';
+import { tokens } from '@src/theme/tokens';
 
 interface ListFilterHeaderProps {
   searchValue: string;
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 10,
+    zIndex: tokens.zIndex.drawer,
   },
   searchContainer: {
     flex: 1,

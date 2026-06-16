@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
+import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { NavItemIcon } from './NavItemIcon';
@@ -101,13 +102,13 @@ function createStyles(theme: AppTheme) {
     },
     topBarLayer: {
       position: 'relative',
-      zIndex: 200,
-      elevation: 200,
+      zIndex: tokens.zIndex.topBar,
+      elevation: tokens.zIndex.topBar,
       overflow: 'visible',
     },
     contentScroll: {
-      zIndex: 1,
-      elevation: 1,
+      zIndex: tokens.zIndex.content,
+      elevation: tokens.zIndex.content,
     },
     contentContainer: {
       flexGrow: 1,
@@ -124,8 +125,8 @@ function createStyles(theme: AppTheme) {
     },
     navList: {
       gap: 8,
-      zIndex: 2,
-      elevation: 2,
+      zIndex: tokens.zIndex.floatingAction,
+      elevation: tokens.zIndex.floatingAction,
       overflow: 'visible',
     },
     navItem: {
@@ -163,8 +164,8 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.surfaceMuted,
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
-      zIndex: 1,
-      elevation: 1,
+      zIndex: tokens.zIndex.content,
+      elevation: tokens.zIndex.content,
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,

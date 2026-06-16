@@ -5,6 +5,7 @@ import { ChevronLeft as BackIcon, LogOut as SignOutIcon, Menu as MenuIcon, X as 
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isRouteMatch } from '@src/features/app-shell';
+import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { NavItemIcon } from './NavItemIcon';
@@ -216,13 +217,13 @@ function createStyles(theme: AppTheme) {
     },
     topBarLayer: {
       position: 'relative',
-      zIndex: 200,
-      elevation: 200,
+      zIndex: tokens.zIndex.topBar,
+      elevation: tokens.zIndex.topBar,
       overflow: 'visible',
     },
     contentScroll: {
-      zIndex: 1,
-      elevation: 1,
+      zIndex: tokens.zIndex.content,
+      elevation: tokens.zIndex.content,
     },
     contentContainer: {
       flexGrow: 1,
@@ -233,8 +234,8 @@ function createStyles(theme: AppTheme) {
       right: 0,
       bottom: 0,
       left: 0,
-      zIndex: 100,
-      elevation: 8,
+      zIndex: tokens.zIndex.bottomBar,
+      elevation: tokens.zIndex.bottomBar,
       flexDirection: 'row',
       justifyContent: 'space-between',
       gap: 12,
@@ -266,7 +267,7 @@ function createStyles(theme: AppTheme) {
       position: 'absolute',
       right: 0,
       left: 0,
-      zIndex: 10,
+      zIndex: tokens.zIndex.drawer,
     },
     drawerBackdrop: {
       ...StyleSheet.absoluteFillObject,
@@ -291,8 +292,8 @@ function createStyles(theme: AppTheme) {
     },
     navList: {
       gap: 8,
-      zIndex: 2,
-      elevation: 2,
+      zIndex: tokens.zIndex.floatingAction,
+      elevation: tokens.zIndex.floatingAction,
       overflow: 'visible',
     },
     drawerSpacer: {
@@ -335,8 +336,8 @@ function createStyles(theme: AppTheme) {
       borderWidth: 1,
       borderColor: theme.colors.navBorder,
       justifyContent: 'center',
-      zIndex: 1,
-      elevation: 1,
+      zIndex: tokens.zIndex.content,
+      elevation: tokens.zIndex.content,
     },
     signOutButtonHover: {
       backgroundColor: theme.colors.navItemHoverBackground,
