@@ -4,19 +4,16 @@ import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   Archive as ArchiveIcon,
   Download as DownloadIcon,
-  History as HistoryIcon,
   Pencil as EditIcon,
   PencilOff as CancelEditIcon,
   RefreshCw,
   RotateCcw as ResetIcon,
   Save as SaveIcon,
-  Search as SearchIcon,
+  Send,
 } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
-import { ThemedButton } from '@components/ui/ThemedButton';
-import { ThemedInput } from '@components/ui/ThemedInput';
 import { SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -26,22 +23,40 @@ import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { downloadAndShareBreakdownPdfNative } from '@src/features/orders/breakdown-download';
-import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { dispatchOrder, getOrder, getOrderBreakdownPdf, getOrderItemBySerial, OrderItem, updateOrder, voidOrder } from '@src/features/orders/api';
+import {
+  dispatchOrder,
+  getOrder,
+  getOrderBreakdownPdf,
+  getOrderItemBySerial,
+  OrderItem,
+  updateOrder,
+  voidOrder,
+} from '@src/features/orders/api';
 import { ENDPOINTS } from '@utils/config';
-import { OrderDetails, OrderEditForm, OrderUpdatePayload, resolveOrderStatus, toOrderEditForm } from '@src/features/orders/types';
+import {
+  OrderDetails,
+  OrderEditForm,
+  OrderUpdatePayload,
+  resolveOrderStatus,
+  toOrderEditForm,
+} from '@src/features/orders/types';
 import { OrderDetailCard } from '@src/features/orders/components/OrderDetailCard';
-import { OrderItemsSection } from '@src/features/orders/components/OrderItemsSection';
+import { OrderItemsCard } from '@src/features/orders/components/OrderItemsCard';
+import { OrderProgressTimeline } from '@src/features/orders/components/OrderProgressTimeline';
+import { OrderTrackingSummaryCard } from '@src/features/orders/components/OrderTrackingSummaryCard';
+import { OrderSystemNotificationsCard } from '@src/features/orders/components/OrderSystemNotificationsCard';
+import { OrderUpdatesCard } from '@src/features/orders/components/OrderUpdatesCard';
+import { SerialLookupCard } from '@src/features/orders/components/SerialLookupCard';
+import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 
 export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string; mode?: string; dispatch?: string }>();
-  const { canMutate } = useAuth();
+  const { canMutate, isStaff } = useAuth();
   const router = useRouter();
   const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
-  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
@@ -49,6 +64,7 @@ export default function OrderDetailScreen() {
   const routeWantsEdit = params.mode === 'edit';
   const routeWantsDispatch = params.dispatch === 'true';
 
+  // ── Order state ─────────────────────────────────────────────────────────────
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState(false);
@@ -62,6 +78,29 @@ export default function OrderDetailScreen() {
   const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
   const [itemsRefreshSignal, setItemsRefreshSignal] = useState(0);
   const isEditingRef = useRef(false);
+
+  // ── Tracking data (extracted into dedicated hook) ───────────────────────────
+  const {
+    tracking,
+    isLoadingTracking,
+    trackingError,
+    updates,
+    trackingItems,
+    currentStatus: trackingStatus,
+    lastUpdateTimestamp,
+    journeySteps,
+    detectedProblems,
+    updateFilterOptions,
+    filteredUpdates,
+    selectedStatusFilter,
+    setSelectedStatusFilter,
+    expandedUpdateId,
+    setExpandedUpdateId,
+    isFilterOpen,
+    setIsFilterOpen,
+    selectedFilterLabel,
+    loadTracking,
+  } = useOrderTracking(orderNumber, orderBatch);
 
   // ── Serial number lookup state ──────────────────────────────────────────────
   const [serialInput, setSerialInput] = useState('');
@@ -77,13 +116,11 @@ export default function OrderDetailScreen() {
       const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
       const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
       const defaultBadge = address.defaultAddress ? ' (Default)' : '';
-      return {
-        value: address.id,
-        label: `${line}${city}${defaultBadge}`,
-      };
+      return { value: address.id, label: `${line}${city}${defaultBadge}` };
     });
   }, [deliveryAddresses]);
 
+  // ── Data loading ────────────────────────────────────────────────────────────
   const reload = useCallback(async (signal?: AbortSignal) => {
     if (!canUpdate(signal)) return;
     setIsLoading(true);
@@ -109,38 +146,29 @@ export default function OrderDetailScreen() {
     }
     const controller = new AbortController();
     void reload(controller.signal);
+    void loadTracking(controller.signal);
     return () => { controller.abort(); };
-  }, [orderBatch, orderNumber, reload]);
+  }, [orderBatch, orderNumber, reload, loadTracking]);
 
+  // ── Delivery addresses ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (!order?.customerAccount) {
-      setDeliveryAddresses([]);
-      return;
-    }
+    if (!order?.customerAccount) { setDeliveryAddresses([]); return; }
     const controller = new AbortController();
     setIsLoadingDeliveryAddresses(true);
     listAddresses(order.customerAccount, { signal: controller.signal })
       .then((response) => {
-        if (!controller.signal.aborted) {
-          setDeliveryAddresses(Array.isArray(response.data) ? response.data : []);
-        }
+        if (!controller.signal.aborted) setDeliveryAddresses(Array.isArray(response.data) ? response.data : []);
       })
       .catch((err) => {
-        if (!controller.signal.aborted) {
-          console.error('[OrderDetail] Failed to load customer delivery addresses:', err);
-          setDeliveryAddresses([]);
-        }
+        if (!controller.signal.aborted) console.error('[OrderDetail] Failed to load customer delivery addresses:', err);
       })
       .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoadingDeliveryAddresses(false);
-        }
+        if (!controller.signal.aborted) setIsLoadingDeliveryAddresses(false);
       });
-    return () => {
-      controller.abort();
-    };
+    return () => { controller.abort(); };
   }, [order?.customerAccount]);
 
+  // ── Save / reset / cancel ───────────────────────────────────────────────────
   const performSave = async () => {
     if (!canMutate || isSaving) return;
     const payload: OrderUpdatePayload = {
@@ -196,9 +224,9 @@ export default function OrderDetailScreen() {
     if (order) setFormData(toOrderEditForm(order));
   }, [order]);
 
+  // ── Dispatch / download / void ──────────────────────────────────────────────
   const handleDispatch = useCallback(async () => {
     if (!canMutate) return;
-    console.log('[OrderDetail] Dispatch requested — order:', orderNumber, '/', orderBatch, '— current status:', resolveOrderStatus(order ?? {}));
     const confirmed = await showConfirm({
       title: 'Mark Order as Dispatched',
       message: `Are you sure you want to mark order ${orderNumber}/${orderBatch} as dispatched? This action cannot be undone.`,
@@ -209,44 +237,25 @@ export default function OrderDetailScreen() {
     setIsDispatching(true);
     setError(null);
     try {
-      console.log('[OrderDetail] Sending dispatch PATCH for order', orderNumber, '/', orderBatch);
       await dispatchOrder(orderNumber, orderBatch);
-      console.log('[OrderDetail] Dispatch succeeded — reloading order...');
       await reload();
     } catch (err) {
-      console.error('[OrderDetail] Dispatch failed for order', orderNumber, '/', orderBatch, ':', err);
       if (isMountedRef.current) {
         const status = typeof (err as { status?: unknown }).status === 'number'
-          ? (err as { status: number }).status
-          : undefined;
+          ? (err as { status: number }).status : undefined;
         const code = typeof (err as { code?: unknown }).code === 'string'
-          ? (err as { code: string }).code.toLowerCase()
-          : '';
-        const noDeliveryAddressError =
-          status === 400 &&
-          (
-            code.includes('delivery') ||
-            code.includes('address') ||
-            !order?.deliveryAddress
-          );
-        if (noDeliveryAddressError) {
-          showDanger(
-            'Customer has no delivery address',
-            'This order cannot be dispatched because no valid delivery address is selected. Add a customer delivery address, set it on the order, then try dispatch again.'
-          );
+          ? (err as { code: string }).code.toLowerCase() : '';
+        if (status === 400 && (code.includes('delivery') || code.includes('address') || !order?.deliveryAddress)) {
+          showDanger('Customer has no delivery address',
+            'This order cannot be dispatched because no valid delivery address is selected. Add a customer delivery address, set it on the order, then try dispatch again.');
           return;
         }
-        const errMessage = err instanceof Error ? err.message : 'Failed to dispatch order. Please try again.';
-        showDanger('Dispatch failed', errMessage);
+        showDanger('Dispatch failed', err instanceof Error ? err.message : 'Failed to dispatch order. Please try again.');
       }
     } finally {
       if (isMountedRef.current) setIsDispatching(false);
     }
   }, [canMutate, isMountedRef, order, orderBatch, orderNumber, reload, showConfirm, showDanger]);
-
-  const handleOpenTracking = useCallback(() => {
-    router.push(`/(app)/orders/${orderNumber}/${orderBatch}/tracking` as never);
-  }, [orderBatch, orderNumber, router]);
 
   const handleDownloadBreakdown = useCallback(async () => {
     try {
@@ -265,9 +274,7 @@ export default function OrderDetailScreen() {
         return;
       }
       const nativeResult = await downloadAndShareBreakdownPdfNative(
-        ENDPOINTS.orders.breakdown(orderNumber, orderBatch),
-        fileName
-      );
+        ENDPOINTS.orders.breakdown(orderNumber, orderBatch), fileName);
       if (nativeResult.shared) {
         showSuccess('Breakdown ready', 'Download complete and share sheet opened.');
       } else {
@@ -297,6 +304,7 @@ export default function OrderDetailScreen() {
     }
   }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
 
+  // ── Serial lookup ───────────────────────────────────────────────────────────
   const handleSerialLookup = useCallback(async () => {
     const serial = serialInput.trim();
     if (!serial) return;
@@ -313,6 +321,7 @@ export default function OrderDetailScreen() {
     }
   }, [serialInput]);
 
+  // ── Route-driven actions ────────────────────────────────────────────────────
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit || !order) return;
     setFormData(toOrderEditForm(order));
@@ -331,11 +340,12 @@ export default function OrderDetailScreen() {
     void handleDispatch();
   }, [handleDispatch, hasHandledRouteDispatch, isDispatching, isLoading, order, routeWantsDispatch]);
 
+  // ── Card-level actions (edit/save/cancel for OrderDetailCard) ───────────────
   const orderCardActions = useMemo<TopBarAction[]>(() => {
     if (!canMutate || !order) return [];
     if (isEditing) {
       return [
-        buildIconTopBarAction({ id: 'save-order', label: isSaving ? 'Saving...' : 'Save changes', accessibilityLabel: isSaving ? 'Saving order changes' : undefined, onPress: () => { void handleConfirmSave(); }, icon: SaveIcon, disabled: isSaving }),
+        buildIconTopBarAction({ id: 'save-order', label: isSaving ? 'Saving...' : 'Save changes', onPress: () => { void handleConfirmSave(); }, icon: SaveIcon, disabled: isSaving }),
         buildIconTopBarAction({ id: 'reset-order-form', label: 'Reset changes', onPress: () => { void handleConfirmReset(); }, icon: ResetIcon, disabled: isSaving || !order }),
         buildIconTopBarAction({ id: 'cancel-order-edit', label: 'Cancel edit', onPress: handleCancelOrderEdit, icon: CancelEditIcon, disabled: isSaving }),
       ];
@@ -345,120 +355,120 @@ export default function OrderDetailScreen() {
     ];
   }, [canMutate, handleCancelOrderEdit, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, order]);
 
+  // ── TopBar actions ──────────────────────────────────────────────────────────
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({ onPress: () => router.back(), label: 'Back to orders' });
-    return [
+    const actions: TopBarAction[] = [
       buildIconTopBarAction({
         id: 'refresh-order-details',
         label: 'Refresh order',
-        onPress: () => { void reload(); setItemsRefreshSignal((n) => n + 1); },
+        onPress: () => { void reload(); void loadTracking(); setItemsRefreshSignal((n) => n + 1); },
         icon: RefreshCw,
         disabled: isLoading,
       }),
-      buildIconTopBarAction({ id: 'view-order-tracking', label: 'View tracking', onPress: handleOpenTracking, icon: HistoryIcon, disabled: isLoading || !order }),
+    ];
+
+    // Dispatch action (moved from OrderDetailCard to TopBar as required)
+    if (canMutate && order) {
+      const dispatched = resolveOrderStatus(order) === 'Dispatched';
+      actions.push(buildIconTopBarAction({
+        id: 'dispatch-order',
+        label: dispatched ? 'Order dispatched' : (isDispatching ? 'Dispatching...' : 'Mark as dispatched'),
+        onPress: () => { void handleDispatch(); },
+        icon: Send,
+        disabled: isDispatching || dispatched || isLoading || !order,
+      }));
+    }
+
+    actions.push(
       buildIconTopBarAction({ id: 'download-order-breakdown', label: 'Download breakdown', onPress: () => { void handleDownloadBreakdown(); }, icon: DownloadIcon, disabled: isLoading || !order }),
       buildIconTopBarAction({ id: 'void-order', label: 'Void order', onPress: () => { void handleVoidOrder(); }, icon: ArchiveIcon, disabled: isLoading || !order || !canMutate }),
       backAction,
-    ];
-  }, [canMutate, handleDownloadBreakdown, handleOpenTracking, handleVoidOrder, isLoading, order, reload, router]);
+    );
+    return actions;
+  }, [canMutate, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, loadTracking, order, reload, router]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+  const isLoadingAny = isLoading || isLoadingTracking;
+  const displayError = error ?? trackingError;
+
   return (
     <ScreenContent gap={10}>
-      {isLoading ? <LoadingSpinner message="Loading order..." fullScreen /> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {!isLoading && !error ? (
+      {isLoadingAny ? <LoadingSpinner message="Loading order..." fullScreen /> : null}
+      {displayError ? <Text style={styles.error}>{displayError}</Text> : null}
+
+      {!isLoadingAny && !displayError ? (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.meta}>Order: {orderNumber} / Batch: {orderBatch}</Text>
-          <OrderDetailCard
+          {/* CARD 1: Order Details — read-only summary (tracking + order data) or editable form */}
+          {isEditing ? (
+            <OrderDetailCard
               order={order}
-              isEditing={isEditing}
+              isEditing={true}
               isSaving={isSaving}
               formData={formData}
               onFormChange={setFormData}
               cardActions={orderCardActions}
-              isDispatching={isDispatching}
-              canMutate={canMutate}
               deliveryAddressOptions={deliveryAddressOptions}
               isLoadingDeliveryAddresses={isLoadingDeliveryAddresses}
-              onDispatch={() => { void handleDispatch(); }}
             />
-            <OrderItemsSection
-              orderNumber={orderNumber}
-              orderBatch={orderBatch}
-              canMutate={canMutate}
-              refreshSignal={itemsRefreshSignal}
+          ) : (
+            <OrderTrackingSummaryCard
+              order={order}
+              tracking={tracking}
+              currentStatus={trackingStatus}
+              lastUpdateTimestamp={lastUpdateTimestamp}
+              updatesCount={updates.length}
+              itemsCount={trackingItems.length}
+              isEditing={false}
+              cardActions={orderCardActions}
             />
+          )}
 
-            {/* ── Serial Number Lookup ── */}
-            <ThemedCard style={styles.serialCard}>
-              <Text style={styles.sectionTitle}>Serial Number Lookup</Text>
-              <ThemedInput
-                  placeholder="Enter serial number..."
-                  value={serialInput}
-                  onChangeText={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
-                  onSubmitEditing={() => { void handleSerialLookup(); }}
-                  editable={!isSerialSearching}
-                  rightAccessory={
-                    <ThemedButton
-                      variant="icon"
-                      icon={<SearchIcon size={18} color={isSerialSearching || !serialInput.trim() ? theme.colors.textMuted : theme.colors.navTextStrong} />}
-                      onPress={() => { void handleSerialLookup(); }}
-                      disabled={isSerialSearching || !serialInput.trim()}
-                      tooltip="Look up serial number"
-                      style={{ backgroundColor: 'transparent', borderWidth: 0 }}
-                    />
-                  }
-                />
-              {serialError ? <Text style={styles.error}>{serialError}</Text> : null}
-              {serialResult ? (
-                <View style={styles.serialResult}>
-                  <Text style={styles.serialResultTitle}>
-                    #{serialResult.serialNumber as string}
-                  </Text>
-                  {serialResult.description ? (
-                    <Text style={styles.meta}>{serialResult.description as string}</Text>
-                  ) : null}
-                  {serialResult.modelCode ? (
-                    <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Model</Text>
-                      <Text style={styles.fieldValue}>{serialResult.modelCode as string}</Text>
-                    </View>
-                  ) : null}
-                  {(serialResult.patientInitial || serialResult.patientSurname) ? (
-                    <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Patient</Text>
-                      <Text style={styles.fieldValue}>{
-                        [serialResult.patientInitial, serialResult.patientSurname].filter(Boolean).join(' ')
-                      }</Text>
-                    </View>
-                  ) : null}
-                  {serialResult.category ? (
-                    <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Category</Text>
-                      <Text style={styles.fieldValue}>{serialResult.category as string}</Text>
-                    </View>
-                  ) : null}
-                  {serialResult.side ? (
-                    <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Side</Text>
-                      <Text style={styles.fieldValue}>{serialResult.side as string}</Text>
-                    </View>
-                  ) : null}
-                  {serialResult.orderNumber ? (
-                    <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>Order</Text>
-                      <Text style={styles.fieldValue}>
-                        {serialResult.orderNumber as string}/{serialResult.orderBatch as string}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
-            </ThemedCard>
-          </ScrollView>
-        ) : null}
+          {/* CARD 2: System Notifications (staff only) */}
+          <OrderSystemNotificationsCard
+            detectedProblems={detectedProblems}
+            isStaff={isStaff}
+          />
+
+          {/* CARD 3: Order Progress (timeline rail from tracking) */}
+          <ThemedCard style={styles.card} title="Order Progress">
+            <OrderProgressTimeline steps={journeySteps} />
+          </ThemedCard>
+
+          {/* CARD 4: Updates (filterable status timeline from tracking) */}
+          <OrderUpdatesCard
+            updates={filteredUpdates}
+            updateFilterOptions={updateFilterOptions}
+            selectedStatusFilter={selectedStatusFilter}
+            onFilterChange={(value) => { setSelectedStatusFilter(value); setIsFilterOpen(false); }}
+            isFilterOpen={isFilterOpen}
+            onToggleFilter={() => setIsFilterOpen((v) => !v)}
+            expandedUpdateId={expandedUpdateId}
+            onToggleExpand={(id) => setExpandedUpdateId(id)}
+            selectedFilterLabel={selectedFilterLabel}
+          />
+
+          {/* CARD 5: Unified Items — tracking-style status badges + full management */}
+          <OrderItemsCard
+            orderNumber={orderNumber}
+            orderBatch={orderBatch}
+            canMutate={canMutate}
+            refreshSignal={itemsRefreshSignal}
+          />
+
+          {/* Serial Number Lookup */}
+          <SerialLookupCard
+            serialInput={serialInput}
+            onSerialInputChange={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
+            onSearch={() => { void handleSerialLookup(); }}
+            isSearching={isSerialSearching}
+            serialResult={serialResult}
+            serialError={serialError}
+          />
+        </ScrollView>
+      ) : null}
     </ScreenContent>
   );
 }
@@ -468,7 +478,8 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     ...common,
     scrollContent: { gap: 10, paddingBottom: 8 },
-    serialCard: { gap: 8 },
+    card: { ...common.card, gap: 8 },
+    serialCard: { ...common.card, gap: 8 },
     serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
     serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
     field: { marginTop: theme.spacing.sm },
