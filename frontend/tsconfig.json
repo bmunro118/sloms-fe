@@ -8,6 +8,8 @@
       "@context/*": ["./src/context/*"],
       "@components/*": ["./src/components/*"],
       "@utils/*": ["./utils/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@features/*": ["./src/features/*"],
       "@assets/*": ["./assets/*"]
     }
   },

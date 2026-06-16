@@ -78,6 +78,8 @@ export function TooltipPressable({
     }
   }, []);
 
+  const hasTooltip = typeof tooltip === 'string' && tooltip.trim().length > 0;
+
   const animateTooltipIn = useCallback(() => {
     tooltipOpacity.stopAnimation();
     tooltipOpacity.setValue(0);
@@ -127,8 +129,6 @@ export function TooltipPressable({
   const { dismissedRef, checkCooldown } = useTooltipDismissalGate({
     onDismiss: hideTooltip,
   });
-
-  const hasTooltip = typeof tooltip === 'string' && tooltip.trim().length > 0;
 
   const showTooltip = useCallback(() => {
     if (dismissedRef.current) return;
