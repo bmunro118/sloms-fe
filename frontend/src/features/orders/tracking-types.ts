@@ -57,6 +57,13 @@ export type FilterOption = {
 
 export type StepState = 'complete' | 'current' | 'upcoming';
 
+export type JourneyStep = {
+  id: string;
+  status: string;
+  label: string;
+  state: StepState;
+};
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 export const ORDER_STEPS = ['Received', 'InProduction', 'Ready', 'Dispatched'] as const;

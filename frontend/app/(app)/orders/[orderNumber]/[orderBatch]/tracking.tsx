@@ -15,8 +15,10 @@ import { ThemedCard } from '@components/ui/ThemedCard';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { getOrderTracking } from '@src/features/orders/api';
+import { OrderProgressTimeline } from '@src/features/orders/components/OrderProgressTimeline';
 import {
   FilterOption,
+  JourneyStep,
   ORDER_STEPS,
   OrderTrackingPayload,
   StepState,
@@ -215,7 +217,7 @@ export default function OrderTrackingScreen() {
     return checks;
   }, [currentStatus, itemStatuses, lastUpdateTimestamp, updates]);
 
-  const journeySteps = useMemo(() => {
+  const journeySteps = useMemo<JourneyStep[]>(() => {
     const effectiveStatus = currentStatus !== 'Unknown' ? currentStatus : updates[0]?.status;
     const currentStepIndex = ORDER_STEPS.findIndex((step) => step === effectiveStatus);
 
@@ -280,12 +282,29 @@ export default function OrderTrackingScreen() {
           <>
             <ThemedCard style={styles.card} title="Tracking Summary">
               <View style={styles.summaryHeadRow}>
-                <View style={styles.statusBadge}>
+                <View style={[
+                  styles.statusBadge,
+                  currentStatus === 'Received' ? styles.statusBadgeReceived :
+                  currentStatus === 'InProduction' ? styles.statusBadgeInProgress :
+                  (currentStatus === 'Ready' || currentStatus === 'Dispatched') ? styles.statusBadgeComplete :
+                  null
+                ]}>
                   {(() => {
                     const StatusIcon = getStatusIcon(currentStatus);
-                    return <StatusIcon color={styles.badgeText.color} size={14} />;
+                    return <StatusIcon color={
+                      currentStatus === 'Received' ? styles.badgeTextReceived.color :
+                      currentStatus === 'InProduction' ? styles.badgeTextInProgress.color :
+                      (currentStatus === 'Ready' || currentStatus === 'Dispatched') ? styles.badgeTextComplete.color :
+                      styles.badgeText.color
+                    } size={14} />;
                   })()}
-                  <Text style={styles.badgeText}>{formatStatusLabel(currentStatus)}</Text>
+                  <Text style={[
+                    styles.badgeText,
+                    currentStatus === 'Received' ? styles.badgeTextReceived :
+                    currentStatus === 'InProduction' ? styles.badgeTextInProgress :
+                    (currentStatus === 'Ready' || currentStatus === 'Dispatched') ? styles.badgeTextComplete :
+                    null
+                  ]}>{formatStatusLabel(currentStatus)}</Text>
                 </View>
                 <Text style={styles.cardMeta}>#{tracking.orderNumber ?? orderNumber}/{tracking.orderBatch ?? orderBatch}</Text>
               </View>
@@ -301,40 +320,8 @@ export default function OrderTrackingScreen() {
               </Text>
             </ThemedCard>
 
-            <ThemedCard style={styles.card} title="Journey">
-              <View style={styles.stepRail}>
-                {journeySteps.map((step) => {
-                  const StepIcon = getStatusIcon(step.status);
-                  const isCurrent = step.state === 'current';
-                  const isComplete = step.state === 'complete';
-
-                  return (
-                    <View
-                      key={step.id}
-                      style={[
-                        styles.stepChip,
-                        isComplete ? styles.stepChipComplete : null,
-                        isCurrent ? styles.stepChipCurrent : null,
-                      ]}
-                    >
-                      <StepIcon
-                        size={14}
-                        color={
-                          isCurrent || isComplete ? styles.stepChipStateText.color : styles.stepChipText.color
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.stepChipText,
-                          isCurrent || isComplete ? styles.stepChipStateText : null,
-                        ]}
-                      >
-                        {step.label}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
+            <ThemedCard style={styles.card} title="Order Progress">
+              <OrderProgressTimeline steps={journeySteps} />
             </ThemedCard>
 
             <ThemedCard style={styles.card} title="Problems & Checks">
@@ -427,9 +414,26 @@ export default function OrderTrackingScreen() {
                         accessibilityLabel={`Toggle details for ${entry.statusLabel} update`}
                       >
                         <View style={styles.updateHeaderMain}>
-                          <View style={styles.updateStatusBadge}>
-                            <StatusIcon size={14} color={styles.badgeText.color} />
-                            <Text style={styles.badgeText}>{entry.statusLabel}</Text>
+                          <View style={[
+                            styles.updateStatusBadge,
+                            entry.status === 'Received' ? styles.statusBadgeReceived :
+                            entry.status === 'InProduction' ? styles.statusBadgeInProgress :
+                            (entry.status === 'Ready' || entry.status === 'Dispatched') ? styles.statusBadgeComplete :
+                            null
+                          ]}>
+                            <StatusIcon size={14} color={
+                              entry.status === 'Received' ? styles.badgeTextReceived.color :
+                              entry.status === 'InProduction' ? styles.badgeTextInProgress.color :
+                              (entry.status === 'Ready' || entry.status === 'Dispatched') ? styles.badgeTextComplete.color :
+                              styles.badgeText.color
+                            } />
+                            <Text style={[
+                              styles.badgeText,
+                              entry.status === 'Received' ? styles.badgeTextReceived :
+                              entry.status === 'InProduction' ? styles.badgeTextInProgress :
+                              (entry.status === 'Ready' || entry.status === 'Dispatched') ? styles.badgeTextComplete :
+                              null
+                            ]}>{entry.statusLabel}</Text>
                           </View>
                           <Text style={styles.updateTimestamp}>{entry.timestampLabel}</Text>
                         </View>
@@ -472,9 +476,26 @@ export default function OrderTrackingScreen() {
                     <View key={`${item.serialNumber ?? 'item'}-${index}`} style={styles.itemRow}>
                       <View style={styles.itemTitleRow}>
                         <Text style={styles.cardItem}>{item.serialNumber ?? 'Unknown serial'}</Text>
-                        <View style={styles.itemStatusBadge}>
-                          <ItemStatusIcon size={12} color={styles.itemBadgeText.color} />
-                          <Text style={styles.itemBadgeText}>{formatStatusLabel(item.status)}</Text>
+                        <View style={[
+                          styles.itemStatusBadge,
+                          item.status === 'Received' ? styles.statusBadgeReceived :
+                          item.status === 'InProduction' ? styles.statusBadgeInProgress :
+                          (item.status === 'Ready' || item.status === 'Dispatched') ? styles.statusBadgeComplete :
+                          null
+                        ]}>
+                          <ItemStatusIcon size={12} color={
+                            item.status === 'Received' ? styles.badgeTextReceived.color :
+                            item.status === 'InProduction' ? styles.badgeTextInProgress.color :
+                            (item.status === 'Ready' || item.status === 'Dispatched') ? styles.badgeTextComplete.color :
+                            styles.itemBadgeText.color
+                          } />
+                          <Text style={[
+                            styles.itemBadgeText,
+                            item.status === 'Received' ? styles.badgeTextReceived :
+                            item.status === 'InProduction' ? styles.badgeTextInProgress :
+                            (item.status === 'Ready' || item.status === 'Dispatched') ? styles.badgeTextComplete :
+                            null
+                          ]}>{formatStatusLabel(item.status)}</Text>
                         </View>
                       </View>
                       <Text style={styles.cardMeta}>{item.description ?? 'No description'}</Text>

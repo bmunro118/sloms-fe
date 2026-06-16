@@ -41,6 +41,34 @@ export function createStyles(theme: AppTheme) {
       fontWeight: '700',
       fontSize: 12,
     },
+    badgeTextReceived: {
+      color: theme.colors.statusReceivedText,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    badgeTextInProgress: {
+      color: theme.colors.statusInProgressText,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    badgeTextComplete: {
+      color: theme.colors.statusCompleteText,
+      fontWeight: '700',
+      fontSize: 12,
+    },
+    // Status-specific badge backgrounds (subtle)
+    statusBadgeReceived: {
+      backgroundColor: theme.colors.statusReceived,
+      borderColor: theme.colors.border,
+    },
+    statusBadgeInProgress: {
+      backgroundColor: theme.colors.statusInProgress,
+      borderColor: theme.colors.accent,
+    },
+    statusBadgeComplete: {
+      backgroundColor: theme.colors.statusComplete,
+      borderColor: theme.colors.accent,
+    },
     stepRail: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -57,9 +85,17 @@ export function createStyles(theme: AppTheme) {
       paddingHorizontal: 10,
       paddingVertical: 8,
     },
+    stepChipReceived: {
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.statusReceived,
+    },
+    stepChipInProgress: {
+      borderColor: theme.colors.accent,
+      backgroundColor: theme.colors.statusInProgress,
+    },
     stepChipComplete: {
       borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.accentMuted,
+      backgroundColor: theme.colors.statusComplete,
     },
     stepChipCurrent: {
       borderColor: theme.colors.borderStrong,
@@ -72,6 +108,57 @@ export function createStyles(theme: AppTheme) {
     },
     stepChipStateText: {
       color: theme.colors.textPrimary,
+    },
+    // Vertical timeline (mobile)
+    verticalTimeline: {
+      paddingLeft: tokens.spacing.lg,
+      position: 'relative' as const,
+    },
+    timelineNode: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: theme.colors.surface,
+      borderWidth: 2,
+      borderColor: theme.colors.border,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      zIndex: tokens.zIndex.content,
+    },
+    timelineNodeComplete: {
+      borderColor: theme.colors.accent,
+      backgroundColor: theme.colors.accentMuted,
+    },
+    timelineNodeCurrent: {
+      borderColor: theme.colors.borderStrong,
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    timelineConnector: {
+      position: 'absolute' as const,
+      left: 11,
+      top: 24,
+      bottom: 0,
+      width: 2,
+      backgroundColor: theme.colors.border,
+    },
+    timelineRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: tokens.spacing.md,
+      gap: tokens.spacing.md,
+    },
+    timelineRowLast: {
+      marginBottom: 0,
+    },
+    timelineLabel: {
+      flex: 1,
+      fontWeight: '600' as const,
+      fontSize: 14,
+    },
+    timelineLabelMuted: {
+      color: theme.colors.textMuted,
+      fontWeight: '600' as const,
+      fontSize: 14,
     },
     problemRow: {
       flexDirection: 'row',

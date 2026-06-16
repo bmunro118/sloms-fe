@@ -34,6 +34,12 @@ const lightColors: ThemeColors = {
   buttonSecondaryBorder: '#cbd5e1',
   buttonIconBackground: '#f1f5f9',
   buttonIconBorder: '#cbd5e1',
+  statusReceived: '#f1f5f9',
+  statusReceivedText: '#475569',
+  statusInProgress: '#dbeafe',
+  statusInProgressText: '#1e40af',
+  statusComplete: '#dcfce7',
+  statusCompleteText: '#166534',
 };
 
 const darkColors: ThemeColors = {
@@ -68,6 +74,12 @@ const darkColors: ThemeColors = {
   buttonSecondaryBorder: '#334155',
   buttonIconBackground: '#1e293b',
   buttonIconBorder: '#334155',
+  statusReceived: '#1e293b',
+  statusReceivedText: '#cbd5e1',
+  statusInProgress: '#1e3a8a',
+  statusInProgressText: '#93c5fd',
+  statusComplete: '#14532d',
+  statusCompleteText: '#86efac',
 };
 
 function createTheme(mode: 'light' | 'dark', colors: ThemeColors): AppTheme {

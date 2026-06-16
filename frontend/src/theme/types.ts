@@ -32,6 +32,12 @@ export interface ThemeColors {
   buttonSecondaryBorder: string;
   buttonIconBackground: string;
   buttonIconBorder: string;
+  statusReceived: string;
+  statusReceivedText: string;
+  statusInProgress: string;
+  statusInProgressText: string;
+  statusComplete: string;
+  statusCompleteText: string;
 }
 
 export interface ThemeSpacing {
