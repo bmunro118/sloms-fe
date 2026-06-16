@@ -140,5 +140,12 @@ export function createCommonScreenStyleDefinitions(theme: AppTheme) {
     contentActionButtonTextDisabled: {
       color: theme.colors.textMuted,
     },
+    twoColumnRow: {
+      flexDirection: 'row' as const,
+      gap: theme.spacing.md,
+    },
+    twoColumnField: {
+      flex: 1,
+    },
   };
 }

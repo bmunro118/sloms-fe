@@ -11,7 +11,7 @@ import {
   Square as MarkCheckoutIcon,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -21,9 +21,8 @@ import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppTheme } from '@theme/ThemeProvider';
-import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
-import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { createItemsStyles } from './orderItemsCardStyles';
 import {
   addOrderItem,
   checkoutOrderItem,
@@ -66,7 +65,9 @@ export function OrderItemsCard({
   refreshSignal,
 }: OrderItemsCardProps) {
   const theme = useAppTheme();
-  const styles = useThemedStyles(createStyles);
+  const { width } = useWindowDimensions();
+  const isCompact = width < 768;
+  const styles = useThemedStyles(createItemsStyles);
   const isMountedRef = useIsMountedRef();
   const { showConfirm, showDanger, showSuccess, showWarning } = useAppModal();
 
@@ -412,36 +413,73 @@ export function OrderItemsCard({
               </>
             ) : (
               /* ── READ MODE ── */
-              <>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Description</Text>
-                  <Text style={styles.fieldValue}>
-                    {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}
-                  </Text>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Patient</Text>
-                  <Text style={styles.fieldValue}>{formatPatient(item)}</Text>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Side</Text>
-                  <Text style={styles.fieldValue}>
-                    {typeof item.orientation === 'string' && item.orientation.trim()
-                      ? item.orientation
-                      : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}
-                  </Text>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Price</Text>
-                  <Text style={styles.fieldValue}>
-                    {typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A'}
-                  </Text>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Checkout</Text>
-                  <Text style={styles.fieldValue}>{checkedOut ? 'Checked out' : 'Not checked out'}</Text>
-                </View>
-              </>
+              isCompact ? (
+                <>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Description</Text>
+                    <Text style={styles.fieldValue}>
+                      {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}
+                    </Text>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Patient</Text>
+                    <Text style={styles.fieldValue}>{formatPatient(item)}</Text>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Side</Text>
+                    <Text style={styles.fieldValue}>
+                      {typeof item.orientation === 'string' && item.orientation.trim()
+                        ? item.orientation
+                        : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}
+                    </Text>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Price</Text>
+                    <Text style={styles.fieldValue}>
+                      {typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A'}
+                    </Text>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Checkout</Text>
+                    <Text style={styles.fieldValue}>{checkedOut ? 'Checked out' : 'Not checked out'}</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.twoColumnRow}>
+                    <View style={styles.twoColumnField}>
+                      <Text style={styles.fieldLabel}>Description</Text>
+                      <Text style={styles.fieldValue}>
+                        {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}
+                      </Text>
+                    </View>
+                    <View style={styles.twoColumnField}>
+                      <Text style={styles.fieldLabel}>Patient</Text>
+                      <Text style={styles.fieldValue}>{formatPatient(item)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.twoColumnRow}>
+                    <View style={styles.twoColumnField}>
+                      <Text style={styles.fieldLabel}>Side</Text>
+                      <Text style={styles.fieldValue}>
+                        {typeof item.orientation === 'string' && item.orientation.trim()
+                          ? item.orientation
+                          : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}
+                      </Text>
+                    </View>
+                    <View style={styles.twoColumnField}>
+                      <Text style={styles.fieldLabel}>Price</Text>
+                      <Text style={styles.fieldValue}>
+                        {typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>Checkout</Text>
+                    <Text style={styles.fieldValue}>{checkedOut ? 'Checked out' : 'Not checked out'}</Text>
+                  </View>
+                </>
+              )
             )}
           </ThemedCard>
         );
@@ -450,46 +488,3 @@ export function OrderItemsCard({
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
-
-function createStyles(theme: AppTheme) {
-  const common = createCommonScreenStyleDefinitions(theme);
-  return StyleSheet.create({
-    ...common,
-    card: { ...common.card, gap: 8 },
-    itemCard: { ...common.card, gap: 6, marginTop: 4 },
-    addSection: { gap: 8, marginBottom: 12 },
-    sectionLabel: { ...common.meta, marginTop: 4 },
-    addButton: { alignSelf: 'flex-end' },
-    itemHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-    statusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: theme.radii.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-    },
-    statusText: { fontWeight: '700', fontSize: 12 },
-    badgeActive: {
-      backgroundColor: theme.colors.statusReceived,
-      borderColor: theme.colors.border,
-    },
-    badgeComplete: {
-      backgroundColor: theme.colors.statusComplete,
-      borderColor: theme.colors.accent,
-    },
-    badgeVoided: {
-      backgroundColor: theme.colors.dangerSurface,
-      borderColor: theme.colors.danger,
-    },
-    badgeTextActive: { color: theme.colors.statusReceivedText },
-    badgeTextComplete: { color: theme.colors.statusCompleteText },
-    badgeTextVoided: { color: theme.colors.danger },
-    field: { marginTop: theme.spacing.sm },
-    fieldLabel: common.fieldLabel,
-    fieldValue: common.fieldValue,
-  });
-}

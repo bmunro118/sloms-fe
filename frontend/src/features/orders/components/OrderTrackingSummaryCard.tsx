@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -31,6 +32,8 @@ export function OrderTrackingSummaryCard({
   cardActions,
 }: OrderTrackingSummaryCardProps) {
   const { canMutate } = useAuth();
+  const { width } = useWindowDimensions();
+  const isCompact = useMemo(() => width < 768, [width]);
   const styles = useThemedStyles(createStyles);
 
   if (!order) return null;
@@ -65,41 +68,67 @@ export function OrderTrackingSummaryCard({
         </View>
       </View>
 
-      {/* Order identification */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Order</Text>
-        <Text style={styles.fieldValue}>#{tracking?.orderNumber ?? order.orderNumber}/{tracking?.orderBatch ?? order.orderBatch}</Text>
-      </View>
-
-      {/* Customer */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Customer</Text>
-        <Text style={styles.fieldValue}>{order.customerAccount ?? 'N/A'}</Text>
-      </View>
-
-      {/* Customer Ref */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Customer Ref</Text>
-        <Text style={styles.fieldValue}>{order.customerRef ?? tracking?.customerRef ?? 'N/A'}</Text>
-      </View>
-
-      {/* Order Contact */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Order Contact</Text>
-        <Text style={styles.fieldValue}>{order.orderContact ?? 'N/A'}</Text>
-      </View>
-
-      {/* Delivery Address */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Delivery Address</Text>
-        <Text style={styles.fieldValue}>{order.deliveryAddress ?? 'N/A'}</Text>
-      </View>
-
-      {/* Price Band */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Price Band</Text>
-        <Text style={styles.fieldValue}>{order.priceBand ?? 'N/A'}</Text>
-      </View>
+      {isCompact ? (
+        <>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Order</Text>
+            <Text style={styles.fieldValue}>#{tracking?.orderNumber ?? order.orderNumber}/{tracking?.orderBatch ?? order.orderBatch}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Customer</Text>
+            <Text style={styles.fieldValue}>{order.customerAccount ?? 'N/A'}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Customer Ref</Text>
+            <Text style={styles.fieldValue}>{order.customerRef ?? tracking?.customerRef ?? 'N/A'}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Order Contact</Text>
+            <Text style={styles.fieldValue}>{order.orderContact ?? 'N/A'}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Delivery Address</Text>
+            <Text style={styles.fieldValue}>{order.deliveryAddress ?? 'N/A'}</Text>
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Price Band</Text>
+            <Text style={styles.fieldValue}>{order.priceBand ?? 'N/A'}</Text>
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.twoColumnRow}>
+            <View style={styles.twoColumnField}>
+              <Text style={styles.fieldLabel}>Order</Text>
+              <Text style={styles.fieldValue}>#{tracking?.orderNumber ?? order.orderNumber}/{tracking?.orderBatch ?? order.orderBatch}</Text>
+            </View>
+            <View style={styles.twoColumnField}>
+              <Text style={styles.fieldLabel}>Customer</Text>
+              <Text style={styles.fieldValue}>{order.customerAccount ?? 'N/A'}</Text>
+            </View>
+          </View>
+          <View style={styles.twoColumnRow}>
+            <View style={styles.twoColumnField}>
+              <Text style={styles.fieldLabel}>Customer Ref</Text>
+              <Text style={styles.fieldValue}>{order.customerRef ?? tracking?.customerRef ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.twoColumnField}>
+              <Text style={styles.fieldLabel}>Order Contact</Text>
+              <Text style={styles.fieldValue}>{order.orderContact ?? 'N/A'}</Text>
+            </View>
+          </View>
+          <View style={styles.twoColumnRow}>
+            <View style={styles.twoColumnField}>
+              <Text style={styles.fieldLabel}>Delivery Address</Text>
+              <Text style={styles.fieldValue}>{order.deliveryAddress ?? 'N/A'}</Text>
+            </View>
+            <View style={styles.twoColumnField}>
+              <Text style={styles.fieldLabel}>Price Band</Text>
+              <Text style={styles.fieldValue}>{order.priceBand ?? 'N/A'}</Text>
+            </View>
+          </View>
+        </>
+      )}
 
       {/* Timestamp and counts */}
       <Text style={styles.cardMeta}>Last changed: {formatTrackingDate(lastUpdateTimestamp)}</Text>
