@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Text, View, useWindowDimensions } from 'react-native';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
@@ -39,6 +39,8 @@ type Props = {
 };
 
 export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) {
+  const { width } = useWindowDimensions();
+  const isCompact = useMemo(() => width < 768, [width]);
   const styles = useThemedStyles(createStyles);
   const { showConfirm, showSuccess, showDanger } = useAppModal();
 
@@ -216,7 +218,7 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
                   styles={styles}
                 />
               ) : (
-                <AddressDetail address={address} styles={styles} />
+                <AddressDetail address={address} styles={styles} compact={isCompact} />
               )
             ) : null}
 

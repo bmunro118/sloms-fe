@@ -15,6 +15,7 @@ import { Text, View, useWindowDimensions } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { FieldPair } from '@components/ui/FieldPair';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
@@ -413,53 +414,28 @@ export function OrderItemsCard({
               </>
             ) : (
               /* ── READ MODE ── */
-              isCompact ? (
-                <>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Description</Text>
-                    <Text style={styles.fieldValue}>
-                      {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}
-                    </Text>
-                  </View>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Patient</Text>
-                    <Text style={styles.fieldValue}>{formatPatient(item)}</Text>
-                  </View>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Side</Text>
-                    <Text style={styles.fieldValue}>
-                      {typeof item.orientation === 'string' && item.orientation.trim()
-                        ? item.orientation
-                        : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}
-                    </Text>
-                  </View>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Price</Text>
-                    <Text style={styles.fieldValue}>
-                      {typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A'}
-                    </Text>
-                  </View>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Checkout</Text>
-                    <Text style={styles.fieldValue}>{checkedOut ? 'Checked out' : 'Not checked out'}</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.twoColumnRow}>
-                    <View style={styles.twoColumnField}>
+              <>
+                <FieldPair
+                  compact={isCompact}
+                  left={
+                    <View style={styles.field}>
                       <Text style={styles.fieldLabel}>Description</Text>
                       <Text style={styles.fieldValue}>
                         {typeof item.description === 'string' && item.description.trim() ? item.description : 'N/A'}
                       </Text>
                     </View>
-                    <View style={styles.twoColumnField}>
+                  }
+                  right={
+                    <View style={styles.field}>
                       <Text style={styles.fieldLabel}>Patient</Text>
                       <Text style={styles.fieldValue}>{formatPatient(item)}</Text>
                     </View>
-                  </View>
-                  <View style={styles.twoColumnRow}>
-                    <View style={styles.twoColumnField}>
+                  }
+                />
+                <FieldPair
+                  compact={isCompact}
+                  left={
+                    <View style={styles.field}>
                       <Text style={styles.fieldLabel}>Side</Text>
                       <Text style={styles.fieldValue}>
                         {typeof item.orientation === 'string' && item.orientation.trim()
@@ -467,19 +443,21 @@ export function OrderItemsCard({
                           : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}
                       </Text>
                     </View>
-                    <View style={styles.twoColumnField}>
+                  }
+                  right={
+                    <View style={styles.field}>
                       <Text style={styles.fieldLabel}>Price</Text>
                       <Text style={styles.fieldValue}>
                         {typeof item.price === 'number' ? `$${item.price.toFixed(2)}` : 'N/A'}
                       </Text>
                     </View>
-                  </View>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Checkout</Text>
-                    <Text style={styles.fieldValue}>{checkedOut ? 'Checked out' : 'Not checked out'}</Text>
-                  </View>
-                </>
-              )
+                  }
+                />
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Checkout</Text>
+                  <Text style={styles.fieldValue}>{checkedOut ? 'Checked out' : 'Not checked out'}</Text>
+                </View>
+              </>
             )}
           </ThemedCard>
         );
