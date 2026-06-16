@@ -1,10 +1,10 @@
-import { Plus as AddIcon } from 'lucide-react-native';
+import { Plus as AddIcon, Search as SearchIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
-import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -21,10 +21,6 @@ import {
 } from '../api';
 import { isItemCheckedOut, toItemEditForm } from '../types';
 import { OrderItemCard, OrderItemCardData, OrderItemEditValues } from './OrderItemCard';
-
-function isHovered(state: PressableStateCallbackType) {
-  return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
-}
 
 interface OrderItemsSectionProps {
   orderNumber: number;
@@ -226,6 +222,16 @@ export function OrderItemsSection({
             value={newItemSerialNumber}
             onChangeText={setNewItemSerialNumber}
             editable={!isMutatingItems}
+            onSubmitEditing={() => { void handleAddItem(); }}
+            rightAccessory={
+              <ThemedButton
+                variant="icon"
+                icon={<SearchIcon size={18} color={isMutatingItems ? theme.colors.textMuted : theme.colors.navTextStrong} />}
+                onPress={() => { void handleAddItem(); }}
+                disabled={isMutatingItems}
+                tooltip="Look up serial number"
+              />
+            }
           />
           <ThemedInput
             placeholder="Description (optional)"
@@ -233,25 +239,15 @@ export function OrderItemsSection({
             onChangeText={setNewItemDescription}
             editable={!isMutatingItems}
           />
-          <TooltipPressable
-            tooltip={isMutatingItems ? 'Adding item' : 'Add item to order'}
-            accessibilityRole="button"
-            accessibilityLabel={isMutatingItems ? 'Adding item' : 'Add item to order'}
-            disabled={isMutatingItems}
+          <ThemedButton
+            variant="outline"
+            label={isMutatingItems ? 'Adding...' : 'Add item'}
+            icon={<AddIcon size={16} color={isMutatingItems ? theme.colors.textMuted : theme.colors.navTextStrong} />}
             onPress={() => { void handleAddItem(); }}
-            style={(state) => [
-              styles.contentActionButton,
-              styles.itemAddButton,
-              isMutatingItems ? styles.contentActionButtonDisabled : null,
-              isHovered(state) && !isMutatingItems ? styles.contentActionButtonHover : null,
-              state.pressed && !isMutatingItems ? styles.contentActionButtonPressed : null,
-            ]}
-          >
-            <AddIcon size={18} color={isMutatingItems ? theme.colors.textMuted : theme.colors.navTextStrong} />
-            <Text style={[styles.contentActionButtonText, isMutatingItems ? styles.contentActionButtonTextDisabled : null]}>
-              {isMutatingItems ? 'Adding...' : 'Add item'}
-            </Text>
-          </TooltipPressable>
+            disabled={isMutatingItems}
+            style={styles.itemAddButton}
+            tooltip={isMutatingItems ? 'Adding item' : 'Add item to order'}
+          />
         </View>
       ) : null}
 
@@ -285,9 +281,10 @@ export function OrderItemsSection({
 function createStyles(theme: AppTheme) {
   const common = createCommonScreenStyleDefinitions(theme);
   return StyleSheet.create({
-    ...common,
-    card: { ...common.card, gap: 6 },
+    error: common.error,
+    muted: common.muted,
     label: { ...common.meta, marginTop: 8 },
+    card: { ...common.card, gap: 6 },
     itemCreateContainer: { gap: 8, marginTop: 8, marginBottom: 10 },
     itemAddButton: { alignSelf: 'flex-end' },
   });

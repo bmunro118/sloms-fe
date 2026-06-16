@@ -30,6 +30,8 @@ export interface ThemeColors {
   buttonSecondaryBackground: string;
   buttonSecondaryText: string;
   buttonSecondaryBorder: string;
+  buttonIconBackground: string;
+  buttonIconBorder: string;
 }
 
 export interface ThemeSpacing {

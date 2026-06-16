@@ -1,49 +1,98 @@
-import { StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
+import { ReactNode } from 'react';
+import { StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { TooltipPressable } from './TooltipPressable';
 
 interface ThemedButtonProps {
-  label: string;
+  /** Optional label text. Not rendered when variant="icon". */
+  label?: string;
   onPress: () => void;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary';
+  /** 'primary' → solid, 'secondary' → outline (backward-compatible aliases). */
+  variant?: 'primary' | 'secondary' | 'solid' | 'outline' | 'icon';
+  /** Icon element. Required for icon variant; optional supplement for others. */
+  icon?: ReactNode;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   tooltip?: string;
 }
 
+/**
+ * Centralised themed button component with four conceptual variants:
+ * - `solid` / `primary` — accent fill, white text (modals, destructive confirmations)
+ * - `outline` / `secondary` — bordered with muted background (form actions, cancel, edit)
+ * - `icon` — 44×44px circular icon-only button (row-level actions, search in input)
+ */
 export function ThemedButton({
   label,
   onPress,
   disabled = false,
   variant = 'primary',
+  icon,
   style,
   textStyle,
   tooltip,
 }: ThemedButtonProps) {
   const { colors, radii } = useAppTheme();
-  const isSecondary = variant === 'secondary';
+
+  // Normalise backward-compatible aliases
+  const resolvedVariant =
+    variant === 'primary'
+      ? 'solid'
+      : variant === 'secondary'
+        ? 'outline'
+        : variant;
+
+  const containerStyle: StyleProp<ViewStyle> = [
+    styles.base,
+    resolvedVariant === 'solid' && {
+      borderRadius: radii.md,
+      backgroundColor: colors.accent,
+      borderColor: 'transparent',
+      borderWidth: 0,
+    },
+    resolvedVariant === 'outline' && {
+      borderRadius: radii.md,
+      backgroundColor: colors.buttonSecondaryBackground,
+      borderColor: colors.buttonSecondaryBorder,
+      borderWidth: 1,
+    },
+    resolvedVariant === 'icon' && {
+      borderRadius: radii.xl,
+      backgroundColor: colors.buttonIconBackground,
+      borderColor: colors.buttonIconBorder,
+      borderWidth: 1,
+      width: 44,
+      height: 44,
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+    },
+    disabled ? styles.disabled : null,
+    style,
+  ];
+
+  const textColor =
+    resolvedVariant === 'solid'
+      ? colors.accentText
+      : colors.buttonSecondaryText;
 
   return (
     <TooltipPressable
-      tooltip={tooltip ?? label}
+      tooltip={tooltip ?? label ?? ''}
       onPress={onPress}
       disabled={disabled}
-      style={[
-        styles.base,
-        {
-          borderRadius: radii.md,
-          backgroundColor: isSecondary ? colors.buttonSecondaryBackground : colors.accent,
-          borderColor: isSecondary ? colors.buttonSecondaryBorder : 'transparent',
-          borderWidth: isSecondary ? 1 : 0,
-        },
-        disabled ? styles.disabled : null,
-        style,
-      ]}
+      style={containerStyle}
     >
-      <Text style={[styles.text, { color: isSecondary ? colors.buttonSecondaryText : colors.accentText }, textStyle]}>
-        {label}
-      </Text>
+      {icon ? (
+        <View style={resolvedVariant !== 'icon' ? styles.iconGap : undefined}>
+          {icon}
+        </View>
+      ) : null}
+      {label && resolvedVariant !== 'icon' ? (
+        <Text style={[styles.text, { color: textColor }, textStyle]}>
+          {label}
+        </Text>
+      ) : null}
     </TooltipPressable>
   );
 }
@@ -52,11 +101,16 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   text: {
     fontWeight: '700',
+    fontSize: 15,
+  },
+  iconGap: {
+    marginRight: 6,
   },
   disabled: {
     opacity: 0.65,

@@ -88,6 +88,21 @@ export function createCommonScreenStyleDefinitions(theme: AppTheme) {
       color: theme.colors.buttonSecondaryText,
       fontWeight: '700' as const,
     },
+    outlineButton: {
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.colors.buttonSecondaryBorder,
+      backgroundColor: theme.colors.buttonSecondaryBackground,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    outlineButtonText: {
+      color: theme.colors.buttonSecondaryText,
+      fontWeight: '700' as const,
+      fontSize: 15,
+    },
     disabled: {
       opacity: 0.65,
     },

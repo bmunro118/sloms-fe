@@ -32,6 +32,8 @@ const lightColors: ThemeColors = {
   buttonSecondaryBackground: '#ffffff',
   buttonSecondaryText: '#334155',
   buttonSecondaryBorder: '#cbd5e1',
+  buttonIconBackground: '#f1f5f9',
+  buttonIconBorder: '#cbd5e1',
 };
 
 const darkColors: ThemeColors = {
@@ -64,6 +66,8 @@ const darkColors: ThemeColors = {
   buttonSecondaryBackground: '#0f172a',
   buttonSecondaryText: '#e2e8f0',
   buttonSecondaryBorder: '#334155',
+  buttonIconBackground: '#1e293b',
+  buttonIconBorder: '#334155',
 };
 
 function createTheme(mode: 'light' | 'dark', colors: ThemeColors): AppTheme {
