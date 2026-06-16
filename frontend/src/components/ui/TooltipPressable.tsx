@@ -1,7 +1,8 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Modal,
+  Platform,
   Pressable,
   PressableProps,
   StyleProp,
@@ -14,6 +15,16 @@ import {
 } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { zIndex as zIndexScale } from '@theme/tokens';
+
+let createPortal: any = null;
+if (Platform.OS === 'web') {
+  try {
+    const ReactDOM = require('react-dom');
+    createPortal = ReactDOM.createPortal;
+  } catch {
+    // react-dom unavailable — tooltips degrade to inline rendering
+  }
+}
 
 const TOOLTIP_SHOW_DELAY_MS = 160;
 const TOOLTIP_FADE_IN_MS = 120;
@@ -53,6 +64,7 @@ export function TooltipPressable({
     width: number;
     height: number;
   } | null>(null);
+  const [tooltipWidth, setTooltipWidth] = useState(0);
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const showDelayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks whether the most recent intent was to hide; prevents a stale fade-out
@@ -128,6 +140,7 @@ export function TooltipPressable({
       if (hideRequestedRef.current && isMountedRef.current) {
         setTooltipMounted(false);
         setTooltipAnchorPos(null);
+        setTooltipWidth(0);
       }
     });
   }, [clearShowDelay, tooltipOpacity]);
@@ -216,15 +229,76 @@ export function TooltipPressable({
       ? tooltipAnchorPos.y - TOOLTIP_ESTIMATED_HEIGHT - 8
       : tooltipAnchorPos.y + tooltipAnchorPos.height + 8;
 
-    // Center over the button, clamped to viewport edges
+    // Center over the button using actual measured width, clamped to viewport edges
     const centerX = tooltipAnchorPos.x + tooltipAnchorPos.width / 2;
+    const halfW = tooltipWidth > 0 ? tooltipWidth / 2 : 110;
     const left = Math.max(
       TOOLTIP_EDGE_PADDING,
-      Math.min(centerX - 110, windowWidth - 220 - TOOLTIP_EDGE_PADDING)
+      Math.min(centerX - halfW, windowWidth - (tooltipWidth > 0 ? tooltipWidth : 220) - TOOLTIP_EDGE_PADDING)
     );
 
     return { top, left, flipAbove };
   })();
+
+  const tooltipAnimatedView = useMemo(
+    () => (
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          Platform.OS === 'web' ? styles.tooltipPortal : styles.tooltipModal,
+          {
+            top: tooltipPlacement.top,
+            left: tooltipPlacement.left,
+            opacity: tooltipOpacity,
+            transform: [
+              {
+                translateY: tooltipOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: tooltipPlacement.flipAbove ? [3, 0] : [-3, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View
+          onLayout={(e) => setTooltipWidth(e.nativeEvent.layout.width)}
+          style={[
+            styles.tooltip,
+            {
+              borderRadius: radii.sm,
+              backgroundColor: colors.textPrimary,
+            },
+            tooltipContainerStyle,
+          ]}
+        >
+          <Text
+            style={[
+              styles.tooltipText,
+              { color: colors.surface },
+              tooltipTextStyle,
+            ]}
+          >
+            {tooltip}
+          </Text>
+        </View>
+      </Animated.View>
+    ),
+    // Only recompute when positioning / appearance inputs change.
+    [
+      tooltipPlacement.top,
+      tooltipPlacement.left,
+      tooltipPlacement.flipAbove,
+      tooltipOpacity,
+      tooltipWidth,
+      radii.sm,
+      colors.textPrimary,
+      colors.surface,
+      tooltipContainerStyle,
+      tooltipTextStyle,
+      tooltip,
+    ]
+  );
 
   return (
     <>
@@ -243,56 +317,23 @@ export function TooltipPressable({
         {children}
       </Pressable>
 
-      {isTooltipMounted && hasTooltip ? (
-        <Modal
-          animationType="none"
-          transparent
-          visible
-          statusBarTranslucent
-          onRequestClose={() => {}}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.tooltipModal,
-              {
-                top: tooltipPlacement.top,
-                left: tooltipPlacement.left,
-                opacity: tooltipOpacity,
-                transform: [
-                  {
-                    translateY: tooltipOpacity.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: tooltipPlacement.flipAbove ? [3, 0] : [-3, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.tooltip,
-                {
-                  borderRadius: radii.sm,
-                  backgroundColor: colors.textPrimary,
-                },
-                tooltipContainerStyle,
-              ]}
+      {isTooltipMounted && hasTooltip
+        ? Platform.OS === 'web'
+          ? createPortal
+            ? createPortal(tooltipAnimatedView, document.body)
+            : tooltipAnimatedView
+          : (
+            <Modal
+              animationType="none"
+              transparent
+              visible
+              statusBarTranslucent
+              onRequestClose={() => {}}
             >
-              <Text
-                style={[
-                  styles.tooltipText,
-                  { color: colors.surface },
-                  tooltipTextStyle,
-                ]}
-              >
-                {tooltip}
-              </Text>
-            </View>
-          </Animated.View>
-        </Modal>
-      ) : null}
+              {tooltipAnimatedView}
+            </Modal>
+          )
+        : null}
     </>
   );
 }
@@ -308,6 +349,13 @@ const styles = StyleSheet.create({
     elevation: zIndexScale.tooltip,
     maxWidth: 220,
     pointerEvents: 'none',
+  } as any,
+  tooltipPortal: {
+    position: 'fixed' as const,
+    zIndex: zIndexScale.tooltip,
+    elevation: zIndexScale.tooltip,
+    maxWidth: 220,
+    pointerEvents: 'none' as const,
   } as any,
   tooltip: {
     maxWidth: 220,

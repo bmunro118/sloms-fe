@@ -33,3 +33,5 @@ export const zIndex: ThemeZIndex = {
   topBarSurface: 300,
   tooltip: 9999,
 };
+
+export const tokens = { spacing, radii, layout, zIndex };
