@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppErrorBoundary } from '@components/error/AppErrorBoundary';
 import { AppModalProvider } from '@context/AppModalContext';
 import { AuthProvider, useAuth } from '@context/AuthContext';
+import { TooltipDismissalProvider } from '@context/TooltipDismissalContext';
 import { AppShellProvider, isRouteMatch } from '@src/features/app-shell';
 import { AppThemeProvider } from '@theme/ThemeProvider';
 
@@ -31,7 +32,7 @@ function AuthGuard() {
   // Stable string key derived from segments — prevents effect re-fires
   // when useSegments() returns a new array reference with same values.
   const segmentKey = useMemo(() => segments.join('/'), [segments]);
-  const onPromptPasswordChangeRoute = isRouteMatch(pathname, '/prompt-password-change');
+  const onPromptPasswordChangeRoute = pathname === '/prompt-password-change';
 
   useEffect(() => {
     if (isLoading) return;
@@ -72,17 +73,19 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AppThemeProvider>
-        <AppErrorBoundary>
-          <AppShellProvider>
-            <AppModalProvider>
+      <TooltipDismissalProvider>
+        <AppThemeProvider>
+          <AppErrorBoundary>
+            <AppShellProvider>
               <AuthProvider>
-                <AuthGuard />
+                <AppModalProvider>
+                  <AuthGuard />
+                </AppModalProvider>
               </AuthProvider>
-            </AppModalProvider>
-          </AppShellProvider>
-        </AppErrorBoundary>
-      </AppThemeProvider>
+            </AppShellProvider>
+          </AppErrorBoundary>
+        </AppThemeProvider>
+      </TooltipDismissalProvider>
     </SafeAreaProvider>
   );
 }

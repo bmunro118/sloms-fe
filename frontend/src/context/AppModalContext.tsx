@@ -1,6 +1,7 @@
 import React, { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppModal } from '@components/ui/AppModal';
 import { registerAppModalController } from '@src/features/modal/modal-controller';
+import { useTooltipDismissal } from '@context/TooltipDismissalContext';
 import {
   AppModalConfirmOptions,
   AppModalRequest,
@@ -49,17 +50,21 @@ function buildResolvedRequest(request: AppModalRequest): AppModalResolvedRequest
 
 export function AppModalProvider({ children }: PropsWithChildren) {
   const [activeModal, setActiveModal] = useState<AppModalResolvedRequest | null>(null);
+  const { dismissAllTooltips, setModalOpen } = useTooltipDismissal();
 
   const closeModal = useCallback(() => {
+    setModalOpen(false);
     setActiveModal((current) => {
       current?.onDismiss?.();
       return null;
     });
-  }, []);
+  }, [setModalOpen]);
 
   const openModal = useCallback((request: AppModalRequest) => {
+    dismissAllTooltips();
+    setModalOpen(true);
     setActiveModal(buildResolvedRequest(request));
-  }, []);
+  }, [dismissAllTooltips, setModalOpen]);
 
   const showInfo = useCallback((title: string, message?: string) => {
     openModal({ type: 'info', title, message });

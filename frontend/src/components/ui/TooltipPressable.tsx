@@ -13,6 +13,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useTooltipDismissalGate } from '@hooks/useTooltipDismissalGate';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { zIndex as zIndexScale } from '@theme/tokens';
 
@@ -67,13 +68,8 @@ export function TooltipPressable({
   const [tooltipWidth, setTooltipWidth] = useState(0);
   const tooltipOpacity = useRef(new Animated.Value(0)).current;
   const showDelayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Tracks whether the most recent intent was to hide; prevents a stale fade-out
-  // callback from unmounting the tooltip after a subsequent show has started.
   const hideRequestedRef = useRef(false);
-  // Prevents state updates after the component has unmounted.
   const isMountedRef = useRef(true);
-
-  const hasTooltip = typeof tooltip === 'string' && tooltip.trim().length > 0;
 
   const clearShowDelay = useCallback(() => {
     if (showDelayTimeoutRef.current) {
@@ -93,10 +89,7 @@ export function TooltipPressable({
   }, [tooltipOpacity]);
 
   const mountAndAnimateTooltip = useCallback(() => {
-    if (!hasTooltip) {
-      return;
-    }
-    // Cancel any in-flight hide so its callback does not unmount the tooltip.
+    if (!hasTooltip) return;
     hideRequestedRef.current = false;
 
     if (pressableRef.current) {
@@ -114,18 +107,6 @@ export function TooltipPressable({
     }
   }, [animateTooltipIn, hasTooltip]);
 
-  const showTooltip = useCallback(() => {
-    clearShowDelay();
-    showDelayTimeoutRef.current = setTimeout(() => {
-      mountAndAnimateTooltip();
-    }, TOOLTIP_SHOW_DELAY_MS);
-  }, [clearShowDelay, mountAndAnimateTooltip]);
-
-  const showTooltipImmediately = useCallback(() => {
-    clearShowDelay();
-    mountAndAnimateTooltip();
-  }, [clearShowDelay, mountAndAnimateTooltip]);
-
   const hideTooltip = useCallback(() => {
     clearShowDelay();
     hideRequestedRef.current = true;
@@ -135,8 +116,6 @@ export function TooltipPressable({
       duration: TOOLTIP_FADE_OUT_MS,
       useNativeDriver: true,
     }).start(() => {
-      // Always unmount once the fade-out settles, whether it ran to completion
-      // or was stopped early — as long as a show hasn't superseded this hide.
       if (hideRequestedRef.current && isMountedRef.current) {
         setTooltipMounted(false);
         setTooltipAnchorPos(null);
@@ -145,12 +124,32 @@ export function TooltipPressable({
     });
   }, [clearShowDelay, tooltipOpacity]);
 
+  const { dismissedRef, checkCooldown } = useTooltipDismissalGate({
+    onDismiss: hideTooltip,
+  });
+
+  const hasTooltip = typeof tooltip === 'string' && tooltip.trim().length > 0;
+
+  const showTooltip = useCallback(() => {
+    if (dismissedRef.current) return;
+    if (!checkCooldown()) return;
+
+    clearShowDelay();
+    showDelayTimeoutRef.current = setTimeout(() => {
+      mountAndAnimateTooltip();
+    }, TOOLTIP_SHOW_DELAY_MS);
+  }, [clearShowDelay, mountAndAnimateTooltip, dismissedRef, checkCooldown]);
+
+  const showTooltipImmediately = useCallback(() => {
+    clearShowDelay();
+    mountAndAnimateTooltip();
+  }, [clearShowDelay, mountAndAnimateTooltip]);
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       clearShowDelay();
-      // Stop animation and force opacity to 0 so no visual remnant persists.
       tooltipOpacity.stopAnimation();
       tooltipOpacity.setValue(0);
     };
@@ -172,19 +171,18 @@ export function TooltipPressable({
     [hideTooltip, onHoverOut]
   );
 
-  const handleFocus = useCallback(() => {
+  const handleFocus = useCallback((event: any) => {
     showTooltip();
-    onFocus?.();
+    onFocus?.(event);
   }, [onFocus, showTooltip]);
 
-  const handleBlur = useCallback(() => {
+  const handleBlur = useCallback((event: any) => {
     hideTooltip();
-    onBlur?.();
+    onBlur?.(event);
   }, [hideTooltip, onBlur]);
 
   const handlePress: NonNullable<PressableProps['onPress']> = useCallback(
     (event) => {
-      // A press should always dismiss the tooltip immediately.
       hideTooltip();
       onPress?.(event);
     },
@@ -208,28 +206,25 @@ export function TooltipPressable({
   );
 
   const resolvePressableStyle: NonNullable<PressableProps['style']> = useCallback(
-    (state) => {
+    (state: any) => {
       const incomingStyle = typeof style === 'function' ? style(state) : style;
       return [incomingStyle, styles.pressableBase];
     },
     [style]
   );
 
-  // Compute tooltip screen position with edge-avoidance flip logic
-  const tooltipPlacement = (() => {
+  const tooltipPlacement = useMemo(() => {
     if (!tooltipAnchorPos) {
       return { top: 0, left: 0, flipAbove: false };
     }
 
     const spaceBelow = windowHeight - (tooltipAnchorPos.y + tooltipAnchorPos.height);
-    const flipAbove =
-      spaceBelow < TOOLTIP_ESTIMATED_HEIGHT + TOOLTIP_EDGE_PADDING + 8;
+    const flipAbove = spaceBelow < TOOLTIP_ESTIMATED_HEIGHT + TOOLTIP_EDGE_PADDING + 8;
 
     const top = flipAbove
       ? tooltipAnchorPos.y - TOOLTIP_ESTIMATED_HEIGHT - 8
       : tooltipAnchorPos.y + tooltipAnchorPos.height + 8;
 
-    // Center over the button using actual measured width, clamped to viewport edges
     const centerX = tooltipAnchorPos.x + tooltipAnchorPos.width / 2;
     const halfW = tooltipWidth > 0 ? tooltipWidth / 2 : 110;
     const left = Math.max(
@@ -238,7 +233,7 @@ export function TooltipPressable({
     );
 
     return { top, left, flipAbove };
-  })();
+  }, [tooltipAnchorPos, windowHeight, windowWidth, tooltipWidth]);
 
   const tooltipAnimatedView = useMemo(
     () => (
@@ -284,7 +279,6 @@ export function TooltipPressable({
         </View>
       </Animated.View>
     ),
-    // Only recompute when positioning / appearance inputs change.
     [
       tooltipPlacement.top,
       tooltipPlacement.left,
