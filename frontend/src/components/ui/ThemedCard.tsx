@@ -86,7 +86,7 @@ export function ThemedCard({
   if (onPress) {
     return (
       <TooltipPressable
-        tooltip={tooltip ?? 'Open card action'}
+        tooltip={tooltip}
         disabled={disabled}
         onPress={onPress}
         style={[sharedStyle, disabled ? styles.disabled : null]}
