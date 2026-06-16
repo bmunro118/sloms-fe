@@ -9,6 +9,7 @@ import {
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useAuth } from '@context/AuthContext';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
@@ -35,6 +36,7 @@ import { useThemedStyles } from '@theme/useThemedStyles';
 export default function OrderTrackingScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string }>();
   const router = useRouter();
+  const { isStaff } = useAuth();
   const styles = useThemedStyles(createStyles);
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
@@ -306,7 +308,10 @@ export default function OrderTrackingScreen() {
                     null
                   ]}>{formatStatusLabel(currentStatus)}</Text>
                 </View>
-                <Text style={styles.cardMeta}>#{tracking.orderNumber ?? orderNumber}/{tracking.orderBatch ?? orderBatch}</Text>
+              </View>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Order</Text>
+                <Text style={styles.fieldValue}>#{tracking.orderNumber ?? orderNumber}/{tracking.orderBatch ?? orderBatch}</Text>
               </View>
               {tracking.customerRef ? (
                 <View style={styles.field}>
@@ -324,25 +329,27 @@ export default function OrderTrackingScreen() {
               <OrderProgressTimeline steps={journeySteps} />
             </ThemedCard>
 
-            <ThemedCard style={styles.card} title="Problems & Checks">
-              {detectedProblems.map((problem) => {
-                const isWarn = problem.level === 'warn';
-                const ProblemIcon = isWarn ? AlertTriangle : CheckCircle2;
+            {isStaff ? (
+              <ThemedCard style={styles.card} title="System Notifications">
+                {detectedProblems.map((problem) => {
+                  const isWarn = problem.level === 'warn';
+                  const ProblemIcon = isWarn ? AlertTriangle : CheckCircle2;
 
-                return (
-                  <View
-                    key={problem.id}
-                    style={[styles.problemRow, isWarn ? styles.problemRowWarn : styles.problemRowOk]}
-                  >
-                    <ProblemIcon
-                      size={16}
-                      color={isWarn ? styles.problemWarnText.color : styles.problemOkText.color}
-                    />
-                    <Text style={isWarn ? styles.problemWarnText : styles.problemOkText}>{problem.message}</Text>
-                  </View>
-                );
-              })}
-            </ThemedCard>
+                  return (
+                    <View
+                      key={problem.id}
+                      style={[styles.problemRow, isWarn ? styles.problemRowWarn : styles.problemRowOk]}
+                    >
+                      <ProblemIcon
+                        size={16}
+                        color={isWarn ? styles.problemWarnText.color : styles.problemOkText.color}
+                      />
+                      <Text style={isWarn ? styles.problemWarnText : styles.problemOkText}>{problem.message}</Text>
+                    </View>
+                  );
+                })}
+              </ThemedCard>
+            ) : null}
 
             <ThemedCard style={styles.card} title="Updates">
               <View style={styles.updatesToolbar}>

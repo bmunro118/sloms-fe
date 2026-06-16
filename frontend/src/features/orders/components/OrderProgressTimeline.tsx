@@ -76,7 +76,7 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
                 />
               )}
               {!isFirst && (
-                <View style={[styles.connectorDotVertical, prevComplete ? styles.connectorDotActiveLight : null]} />
+                <View style={[styles.connectorDotVertical, prevComplete ? styles.connectorDotActive : null]} />
               )}
 
               {/* Step badge */}
@@ -149,7 +149,7 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
                 />
               )}
               {!isFirst && (
-                <View style={[styles.connectorDot, prevComplete ? styles.connectorDotActiveLight : null]} />
+                <View style={[styles.connectorDot, prevComplete ? styles.connectorDotActive : null]} />
               )}
 
               {/* Step badge */}

@@ -239,10 +239,6 @@ export function createStyles(theme: AppTheme) {
     connectorDotActive: {
       backgroundColor: theme.colors.accentMuted,
     },
-    connectorDotActiveLight: {
-      backgroundColor: theme.colors.accentMuted,
-      opacity: 0.35,
-    },
     // Connector chevron styles
     connectorChevron: {
       color: theme.colors.border,
