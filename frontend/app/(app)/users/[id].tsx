@@ -7,6 +7,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -255,7 +256,7 @@ export default function UserDetailScreen() {
   if (isLoading) {
     return (
       <ScreenContent>
-        <Text style={styles.muted}>Loading user...</Text>
+        <LoadingSpinner message="Loading user..." fullScreen />
       </ScreenContent>
     );
   }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { listCustomers, CustomerRecord } from '@src/features/customers/api';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -51,7 +52,7 @@ export function LinkedCustomerField({ isEditing, linkedCustomerId, onChange }: P
       <Text style={styles.label}>Linked Customer Account</Text>
       {isEditing ? (
         isLoading ? (
-          <ActivityIndicator size="small" style={styles.loader} />
+          <LoadingSpinner size="small" />
         ) : (
           <ThemedSelect<number>
             value={linkedCustomerId ?? null}

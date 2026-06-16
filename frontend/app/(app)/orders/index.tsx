@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -255,11 +256,11 @@ export default function OrdersListScreen() {
           placeholder="Search orders..."
         />
 
-        {isLoading ? <Text style={styles.muted}>Loading orders...</Text> : null}
+        {isLoading ? <LoadingSpinner message="Loading orders..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
 
-        {orders.map((order) => (
+        {!isLoading && !error && orders.map((order) => (
           <OrderCard
             key={`${order.orderNumber}-${order.orderBatch}`}
             order={order}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -167,7 +168,7 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     return (
       <ThemedCard style={styles.card}>
         <Text style={styles.sectionTitle}>Delivery Addresses</Text>
-        <Text style={styles.muted}>Loading addresses...</Text>
+        <LoadingSpinner message="Loading addresses..." />
       </ThemedCard>
     );
   }

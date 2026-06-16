@@ -13,6 +13,7 @@ import {
   Search as SearchIcon,
 } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -363,98 +364,98 @@ export default function OrderDetailScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.meta}>Order: {orderNumber} / Batch: {orderBatch}</Text>
-        {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {!isLoading ? (
+      {isLoading ? <LoadingSpinner message="Loading order..." fullScreen /> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {!isLoading && !error ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.meta}>Order: {orderNumber} / Batch: {orderBatch}</Text>
           <OrderDetailCard
-            order={order}
-            isEditing={isEditing}
-            isSaving={isSaving}
-            formData={formData}
-            onFormChange={setFormData}
-            cardActions={orderCardActions}
-            isDispatching={isDispatching}
-            canMutate={canMutate}
-            deliveryAddressOptions={deliveryAddressOptions}
-            isLoadingDeliveryAddresses={isLoadingDeliveryAddresses}
-            onDispatch={() => { void handleDispatch(); }}
-          />
-        ) : null}
-        <OrderItemsSection
-          orderNumber={orderNumber}
-          orderBatch={orderBatch}
-          canMutate={canMutate}
-          refreshSignal={itemsRefreshSignal}
-        />
+              order={order}
+              isEditing={isEditing}
+              isSaving={isSaving}
+              formData={formData}
+              onFormChange={setFormData}
+              cardActions={orderCardActions}
+              isDispatching={isDispatching}
+              canMutate={canMutate}
+              deliveryAddressOptions={deliveryAddressOptions}
+              isLoadingDeliveryAddresses={isLoadingDeliveryAddresses}
+              onDispatch={() => { void handleDispatch(); }}
+            />
+            <OrderItemsSection
+              orderNumber={orderNumber}
+              orderBatch={orderBatch}
+              canMutate={canMutate}
+              refreshSignal={itemsRefreshSignal}
+            />
 
-        {/* ── Serial Number Lookup ── */}
-        <ThemedCard style={styles.serialCard}>
-          <Text style={styles.sectionTitle}>Serial Number Lookup</Text>
-          <View style={styles.serialRow}>
-            <ThemedInput
-              placeholder="Enter serial number..."
-              value={serialInput}
-              onChangeText={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
-              onSubmitEditing={() => { void handleSerialLookup(); }}
-              style={styles.serialInput}
-              editable={!isSerialSearching}
-            />
-            <ThemedButton
-              label={isSerialSearching ? '...' : 'Search'}
-              onPress={() => { void handleSerialLookup(); }}
-              disabled={isSerialSearching || !serialInput.trim()}
-              style={styles.serialBtn}
-            />
-          </View>
-          {serialError ? <Text style={styles.error}>{serialError}</Text> : null}
-          {serialResult ? (
-            <View style={styles.serialResult}>
-              <Text style={styles.serialResultTitle}>
-                #{serialResult.serialNumber as string}
-              </Text>
-              {serialResult.description ? (
-                <Text style={styles.meta}>{serialResult.description as string}</Text>
-              ) : null}
-              {serialResult.modelCode ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Model</Text>
-                  <Text style={styles.fieldValue}>{serialResult.modelCode as string}</Text>
-                </View>
-              ) : null}
-              {(serialResult.patientInitial || serialResult.patientSurname) ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Patient</Text>
-                  <Text style={styles.fieldValue}>{
-                    [serialResult.patientInitial, serialResult.patientSurname].filter(Boolean).join(' ')
-                  }</Text>
-                </View>
-              ) : null}
-              {serialResult.category ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Category</Text>
-                  <Text style={styles.fieldValue}>{serialResult.category as string}</Text>
-                </View>
-              ) : null}
-              {serialResult.side ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Side</Text>
-                  <Text style={styles.fieldValue}>{serialResult.side as string}</Text>
-                </View>
-              ) : null}
-              {serialResult.orderNumber ? (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Order</Text>
-                  <Text style={styles.fieldValue}>
-                    {serialResult.orderNumber as string}/{serialResult.orderBatch as string}
+            {/* ── Serial Number Lookup ── */}
+            <ThemedCard style={styles.serialCard}>
+              <Text style={styles.sectionTitle}>Serial Number Lookup</Text>
+              <View style={styles.serialRow}>
+                <ThemedInput
+                  placeholder="Enter serial number..."
+                  value={serialInput}
+                  onChangeText={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
+                  onSubmitEditing={() => { void handleSerialLookup(); }}
+                  style={styles.serialInput}
+                  editable={!isSerialSearching}
+                />
+                <ThemedButton
+                  label={isSerialSearching ? '...' : 'Search'}
+                  onPress={() => { void handleSerialLookup(); }}
+                  disabled={isSerialSearching || !serialInput.trim()}
+                  style={styles.serialBtn}
+                />
+              </View>
+              {serialError ? <Text style={styles.error}>{serialError}</Text> : null}
+              {serialResult ? (
+                <View style={styles.serialResult}>
+                  <Text style={styles.serialResultTitle}>
+                    #{serialResult.serialNumber as string}
                   </Text>
+                  {serialResult.description ? (
+                    <Text style={styles.meta}>{serialResult.description as string}</Text>
+                  ) : null}
+                  {serialResult.modelCode ? (
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Model</Text>
+                      <Text style={styles.fieldValue}>{serialResult.modelCode as string}</Text>
+                    </View>
+                  ) : null}
+                  {(serialResult.patientInitial || serialResult.patientSurname) ? (
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Patient</Text>
+                      <Text style={styles.fieldValue}>{
+                        [serialResult.patientInitial, serialResult.patientSurname].filter(Boolean).join(' ')
+                      }</Text>
+                    </View>
+                  ) : null}
+                  {serialResult.category ? (
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Category</Text>
+                      <Text style={styles.fieldValue}>{serialResult.category as string}</Text>
+                    </View>
+                  ) : null}
+                  {serialResult.side ? (
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Side</Text>
+                      <Text style={styles.fieldValue}>{serialResult.side as string}</Text>
+                    </View>
+                  ) : null}
+                  {serialResult.orderNumber ? (
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>Order</Text>
+                      <Text style={styles.fieldValue}>
+                        {serialResult.orderNumber as string}/{serialResult.orderBatch as string}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : null}
-            </View>
-          ) : null}
-        </ThemedCard>
-      </ScrollView>
+            </ThemedCard>
+          </ScrollView>
+        ) : null}
     </ScreenContent>
   );
 }

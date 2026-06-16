@@ -3,6 +3,7 @@ import { Pencil as EditIcon, PencilOff as CancelEditIcon, RefreshCw as RefreshIc
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -266,7 +267,7 @@ export default function SettingsScreen() {
           </View>
 
           {isLoadingGlobal ? (
-            <Text style={styles.muted}>Loading settings…</Text>
+            <LoadingSpinner message="Loading settings..." />
           ) : globalError ? (
             <Text style={styles.error}>{globalError}</Text>
           ) : globalSettings.length === 0 ? (
@@ -310,7 +311,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionSubtitle}>Personal settings that apply only to your account.</Text>
 
           {isLoadingUser ? (
-            <Text style={styles.muted}>Loading preferences…</Text>
+            <LoadingSpinner message="Loading preferences..." />
           ) : userError ? (
             <Text style={styles.error}>{userError}</Text>
           ) : userSettings.length === 0 ? (

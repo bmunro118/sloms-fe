@@ -1,8 +1,9 @@
 import { Redirect, useRouter } from 'expo-router';
 import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
@@ -262,7 +263,7 @@ export default function CreateOrderScreen() {
         editable={!isSaving}
       />
       {isLoadingCustomers ? (
-        <ActivityIndicator size="small" style={styles.loader} />
+        <LoadingSpinner size="small" message="Loading customers..." />
       ) : (
         <ThemedSelect<number>
           value={customerAccount}
@@ -297,7 +298,7 @@ export default function CreateOrderScreen() {
         editable={!isSaving}
       />
       {isLoadingDeliveryAddresses ? (
-        <ActivityIndicator size="small" style={styles.loader} />
+        <LoadingSpinner size="small" message="Loading delivery addresses..." />
       ) : (
         <ThemedSelect<number>
           value={deliveryAddress}

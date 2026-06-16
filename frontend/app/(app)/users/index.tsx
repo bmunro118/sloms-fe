@@ -6,6 +6,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
@@ -192,10 +193,10 @@ export default function UsersScreen() {
           placeholder="Search users..."
         />
 
-        {isLoading ? <Text style={styles.muted}>Loading users...</Text> : null}
+        {isLoading ? <LoadingSpinner message="Loading users..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!isLoading && !error && filteredUsers.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}
-        {filteredUsers.map((entry) => (
+        {!isLoading && !error && filteredUsers.map((entry) => (
           <UserCard
             key={entry.renderKey}
             user={entry}

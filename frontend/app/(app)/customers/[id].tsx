@@ -3,6 +3,7 @@ import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -224,10 +225,10 @@ export default function CustomerDetailScreen() {
 
   return (
     <ScreenContent>
-      {isLoading ? <Text style={styles.muted}>Loading customer...</Text> : null}
+      {isLoading ? <LoadingSpinner message="Loading customer..." fullScreen /> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {!isLoading && customer ? (
+      {customer ? (
         <ScrollView showsVerticalScrollIndicator={false}>
           <CustomerInfoCard
             customer={customer}

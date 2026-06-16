@@ -2,6 +2,7 @@ import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
@@ -92,10 +93,10 @@ export default function DocumentsScreen() {
           showFilterButton={false}
         />
 
-        {isLoading ? <Text style={styles.muted}>Loading documents...</Text> : null}
+        {isLoading ? <LoadingSpinner message="Loading documents..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!isLoading && !error && documents.length === 0 ? <Text style={styles.muted}>No documents found.</Text> : null}
-        {documents.map((doc) => (
+        {!isLoading && !error && documents.map((doc) => (
           <ThemedCard key={doc.id} style={styles.card}>
             <Text style={styles.cardTitle}>{doc.type ?? 'Document'} #{doc.id}</Text>
             <View style={styles.field}>

@@ -6,6 +6,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -214,7 +215,7 @@ export default function VatRatesScreen() {
         <ThemedCard style={styles.card}>
           <Text style={styles.sectionTitle}>Current Rate</Text>
           {isLoadingCurrent ? (
-            <Text style={styles.muted}>Loading…</Text>
+            <LoadingSpinner message="Loading current rate..." />
           ) : currentError ? (
             <Text style={styles.error}>{currentError}</Text>
           ) : currentRate ? (
@@ -290,7 +291,7 @@ export default function VatRatesScreen() {
         <ThemedCard style={styles.card}>
           <Text style={styles.sectionTitle}>Rate History</Text>
           {isLoadingList ? (
-            <Text style={styles.muted}>Loading…</Text>
+            <LoadingSpinner message="Loading rate history..." />
           ) : listError ? (
             <Text style={styles.error}>{listError}</Text>
           ) : rates.length === 0 ? (

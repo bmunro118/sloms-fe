@@ -5,6 +5,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
@@ -163,10 +164,10 @@ export default function CustomersListScreen() {
           placeholder="Search customers..."
         />
 
-        {isLoading ? <Text style={styles.muted}>Loading customers...</Text> : null}
+        {isLoading ? <LoadingSpinner message="Loading customers..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {!isLoading && !error && filteredCustomers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
-        {filteredCustomers.map((customer) => (
+        {!isLoading && !error && filteredCustomers.map((customer) => (
           <CustomerCard
             key={customer.renderKey}
             customer={customer}

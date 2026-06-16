@@ -8,6 +8,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { FilterModal } from '@components/ui/FilterModal';
@@ -450,7 +451,7 @@ export default function PriceListScreen() {
               hasActiveFilters={hasActiveFilters}
               placeholder="Search price list..."
             />
-            {isItemsLoading ? <Text style={styles.muted}>Loading price list...</Text> : null}
+            {isItemsLoading ? <LoadingSpinner message="Loading price list..." fullScreen /> : null}
             {itemsError ? <Text style={styles.error}>{itemsError}</Text> : null}
             {!isItemsLoading && !itemsError && filteredItems.length === 0 ? (
               <Text style={styles.muted}>No price list items found.</Text>
@@ -475,7 +476,7 @@ export default function PriceListScreen() {
 
                   {isExpanded ? (
                     isItemDetailLoading ? (
-                      <Text style={styles.muted}>Loading detail...</Text>
+                      <LoadingSpinner message="Loading detail..." />
                     ) : (
                       <>
                         {itemDetail?.description ? (
@@ -520,7 +521,7 @@ export default function PriceListScreen() {
         {/* ── Revisions tab ── */}
         {activeTab === 'revisions' ? (
           <>
-            {isRevisionsLoading ? <Text style={styles.muted}>Loading revisions...</Text> : null}
+            {isRevisionsLoading ? <LoadingSpinner message="Loading revisions..." fullScreen /> : null}
             {revisionsError ? <Text style={styles.error}>{revisionsError}</Text> : null}
             {!isRevisionsLoading && !revisionsError && revisions.length === 0 ? (
               <Text style={styles.muted}>No revisions found.</Text>
@@ -557,7 +558,7 @@ export default function PriceListScreen() {
 
                   {isExpanded ? (
                     isRevisionDetailLoading && revisionDetail === null ? (
-                      <Text style={styles.muted}>Loading revision detail...</Text>
+                      <LoadingSpinner message="Loading revision detail..." />
                     ) : (
                       <>
                         {rev.notes ? <Text style={styles.cardMeta}>{rev.notes}</Text> : null}
@@ -599,7 +600,7 @@ export default function PriceListScreen() {
         {/* ── List Types tab ── */}
         {activeTab === 'types' ? (
           <>
-            {isTypesLoading ? <Text style={styles.muted}>Loading list types...</Text> : null}
+            {isTypesLoading ? <LoadingSpinner message="Loading list types..." fullScreen /> : null}
             {typesError ? <Text style={styles.error}>{typesError}</Text> : null}
             {!isTypesLoading && !typesError && listTypes.length === 0 ? (
               <Text style={styles.muted}>No list types found.</Text>

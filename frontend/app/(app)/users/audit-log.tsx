@@ -3,6 +3,7 @@ import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { useAuth } from '@context/AuthContext';
@@ -127,56 +128,56 @@ export default function UserAuditLogScreen() {
 
   return (
     <ScreenContent>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      {isLoading ? <LoadingSpinner message="Loading audit log..." fullScreen /> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {/* ── Event type filter chips ── */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {EVENT_TYPES.map((event) => (
-            <ThemedButton
-              key={event}
-              label={EVENT_LABELS[event]}
-              onPress={() => handleEventFilterToggle(event)}
-              variant={activeEventFilter === event ? 'primary' : 'secondary'}
-              style={styles.filterChip}
-              tooltip={`Filter: ${EVENT_LABELS[event]}`}
-            />
-          ))}
+      {!isLoading && !error ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* ── Event type filter chips ── */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {EVENT_TYPES.map((event) => (
+              <ThemedButton
+                key={event}
+                label={EVENT_LABELS[event]}
+                onPress={() => handleEventFilterToggle(event)}
+                variant={activeEventFilter === event ? 'primary' : 'secondary'}
+                style={styles.filterChip}
+                tooltip={`Filter: ${EVENT_LABELS[event]}`}
+              />
+            ))}
+          </ScrollView>
+
+          {/* ── Results ── */}
+          {entries.length === 0 ? (
+            <Text style={styles.muted}>No audit log entries found.</Text>
+          ) : (
+            entries.map((entry) => (
+              <AuditLogCard key={entry.id} entry={entry} />
+            ))
+          )}
+
+          {/* ── Pagination ── */}
+          {totalPages > 1 ? (
+            <View style={styles.pagination}>
+              <ThemedButton
+                label="← Prev"
+                onPress={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                variant="secondary"
+                style={styles.pageButton}
+              />
+              <Text style={styles.pageLabel}>Page {page} of {totalPages}</Text>
+              <ThemedButton
+                label="Next →"
+                onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                variant="secondary"
+                style={styles.pageButton}
+              />
+            </View>
+          ) : null}
         </ScrollView>
-
-        {/* ── Results ── */}
-        {isLoading ? (
-          <Text style={styles.muted}>Loading audit log...</Text>
-        ) : error ? (
-          <Text style={styles.error}>{error}</Text>
-        ) : entries.length === 0 ? (
-          <Text style={styles.muted}>No audit log entries found.</Text>
-        ) : (
-          entries.map((entry) => (
-            <AuditLogCard key={entry.id} entry={entry} />
-          ))
-        )}
-
-        {/* ── Pagination ── */}
-        {!isLoading && !error && totalPages > 1 ? (
-          <View style={styles.pagination}>
-            <ThemedButton
-              label="← Prev"
-              onPress={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              variant="secondary"
-              style={styles.pageButton}
-            />
-            <Text style={styles.pageLabel}>Page {page} of {totalPages}</Text>
-            <ThemedButton
-              label="Next →"
-              onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              variant="secondary"
-              style={styles.pageButton}
-            />
-          </View>
-        ) : null}
-      </ScrollView>
+      ) : null}
     </ScreenContent>
   );
 }

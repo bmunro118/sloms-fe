@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -271,11 +272,11 @@ export default function OrderTrackingScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {isLoading ? <Text style={styles.muted}>Loading tracking...</Text> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+      {isLoading ? <LoadingSpinner message="Loading tracking..." fullScreen /> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {!isLoading && !error && tracking ? (
+      {!isLoading && !error && tracking ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <>
             <ThemedCard style={styles.card} title="Tracking Summary">
               <View style={styles.summaryHeadRow}>
@@ -493,8 +494,8 @@ export default function OrderTrackingScreen() {
               <Text style={styles.rawPayload}>{JSON.stringify(tracking, null, 2)}</Text>
             </ThemedCard>
           </>
-        ) : null}
-      </ScrollView>
+        </ScrollView>
+      ) : null}
     </ScreenContent>
   );
 }

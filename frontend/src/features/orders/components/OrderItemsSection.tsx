@@ -2,6 +2,7 @@ import { Plus as AddIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -214,7 +215,7 @@ export function OrderItemsSection({
 
   return (
     <ThemedCard style={styles.card} title="Ordered Items">
-      {isLoadingItems ? <Text style={styles.muted}>Loading order items...</Text> : null}
+      {isLoadingItems ? <LoadingSpinner message="Loading order items..." /> : null}
       {itemError ? <Text style={styles.error}>{itemError}</Text> : null}
 
       {canMutate ? (
