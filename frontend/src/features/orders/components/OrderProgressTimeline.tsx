@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
+import { ChevronRight, ChevronDown } from 'lucide-react-native';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createStyles } from '../tracking-styles';
 import { getStatusIcon, type JourneyStep } from '../tracking-types';
@@ -48,44 +49,69 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
 
   if (isMobile) {
     return (
-      <View style={styles.verticalTimeline}>
-        {/* Vertical connector line spanning all nodes */}
-        <View style={styles.timelineConnector} />
+      <View style={styles.progressContainerVertical}>
         {steps.map((step, index) => {
           const StepIcon = getStatusIcon(step.status);
           const isCurrent = step.state === 'current';
           const isComplete = step.state === 'complete';
+          const isUpcoming = step.state === 'upcoming';
+          const chipStyle = getStepChipStyle(step.status, styles);
+          const textColor = getStepTextColor(step.status, styles);
+          const isFirst = index === 0;
           const isLast = index === steps.length - 1;
+          const prevComplete = index > 0 && steps[index - 1].state === 'complete';
 
           return (
-            <View
-              key={step.id}
-              style={[styles.timelineRow, isLast ? styles.timelineRowLast : null]}
-            >
+            <View key={step.id} style={styles.progressColumnItem}>
+              {/* Chevron + dot connector (except first item): dot → CHEVRON ↓ → dot */}
+              {!isFirst && (
+                <ChevronDown
+                  size={16}
+                  strokeWidth={4}
+                  color={
+                    prevComplete
+                      ? styles.connectorChevronActive.color
+                      : styles.connectorChevronVertical.color
+                  }
+                />
+              )}
+              {!isFirst && (
+                <View style={[styles.connectorDotVertical, prevComplete ? styles.connectorDotActiveLight : null]} />
+              )}
+
+              {/* Step badge */}
               <View
                 style={[
-                  styles.timelineNode,
-                  isComplete ? styles.timelineNodeComplete : null,
-                  isCurrent ? styles.timelineNodeCurrent : null,
+                  styles.stepBadge,
+                  isComplete && chipStyle ? chipStyle : null,
+                  isCurrent ? styles.stepBadgeCurrent : null,
+                  isUpcoming ? styles.stepBadgeUpcoming : null,
                 ]}
               >
                 <StepIcon
-                  size={12}
+                  size={14}
                   color={
                     isCurrent || isComplete
-                      ? styles.stepChipStateText.color
-                      : styles.stepChipText.color
+                      ? (textColor ?? styles.stepBadgeStateText.color)
+                      : styles.stepBadgeUpcomingText.color
                   }
                 />
+                <Text
+                  style={[
+                    styles.stepBadgeText,
+                    (isCurrent || isComplete) ? styles.stepBadgeStateText : null,
+                    isComplete && textColor ? { color: textColor } : null,
+                    isUpcoming ? styles.stepBadgeUpcomingText : null,
+                  ]}
+                >
+                  {step.label}
+                </Text>
               </View>
-              <Text
-                style={[
-                  styles.timelineLabel,
-                  step.state === 'upcoming' ? styles.timelineLabelMuted : null,
-                ]}
-              >
-                {step.label}
-              </Text>
+
+              {/* Bottom dot (except last item) */}
+              {!isLast && (
+                <View style={[styles.connectorDotVertical, isComplete ? styles.connectorDotActive : null]} />
+              )}
             </View>
           );
         })}
@@ -93,45 +119,76 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
     );
   }
 
-  // Desktop: horizontal step rail
+  // Desktop: horizontal centered dot-chevron-dot layout
   return (
-    <View style={styles.stepRail}>
-      {steps.map((step) => {
-        const StepIcon = getStatusIcon(step.status);
-        const isCurrent = step.state === 'current';
-        const isComplete = step.state === 'complete';
-        const chipStyle = getStepChipStyle(step.status, styles);
-        const textColor = getStepTextColor(step.status, styles);
+    <View style={styles.progressContainer}>
+      <View style={styles.progressRow}>
+        {steps.map((step, index) => {
+          const StepIcon = getStatusIcon(step.status);
+          const isCurrent = step.state === 'current';
+          const isComplete = step.state === 'complete';
+          const isUpcoming = step.state === 'upcoming';
+          const chipStyle = getStepChipStyle(step.status, styles);
+          const textColor = getStepTextColor(step.status, styles);
+          const isFirst = index === 0;
+          const isLast = index === steps.length - 1;
+          const prevComplete = index > 0 && steps[index - 1].state === 'complete';
 
-        return (
-          <View
-            key={step.id}
-            style={[
-              styles.stepChip,
-              isComplete && chipStyle ? chipStyle : null,
-              isCurrent ? styles.stepChipCurrent : null,
-            ]}
-          >
-            <StepIcon
-              size={14}
-              color={
-                isCurrent || isComplete
-                  ? (textColor ?? styles.stepChipStateText.color)
-                  : styles.stepChipText.color
-              }
-            />
-            <Text
-              style={[
-                styles.stepChipText,
-                (isCurrent || isComplete) ? styles.stepChipStateText : null,
-                isComplete && textColor ? { color: textColor } : null,
-              ]}
-            >
-              {step.label}
-            </Text>
-          </View>
-        );
-      })}
+          return (
+            <View key={step.id} style={styles.progressItem}>
+              {/* Chevron + dot connector (except first item): dot → CHEVRON → → dot */}
+              {!isFirst && (
+                <ChevronRight
+                  size={16}
+                  strokeWidth={4}
+                  color={
+                    prevComplete
+                      ? styles.connectorChevronActive.color
+                      : styles.connectorChevron.color
+                  }
+                />
+              )}
+              {!isFirst && (
+                <View style={[styles.connectorDot, prevComplete ? styles.connectorDotActiveLight : null]} />
+              )}
+
+              {/* Step badge */}
+              <View
+                style={[
+                  styles.stepBadge,
+                  isComplete && chipStyle ? chipStyle : null,
+                  isCurrent ? styles.stepBadgeCurrent : null,
+                  isUpcoming ? styles.stepBadgeUpcoming : null,
+                ]}
+              >
+                <StepIcon
+                  size={14}
+                  color={
+                    isCurrent || isComplete
+                      ? (textColor ?? styles.stepBadgeStateText.color)
+                      : styles.stepBadgeUpcomingText.color
+                  }
+                />
+                <Text
+                  style={[
+                    styles.stepBadgeText,
+                    (isCurrent || isComplete) ? styles.stepBadgeStateText : null,
+                    isComplete && textColor ? { color: textColor } : null,
+                    isUpcoming ? styles.stepBadgeUpcomingText : null,
+                  ]}
+                >
+                  {step.label}
+                </Text>
+              </View>
+
+              {/* Trailing dot (except last item) */}
+              {!isLast && (
+                <View style={[styles.connectorDot, isComplete ? styles.connectorDotActive : null]} />
+              )}
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }

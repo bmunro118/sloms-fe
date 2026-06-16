@@ -160,6 +160,101 @@ export function createStyles(theme: AppTheme) {
       fontWeight: '600' as const,
       fontSize: 14,
     },
+    // ── Centered Progress Timeline (dot-chevron-dot design) ─────────────────────
+    progressContainer: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: tokens.spacing.md,
+    },
+    progressContainerVertical: {
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingHorizontal: tokens.spacing.md,
+      gap: tokens.spacing.xs,
+    },
+    progressRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      flexWrap: 'wrap' as const,
+      gap: tokens.spacing.sm,
+    },
+    progressItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: tokens.spacing.xs,
+    },
+    progressColumnItem: {
+      flexDirection: 'column' as const,
+      alignItems: 'center' as const,
+      gap: tokens.spacing.xs,
+    },
+    // Step badge styles (refined from stepChip)
+    stepBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.colors.surfaceMuted,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    stepBadgeCurrent: {
+      borderColor: theme.colors.borderStrong,
+      backgroundColor: theme.colors.navItemHoverBackground,
+    },
+    stepBadgeUpcoming: {
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surfaceMuted,
+      opacity: 0.7,
+    },
+    stepBadgeText: {
+      color: theme.colors.textSecondary,
+      fontWeight: '600' as const,
+      fontSize: 12,
+    },
+    stepBadgeStateText: {
+      color: theme.colors.textPrimary,
+    },
+    stepBadgeUpcomingText: {
+      color: theme.colors.textMuted,
+    },
+    // Connector dot styles
+    connectorDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.colors.border,
+      marginHorizontal: 2,
+    },
+    connectorDotVertical: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.colors.border,
+      marginVertical: 2,
+    },
+    connectorDotActive: {
+      backgroundColor: theme.colors.accentMuted,
+    },
+    connectorDotActiveLight: {
+      backgroundColor: theme.colors.accentMuted,
+      opacity: 0.35,
+    },
+    // Connector chevron styles
+    connectorChevron: {
+      color: theme.colors.border,
+      marginHorizontal: 2,
+    },
+    connectorChevronVertical: {
+      color: theme.colors.border,
+      marginVertical: 2,
+    },
+    connectorChevronActive: {
+      color: theme.colors.accentMuted,
+    },
     problemRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',

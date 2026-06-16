@@ -511,9 +511,6 @@ export default function OrderTrackingScreen() {
               )}
             </ThemedCard>
 
-            <ThemedCard style={styles.card} title="Raw Payload">
-              <Text style={styles.rawPayload}>{JSON.stringify(tracking, null, 2)}</Text>
-            </ThemedCard>
           </>
         </ScrollView>
       ) : null}
