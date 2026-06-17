@@ -11,7 +11,7 @@ import {
   persistAccessToken,
   usesCookieAuth,
 } from '@utils/auth';
-import { FEATURE_FLAGS } from '@utils/feature-flags';
+import { FEATURE_FLAGS } from '@utils/config';
 
 export type UserRole = 'Admin' | 'Manager' | 'Operative' | 'ReadOnly' | 'Customer';
 

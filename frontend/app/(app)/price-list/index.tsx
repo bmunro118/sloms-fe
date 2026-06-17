@@ -44,7 +44,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { ENDPOINTS } from '@utils/config';
-import { FEATURE_FLAGS } from '@utils/feature-flags';
+import { FEATURE_FLAGS } from '@utils/config';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
