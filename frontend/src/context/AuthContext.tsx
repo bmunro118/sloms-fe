@@ -11,7 +11,7 @@ import {
   persistAccessToken,
   usesCookieAuth,
 } from '@utils/auth';
-import { FEATURE_FLAGS } from '@utils/config';
+import { featureFlags } from '@utils/features';
 
 export type UserRole = 'Admin' | 'Manager' | 'Operative' | 'ReadOnly' | 'Customer';
 
@@ -304,7 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isStaff = role !== null && role !== 'Customer';
   const isAdmin = role === 'Admin';
   const isCustomerReadOnly =
-    role === 'Customer' && FEATURE_FLAGS.allCustomersReadOnly;
+    role === 'Customer' && featureFlags.allCustomersReadOnly;
   const canMutate = role !== null && role !== 'ReadOnly' && !isCustomerReadOnly;
 
   const value = useMemo<AuthContextValue>(
