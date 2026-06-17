@@ -43,21 +43,6 @@ export const FEATURE_FLAGS = {
    */
   allCustomersReadOnly: true,
 
-  // ── In-development feature gates ───────────────────────────────────────────
-
-  /**
-   * Mass User Creation — create multiple users in a single workflow.
-   * Admin-only. Uses POST /api/users for each entry.
-   * Status: IN DEVELOPMENT — UI complete, not yet production-hardened.
-   */
-  bulkUserCreation: false,
-
-  /**
-   * User Communication — contact page for composing messages to users.
-   * Generates formatted email-ready content for administrators to distribute.
-   * Status: IN DEVELOPMENT — UI complete, backend email integration pending.
-   */
-  userCommunication: false,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;
@@ -77,7 +62,7 @@ export function isFeatureEnabled(flag: FeatureFlagKey): boolean {
 /**
  * React hook for feature flag checks. Memoised per flag.
  * Usage:
- *   const showBulkCreate = useFeatureFlag('bulkUserCreation');
+ *   const showRevisions = useFeatureFlag('priceListRevisions');
  */
 export function useFeatureFlag(flag: FeatureFlagKey): boolean {
   return useMemo(() => isFeatureEnabled(flag), [flag]);
