@@ -1,4 +1,5 @@
 import { RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -14,6 +15,7 @@ import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { featureFlags } from '@utils/features';
 
 // Documents has no structured filter params in the current API surface —
 // search is passed as a single query param.
@@ -23,6 +25,7 @@ const INITIAL_FILTERS: DocumentFilters = {};
 
 export default function DocumentsScreen() {
   const styles = useThemedStyles(createStyles);
+
   const [refreshTick, setRefreshTick] = useState(0);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,6 +83,11 @@ export default function DocumentsScreen() {
       controller.abort();
     };
   }, [debouncedSearch, refreshTick]);
+
+  // Feature flag guard — redirect to dashboard if disabled
+  if (!featureFlags.documentsPage) {
+    return <Redirect href="/(app)/dashboard" />;
+  }
 
   return (
     <>

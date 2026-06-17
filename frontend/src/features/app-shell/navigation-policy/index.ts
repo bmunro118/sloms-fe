@@ -1,4 +1,5 @@
 import { UserRole } from '@context/AuthContext';
+import { featureFlags } from '@utils/features';
 
 export type AppRoutePath =
   | '/(app)/dashboard'
@@ -31,6 +32,7 @@ export type AppShellNavIcon =
 
 interface NavPolicyItem extends AppShellNavItem {
   visibleTo: UserRole[];
+  requiresFeature?: import('@utils/features').FeatureName;
 }
 
 const NAV_POLICY: NavPolicyItem[] = [
@@ -68,6 +70,7 @@ const NAV_POLICY: NavPolicyItem[] = [
     href: '/(app)/documents',
     icon: 'file-text',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
+    requiresFeature: 'documentsPage',
   },
   {
     id: 'price-list',
@@ -75,6 +78,7 @@ const NAV_POLICY: NavPolicyItem[] = [
     href: '/(app)/price-list',
     icon: 'tags',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly'],
+    requiresFeature: 'priceListPage',
   },
   {
     id: 'vat-rates',
@@ -82,6 +86,7 @@ const NAV_POLICY: NavPolicyItem[] = [
     href: '/(app)/vat-rates',
     icon: 'percent',
     visibleTo: ['Admin', 'Manager'],
+    requiresFeature: 'vatRatesPage',
   },
   {
     id: 'account',
@@ -104,7 +109,17 @@ export function resolveNavItemsForRole(role: UserRole | null): AppShellNavItem[]
     return [];
   }
 
-  return NAV_POLICY.filter((item) => item.visibleTo.includes(role)).map(({ id, label, href, icon }) => ({
+  return NAV_POLICY.filter((item) => {
+    // Role check
+    if (!item.visibleTo.includes(role)) {
+      return false;
+    }
+    // Feature flag check
+    if (item.requiresFeature && !featureFlags[item.requiresFeature]) {
+      return false;
+    }
+    return true;
+  }).map(({ id, label, href, icon }) => ({
     id,
     label,
     href,

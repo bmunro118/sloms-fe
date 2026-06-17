@@ -19,7 +19,10 @@ export type FeatureName =
   | 'allCustomersReadOnly'
   | 'newOrderFlow'
   | 'betaDashboardWidgets'
-  | 'advancedCustomerSearch';
+  | 'advancedCustomerSearch'
+  | 'documentsPage'
+  | 'priceListPage'
+  | 'vatRatesPage';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,6 +59,12 @@ function getEnvFlag(name: FeatureName): boolean | null {
     case 'advancedCustomerSearch':
       // Dev-only — no env var override
       return null;
+    case 'documentsPage':
+      return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_DOCUMENTS_PAGE);
+    case 'priceListPage':
+      return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_PRICE_LIST_PAGE);
+    case 'vatRatesPage':
+      return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_VAT_RATES_PAGE);
     default:
       return null;
   }
@@ -77,6 +86,11 @@ export const featureFlags: Record<FeatureName, boolean> = {
 
   // Dev-only — hardcoded, no env override
   advancedCustomerSearch: __DEV__,
+
+  // Page-level access gates — disabled by default (including dev), enable via env var
+  documentsPage: getEnvFlag('documentsPage') ?? false,
+  priceListPage: getEnvFlag('priceListPage') ?? false,
+  vatRatesPage: getEnvFlag('vatRatesPage') ?? false,
 };
 
 export function isFeatureEnabled(feature: FeatureName): boolean {

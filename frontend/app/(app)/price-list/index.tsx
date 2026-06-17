@@ -63,6 +63,11 @@ export default function PriceListScreen() {
 
   useScreenTopBar({ title: 'Price List', actions: topBarActions });
 
+  // Feature flag guard — redirect to dashboard if disabled
+  if (!featureFlags.priceListPage) {
+    return <Redirect href="/(app)/dashboard" />;
+  }
+
   if (!isStaff) return <Redirect href="/(app)/dashboard" />;
 
   // ── Tab list (filtered by enabled features) ──────────────────────────────────

@@ -25,6 +25,7 @@ import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { featureFlags } from '@utils/features';
 
 export default function VatRatesScreen() {
   const { isAdmin, role } = useAuth();
@@ -202,6 +203,11 @@ export default function VatRatesScreen() {
   }, [isAdmin, showCreateForm, isCreating, isLoading]);
 
   useScreenTopBar({ title: 'VAT Rates', actions: topBarActions });
+
+  // Feature flag guard — redirect to dashboard if disabled
+  if (!featureFlags.vatRatesPage) {
+    return <Redirect href="/(app)/dashboard" />;
+  }
 
   if (!isAdminOrManager) {
     return <Redirect href="/(app)/dashboard" />;
