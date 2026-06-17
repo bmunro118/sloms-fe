@@ -307,7 +307,8 @@ export function OrderItemsCard({
                 onPress={() => { void handleAddItem(); }}
                 disabled={isMutatingItems}
                 tooltip="Look up serial number"
-                style={{ backgroundColor: 'transparent', borderWidth: 0 }}
+                hideBorder
+                fillMode
               />
             }
           />

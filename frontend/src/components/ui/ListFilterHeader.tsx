@@ -31,22 +31,25 @@ export function ListFilterHeader({
         style={[
           styles.searchContainer,
           {
-            borderColor: focused ? colors.textPrimary : colors.border,
+            borderColor: colors.border,
             borderWidth: 1,
             borderRadius: radii.md,
             backgroundColor: colors.inputBackground,
           },
         ]}
       >
-        {focused ? (
+        {focused && (
           <View
-            pointerEvents="none"
             style={[
-              styles.focusRing,
-              { borderColor: colors.textPrimary, borderRadius: radii.md },
+              styles.focusOverlay,
+              {
+                borderColor: colors.textPrimary,
+                borderRadius: radii.md,
+              },
             ]}
+            pointerEvents="none"
           />
-        ) : null}
+        )}
         <TextInput
           value={searchValue}
           onChangeText={onSearchChange}
@@ -103,9 +106,14 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 1,
   },
-  focusRing: {
+  focusOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 2,
+    // Inset so inner + outer borders create clean 3px visual
+    top: -1,
+    left: -1,
+    right: -1,
+    bottom: -1,
   },
   searchInput: {
     width: '100%',

@@ -44,7 +44,8 @@ export function SerialLookupCard({
             onPress={() => { void onSearch(); }}
             disabled={isSearching || !serialInput.trim()}
             tooltip="Look up serial number"
-            style={{ backgroundColor: 'transparent', borderWidth: 0 }}
+            hideBorder
+            fillMode
           />
         }
       />

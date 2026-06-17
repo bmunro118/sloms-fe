@@ -191,11 +191,12 @@ export function CustomerContactCard({
                 style={styles.actionButton}
               />
             ) : (
-              <View style={[styles.actionButton, styles.dangerButton]}>
+              <View style={styles.actionButton}>
                 <ThemedButton
                   label="Suspend Customer"
                   onPress={onSuspend}
-                  variant="secondary"
+                  variant="outline"
+                  style={{ borderColor: theme.colors.danger, minWidth: 160 }}
                   textStyle={{ color: theme.colors.danger }}
                 />
               </View>
@@ -238,13 +239,5 @@ function createStyles(theme: AppTheme) {
     statusBadgeText: { fontSize: 12, fontWeight: '600' },
     actionsStack: { gap: 12 },
     actionButton: { alignSelf: 'flex-start', minWidth: 160 },
-    dangerButton: {
-      borderWidth: 1,
-      borderColor: theme.colors.danger,
-      borderRadius: 8,
-      overflow: 'hidden',
-      alignSelf: 'flex-start',
-      minWidth: 160,
-    },
   });
 }

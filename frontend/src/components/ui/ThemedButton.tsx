@@ -15,6 +15,10 @@ interface ThemedButtonProps {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   tooltip?: string;
+  /** When true, removes the border regardless of variant. Useful for icon buttons inside inputs. */
+  hideBorder?: boolean;
+  /** When true and variant="icon", fills container without circular styling. Use for icon buttons inside inputs. */
+  fillMode?: boolean;
 }
 
 /**
@@ -32,6 +36,8 @@ export function ThemedButton({
   style,
   textStyle,
   tooltip,
+  hideBorder = false,
+  fillMode = false,
 }: ThemedButtonProps) {
   const { colors, radii } = useAppTheme();
 
@@ -67,7 +73,15 @@ export function ThemedButton({
       paddingHorizontal: 0,
       paddingVertical: 0,
     },
+    resolvedVariant === 'icon' && fillMode && {
+      borderRadius: 0,
+      backgroundColor: 'transparent',
+      width: undefined,
+      height: undefined,
+      flex: 1,
+    },
     disabled ? styles.disabled : null,
+    hideBorder && { borderWidth: 0, borderColor: 'transparent' },
     style,
   ];
 

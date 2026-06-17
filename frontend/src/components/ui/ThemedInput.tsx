@@ -1,4 +1,4 @@
-import { forwardRef, ReactNode } from 'react';
+import { forwardRef, ReactNode, useState } from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 
@@ -8,8 +8,19 @@ type ThemedInputProps = TextInputProps & {
 };
 
 export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(
-  function ThemedInput({ style, rightAccessory, ...props }, ref) {
+  function ThemedInput({ style, rightAccessory, onFocus, onBlur, ...props }, ref) {
     const { colors, radii, spacing } = useAppTheme();
+    const [isFocused, setIsFocused] = useState(false);
+
+    const handleFocus = (e: any) => {
+      setIsFocused(true);
+      onFocus?.(e);
+    };
+
+    const handleBlur = (e: any) => {
+      setIsFocused(false);
+      onBlur?.(e);
+    };
 
     if (!rightAccessory) {
       return (
@@ -19,7 +30,7 @@ export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(
           style={[
             styles.base,
             {
-              borderColor: colors.border,
+              borderColor: isFocused ? colors.textPrimary : colors.border,
               borderRadius: radii.md,
               backgroundColor: colors.inputBackground,
               color: colors.textPrimary,
@@ -27,6 +38,8 @@ export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(
             },
             style,
           ]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
       );
@@ -37,7 +50,7 @@ export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(
         style={[
           styles.wrapper,
           {
-            borderColor: colors.border,
+            borderColor: isFocused ? colors.textPrimary : colors.border,
             borderRadius: radii.md,
             backgroundColor: colors.inputBackground,
           },
@@ -54,6 +67,8 @@ export const ThemedInput = forwardRef<TextInput, ThemedInputProps>(
               paddingHorizontal: spacing.md,
             },
           ]}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
