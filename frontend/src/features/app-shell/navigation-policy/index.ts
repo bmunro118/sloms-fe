@@ -77,13 +77,6 @@ const NAV_POLICY: NavPolicyItem[] = [
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly'],
   },
   {
-    id: 'settings',
-    label: 'Settings',
-    href: '/(app)/settings',
-    icon: 'settings',
-    visibleTo: ['Admin', 'Manager'],
-  },
-  {
     id: 'vat-rates',
     label: 'VAT Rates',
     href: '/(app)/vat-rates',
@@ -96,6 +89,13 @@ const NAV_POLICY: NavPolicyItem[] = [
     href: '/(app)/account',
     icon: 'circle-user',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    href: '/(app)/settings',
+    icon: 'settings',
+    visibleTo: ['Admin', 'Manager'],
   },
 ];
 

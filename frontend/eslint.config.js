@@ -1,6 +1,7 @@
 // @ts-check
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
+import hooks from 'eslint-plugin-react-hooks';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
@@ -14,7 +15,13 @@ export default [
         ...globals.node,
       },
     },
+    plugins: {
+      'react-hooks': hooks,
+    },
     rules: {
+      // React Hooks rules
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       /**
        * IMPORT BOUNDARY ENFORCEMENT
        *

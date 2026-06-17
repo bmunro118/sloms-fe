@@ -16,9 +16,9 @@ describe('resolveNavItemsForRole', () => {
       'users',
       'documents',
       'price-list',
-      'settings',
       'vat-rates',
       'account',
+      'settings',
     ]);
   });
 
