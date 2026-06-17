@@ -170,14 +170,6 @@ export function useOrderTracking(
       });
     }
 
-    if (itemStatuses.length > 1) {
-      checks.push({
-        id: 'mixed-item-statuses',
-        level: 'warn',
-        message: `Items have mixed statuses: ${itemStatuses.map((status) => formatStatusLabel(status)).join(', ')}.`,
-      });
-    }
-
     if (itemStatuses.length === 1 && currentStatus !== 'Unknown' && itemStatuses[0] !== currentStatus) {
       checks.push({
         id: 'item-order-mismatch',
