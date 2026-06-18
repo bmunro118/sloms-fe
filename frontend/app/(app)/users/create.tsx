@@ -1,5 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
-import { Save as SaveIcon, Trash2 as Trash2Icon } from 'lucide-react-native';
+import { CheckCheck as CheckCheckIcon, Save as SaveIcon, Trash2 as Trash2Icon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -116,21 +116,21 @@ export default function CreateUserScreen() {
     });
   }, []);
 
+  const handleSelectAll = useCallback(() => {
+    setSelectedIds(new Set(cards.map((c) => c.id)));
+  }, [cards]);
+
   // ── handleGenerate ──────────────────────────────────────────────────────────
 
   const handleGenerate = useCallback(async () => {
-    // Check for dirty cards
-    if (isDirty) {
-      const confirmed = await showConfirm({
-        title: 'Replace existing cards?',
-        message:
-          'Generating new cards will discard all current entries. Continue?',
-        confirmLabel: 'Replace',
-        cancelLabel: 'Keep current',
-        confirmVariant: 'danger',
-      });
-      if (!confirmed) return;
-    }
+    const cardLabel = batchCount === 1 ? 'card' : 'cards';
+    const confirmed = await showConfirm({
+      title: 'Generate Additional Cards',
+      message: `Add ${batchCount} new ${cardLabel}?`,
+      confirmLabel: 'Generate',
+      cancelLabel: 'Cancel',
+    });
+    if (!confirmed) return;
 
     const newCards: BatchCardState[] = [];
     for (let i = 0; i < batchCount; i++) {
@@ -149,14 +149,35 @@ export default function CreateUserScreen() {
       newCards.push(card);
     }
 
-    setCards(newCards);
+    setCards((currentCards) => {
+      // Pristine check: if only 1 card exists and it's completely unused, replace it
+      const isSinglePristine =
+        currentCards.length === 1 &&
+        !currentCards[0].form.username.trim() &&
+        !currentCards[0].form.fullName.trim() &&
+        !currentCards[0].form.email.trim();
+
+      if (isSinglePristine) {
+        return newCards;
+      }
+      return [...currentCards, ...newCards];
+    });
     setSelectedIds(new Set());
-  }, [isDirty, showConfirm, batchCount, batchDefaults]);
+  }, [batchCount, batchDefaults, showConfirm]);
 
   // ── handleSetSelected ───────────────────────────────────────────────────────
 
-  const handleSetSelected = useCallback(() => {
+  const handleSetSelected = useCallback(async () => {
     if (selectedIds.size === 0) return;
+
+    const confirmed = await showConfirm({
+      title: 'Set selected cards?',
+      message: `Apply defaults to ${selectedIds.size} selected card(s)? Existing field values will be overwritten.`,
+      confirmLabel: 'Apply',
+      cancelLabel: 'Cancel',
+    });
+    if (!confirmed) return;
+
     setCards((prev) =>
       prev.map((c) => {
         if (!selectedIds.has(c.id)) return c;
@@ -180,11 +201,19 @@ export default function CreateUserScreen() {
         };
       }),
     );
-  }, [selectedIds, batchDefaults]);
+  }, [selectedIds, batchDefaults, showConfirm]);
 
   // ── handleSetAll ─────────────────────────────────────────────────────────────
 
-  const handleSetAll = useCallback(() => {
+  const handleSetAll = useCallback(async () => {
+    const confirmed = await showConfirm({
+      title: 'Set all cards?',
+      message: `Apply defaults to all ${cards.length} cards? Existing field values will be overwritten.`,
+      confirmLabel: 'Apply',
+      cancelLabel: 'Cancel',
+    });
+    if (!confirmed) return;
+
     setCards((prev) =>
       prev.map((c) => {
         const password =
@@ -207,7 +236,7 @@ export default function CreateUserScreen() {
         };
       }),
     );
-  }, [batchDefaults]);
+  }, [cards.length, batchDefaults, showConfirm]);
 
   // ── handleSave ─────────────────────────────────────────────────────────────
 
@@ -339,6 +368,16 @@ export default function CreateUserScreen() {
 
     actions.push(
       buildIconTopBarAction({
+        id: 'select-all-users',
+        label: `Select all (${cards.length})`,
+        onPress: handleSelectAll,
+        icon: CheckCheckIcon,
+        disabled: selectedIds.size === cards.length || isSaving,
+      }),
+    );
+
+    actions.push(
+      buildIconTopBarAction({
         id: 'save-new-users',
         label: isSaving
           ? saveProgress ?? 'Saving…'
@@ -355,6 +394,7 @@ export default function CreateUserScreen() {
     router,
     selectedIds,
     handleDeleteSelected,
+    handleSelectAll,
     isSaving,
     saveProgress,
     handleSave,
