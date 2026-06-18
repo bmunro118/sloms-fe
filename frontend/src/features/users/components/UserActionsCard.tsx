@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -59,6 +60,7 @@ export function UserActionsCard({
   onViewAuditLog,
   onDelete,
 }: Props) {
+  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
   const [showResetForm, setShowResetForm] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -148,6 +150,20 @@ export function UserActionsCard({
                 placeholder="Enter new password"
                 secureTextEntry={!passwordRevealed}
                 style={[styles.input, styles.passwordInput]}
+                rightAccessory={
+                  <ThemedButton
+                    variant="icon"
+                    icon={
+                      passwordRevealed
+                        ? <EyeOff size={18} color={theme.colors.navTextStrong} />
+                        : <Eye size={18} color={theme.colors.navTextStrong} />
+                    }
+                    onPress={() => setPasswordRevealed((prev) => !prev)}
+                    hideBorder
+                    fillMode
+                    tooltip={passwordRevealed ? 'Hide password' : 'Show password'}
+                  />
+                }
               />
               <ThemedButton
                 label="Generate Temporary Password"

@@ -1,10 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { CollapsibleCard } from '@components/ui/CollapsibleCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
 import { BatchUserDefaults, UserRole } from '@src/features/users/types';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
@@ -37,7 +39,9 @@ export function BatchUserSetupCard({
   selectedCount,
   totalCards: _totalCards,
 }: Props) {
+  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const [showSharedPassword, setShowSharedPassword] = useState(false);
 
   const countString = count.toString();
   const countError = count < 1 || count > 20 || !Number.isInteger(count)
@@ -138,7 +142,21 @@ export function BatchUserSetupCard({
                   onDefaultsChange((prev) => ({ ...prev, sharedPassword: text }))
                 }
                 placeholder="Enter shared password"
-                secureTextEntry
+                secureTextEntry={!showSharedPassword}
+                rightAccessory={
+                  <ThemedButton
+                    variant="icon"
+                    icon={
+                      showSharedPassword
+                        ? <EyeOff size={18} color={theme.colors.navTextStrong} />
+                        : <Eye size={18} color={theme.colors.navTextStrong} />
+                    }
+                    onPress={() => setShowSharedPassword((prev) => !prev)}
+                    hideBorder
+                    fillMode
+                    tooltip={showSharedPassword ? 'Hide password' : 'Show password'}
+                  />
+                }
               />
               <Text style={styles.fieldHint}>
                 All generated cards will use this password.

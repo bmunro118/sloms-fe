@@ -1,4 +1,4 @@
-import { CheckSquare2, Square, Trash2 } from 'lucide-react-native';
+import { CheckSquare2, Eye, EyeOff, Square, Trash2 } from 'lucide-react-native';
 import { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
@@ -9,6 +9,7 @@ import { CreateUserPayload, UserRole } from '@src/features/users/api';
 import { BatchCardState } from '@src/features/users/types';
 import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
 import { generatePassword } from '@src/features/users/utils/generatePassword';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
@@ -37,6 +38,7 @@ export function BatchUserCard({
   onPasswordRevealChange,
   onValidationErrorChange,
 }: Props) {
+  const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
 
   const handleUsernameChange = useCallback(
@@ -151,6 +153,20 @@ export function BatchUserCard({
           }}
           placeholder="Temporary password"
           secureTextEntry={!state.passwordRevealed}
+          rightAccessory={
+            <ThemedButton
+              variant="icon"
+              icon={
+                state.passwordRevealed
+                  ? <EyeOff size={18} color={theme.colors.navTextStrong} />
+                  : <Eye size={18} color={theme.colors.navTextStrong} />
+              }
+              onPress={() => onPasswordRevealChange(!state.passwordRevealed)}
+              hideBorder
+              fillMode
+              tooltip={state.passwordRevealed ? 'Hide password' : 'Show password'}
+            />
+          }
         />
         <Text style={styles.fieldHint}>
           Min. 8 characters — must include uppercase, lowercase, number, and special
