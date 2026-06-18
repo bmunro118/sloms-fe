@@ -1,6 +1,7 @@
 import { RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -11,6 +12,7 @@ import { UserRecord, getMe } from '@src/features/users/api';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -22,6 +24,7 @@ export default function AccountScreen() {
   const { user } = useAuth();
   const theme = useAppTheme();
   const { showConfirm } = useAppModal();
+  const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -102,21 +105,39 @@ export default function AccountScreen() {
     await performPasswordChange();
   }, [isSubmitting, performPasswordChange, showConfirm]);
 
+  const isDirty = useMemo(
+    () => currentPassword.trim().length > 0 || newPassword.trim().length > 0,
+    [currentPassword, newPassword],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
+
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
       buildIconTopBarAction({
         id: 'reset-password-form',
         label: 'Reset form',
         onPress: () => {
-          setCurrentPassword('');
-          setNewPassword('');
-          setStatus(null);
+          void guardAction(() => {
+            setCurrentPassword('');
+            setNewPassword('');
+            setStatus(null);
+          });
         },
         icon: ResetIcon,
         disabled: isSubmitting,
       }),
     ];
-  }, [isSubmitting, handlePasswordChange]);
+  }, [isSubmitting, guardAction]);
 
   useScreenTopBar({ title: 'Account', actions: topBarActions });
 

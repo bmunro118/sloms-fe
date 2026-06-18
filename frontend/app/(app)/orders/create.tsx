@@ -2,6 +2,7 @@ import { Redirect, useRouter } from 'expo-router';
 import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -12,6 +13,7 @@ import { buildCloseTopBarAction, buildIconTopBarAction } from '@src/features/app
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -20,6 +22,7 @@ import { Address, CustomerRecord, listAddresses, listCustomers } from '@src/feat
 
 export default function CreateOrderScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { isStaff, canMutate } = useAuth();
   const { showConfirm, showDanger } = useAppModal();
   const styles = useThemedStyles(createStyles);
@@ -211,6 +214,22 @@ export default function CreateOrderScreen() {
     await performCreate();
   }, [isSaving, showConfirm, customerAccount, customers, orderNumber, performCreate]);
 
+  const isDirty = useMemo(
+    () => orderNumber !== '' || customerAccount !== null || orderBatch !== '' || customerRef !== '' || orderContact !== '' || priceBand !== '' || receivedOn !== '',
+    [orderNumber, customerAccount, orderBatch, customerRef, orderContact, priceBand, receivedOn],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
+
   const topBarActions = useMemo<TopBarAction[]>(() => {
     return [
       buildIconTopBarAction({
@@ -225,26 +244,28 @@ export default function CreateOrderScreen() {
         id: 'reset-create-order-form',
         label: 'Reset form',
         onPress: () => {
-          setOrderNumber('');
-          setOrderBatch('');
-          setCustomerAccount(null);
-          setCustomerRef('');
-          setOrderContact('');
-          setDeliveryAddress(null);
-          setReceivedOn('');
-          setDeliveryAddresses([]);
-          setPriceBand('');
-          setError(null);
+          void guardAction(() => {
+            setOrderNumber('');
+            setOrderBatch('');
+            setCustomerAccount(null);
+            setCustomerRef('');
+            setOrderContact('');
+            setDeliveryAddress(null);
+            setReceivedOn('');
+            setDeliveryAddresses([]);
+            setPriceBand('');
+            setError(null);
+          });
         },
         icon: ResetIcon,
         disabled: isSaving,
       }),
       buildCloseTopBarAction({
-        onPress: () => router.replace('/(app)/orders'),
+        onPress: () => void guardAction(() => router.replace('/(app)/orders')),
         label: 'Close create order',
       }),
     ];
-  }, [handleCreate, isSaving, router]);
+  }, [handleCreate, isSaving, guardAction, router]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 

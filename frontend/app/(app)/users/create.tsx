@@ -1,7 +1,8 @@
 import { Redirect, useRouter } from 'expo-router';
 import { Save as SaveIcon } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
@@ -14,6 +15,7 @@ import { LinkedCustomerField } from '@src/features/users/components/LinkedCustom
 import { generatePassword } from '@src/features/users/utils/generatePassword';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -33,6 +35,7 @@ const INITIAL_FORM: CreateUserPayload = {
 export default function CreateUserScreen() {
   const { isAdmin } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
   const { showSuccess, showDanger } = useAppModal();
@@ -70,6 +73,22 @@ export default function CreateUserScreen() {
     return null;
   }, [form]);
 
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(INITIAL_FORM),
+    [form],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
+
   const handleSave = useCallback(async () => {
     const error = validate();
     if (error) {
@@ -104,7 +123,7 @@ export default function CreateUserScreen() {
   }, [form, validate, showSuccess, showDanger, router]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildBackTopBarAction({ onPress: () => router.back() }),
+    buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),
     buildIconTopBarAction({
       id: 'save-new-user',
       label: 'Save user',
@@ -112,7 +131,7 @@ export default function CreateUserScreen() {
       icon: SaveIcon,
       disabled: isSaving,
     }),
-  ], [handleSave, isSaving, router]);
+  ], [handleSave, isSaving, guardAction, router]);
 
   useScreenTopBar({ title: 'Create User', actions: topBarActions });
 

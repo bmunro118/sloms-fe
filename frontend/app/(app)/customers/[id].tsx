@@ -2,6 +2,7 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
@@ -13,6 +14,7 @@ import { CustomerContactCard } from '@src/features/customers/components/Customer
 import { CustomerDeliveryAddressesCard } from '@src/features/customers/components/CustomerDeliveryAddressesCard';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard, normaliseForDirtyCheck } from '@src/hooks/useUnsavedChangesGuard';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -21,6 +23,7 @@ export default function CustomerDetailScreen() {
   const { isStaff, canMutate } = useAuth();
   const { showConfirm, showSuccess, showDanger } = useAppModal();
   const router = useRouter();
+  const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
   const customerId = Number(params.id);
@@ -132,6 +135,23 @@ export default function CustomerDetailScreen() {
     if (confirmed) setFormData(customer);
   }, [customer, isSaving, showConfirm]);
 
+  // ── Unsaved changes guard ──────────────────────────────────────────────────
+  const isDirty = useMemo(
+    () => isEditing && !!customer && JSON.stringify(normaliseForDirtyCheck(formData)) !== JSON.stringify(normaliseForDirtyCheck(customer)),
+    [isEditing, formData, customer],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
+
   const handleSuspend = useCallback(async () => {
     if (!customer || !Number.isFinite(customerId)) return;
     const confirmed = await showConfirm({
@@ -169,7 +189,7 @@ export default function CustomerDetailScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({
-      onPress: () => router.back(),
+      onPress: () => void guardAction(() => router.back()),
       label: 'Back to customers',
     });
 
@@ -194,8 +214,10 @@ export default function CustomerDetailScreen() {
           id: 'cancel-customer-edit',
           label: 'Cancel edit',
           onPress: () => {
-            setIsEditing(false);
-            if (customer) setFormData(customer);
+            void guardAction(() => {
+              setIsEditing(false);
+              if (customer) setFormData(customer);
+            });
           },
           icon: CancelEditIcon,
           disabled: isSaving,
@@ -215,7 +237,7 @@ export default function CustomerDetailScreen() {
       }),
       backAction,
     ];
-  }, [canMutate, customer, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
+  }, [canMutate, customer, guardAction, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
 
   useScreenTopBar({ title: 'Customer Detail', actions: topBarActions });
 

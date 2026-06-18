@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   Archive as ArchiveIcon,
   Download as DownloadIcon,
@@ -22,6 +23,7 @@ import { Address, listAddresses } from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard, normaliseForDirtyCheck } from '@src/hooks/useUnsavedChangesGuard';
 import { downloadAndShareBreakdownPdfNative } from '@src/features/orders/breakdown-download';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -57,14 +59,14 @@ export default function OrderDetailScreen() {
   const { canMutate, isStaff } = useAuth();
   const router = useRouter();
   const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
+  const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
   const routeWantsEdit = params.mode === 'edit';
   const routeWantsDispatch = params.dispatch === 'true';
-
-  // ── Order state ─────────────────────────────────────────────────────────────
+  // Order state
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState(false);
@@ -78,8 +80,7 @@ export default function OrderDetailScreen() {
   const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
   const [itemsRefreshSignal, setItemsRefreshSignal] = useState(0);
   const isEditingRef = useRef(false);
-
-  // ── Tracking data (extracted into dedicated hook) ───────────────────────────
+  // Tracking data (extracted into dedicated hook)
   const {
     tracking,
     isLoadingTracking,
@@ -101,16 +102,13 @@ export default function OrderDetailScreen() {
     selectedFilterLabel,
     loadTracking,
   } = useOrderTracking(orderNumber, orderBatch);
-
-  // ── Serial number lookup state ──────────────────────────────────────────────
+  // Serial number lookup state
   const [serialInput, setSerialInput] = useState('');
   const [isSerialSearching, setIsSerialSearching] = useState(false);
   const [serialResult, setSerialResult] = useState<OrderItem | null>(null);
   const [serialError, setSerialError] = useState<string | null>(null);
 
   useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
-
-  const canUpdate = (signal?: AbortSignal) => isMountedRef.current && !signal?.aborted;
   const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() => {
     return deliveryAddresses.map((address, index) => {
       const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
@@ -120,21 +118,21 @@ export default function OrderDetailScreen() {
     });
   }, [deliveryAddresses]);
 
-  // ── Data loading ────────────────────────────────────────────────────────────
+  // Data loading
   const reload = useCallback(async (signal?: AbortSignal) => {
-    if (!canUpdate(signal)) return;
+    if (!isMountedRef.current || signal?.aborted) return;
     setIsLoading(true);
     setError(null);
     try {
       const response = await getOrder(orderNumber, orderBatch, { signal });
-      if (canUpdate(signal)) {
+      if (isMountedRef.current && !signal?.aborted) {
         setOrder(response);
         if (!isEditingRef.current) setFormData(toOrderEditForm(response));
       }
     } catch (err) {
-      if (canUpdate(signal)) setError(err instanceof Error ? err.message : 'Failed to load order.');
+      if (isMountedRef.current && !signal?.aborted) setError(err instanceof Error ? err.message : 'Failed to load order.');
     } finally {
-      if (canUpdate(signal)) setIsLoading(false);
+      if (isMountedRef.current && !signal?.aborted) setIsLoading(false);
     }
   }, [isMountedRef, orderBatch, orderNumber]);
 
@@ -149,8 +147,7 @@ export default function OrderDetailScreen() {
     void loadTracking(controller.signal);
     return () => { controller.abort(); };
   }, [orderBatch, orderNumber, reload, loadTracking]);
-
-  // ── Delivery addresses ──────────────────────────────────────────────────────
+  // Delivery addresses
   useEffect(() => {
     if (!order?.customerAccount) { setDeliveryAddresses([]); return; }
     const controller = new AbortController();
@@ -167,8 +164,7 @@ export default function OrderDetailScreen() {
       });
     return () => { controller.abort(); };
   }, [order?.customerAccount]);
-
-  // ── Save / reset / cancel ───────────────────────────────────────────────────
+  // Save / reset / cancel
   const performSave = async () => {
     if (!canMutate || isSaving) return;
     const payload: OrderUpdatePayload = {
@@ -218,13 +214,30 @@ export default function OrderDetailScreen() {
     if (!confirmed) return;
     setFormData(toOrderEditForm(order));
   };
+  // Unsaved changes guard
+  const isDirty = useMemo(
+    () => isEditing && !!order && JSON.stringify(normaliseForDirtyCheck(formData)) !== JSON.stringify(normaliseForDirtyCheck(toOrderEditForm(order))),
+    [isEditing, formData, order],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
 
   const handleCancelOrderEdit = useCallback(() => {
-    setIsEditing(false);
-    if (order) setFormData(toOrderEditForm(order));
-  }, [order]);
+    void guardAction(() => {
+      setIsEditing(false);
+      if (order) setFormData(toOrderEditForm(order));
+    });
+  }, [guardAction, order]);
 
-  // ── Dispatch / download / void ──────────────────────────────────────────────
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
+  // Dispatch / download / void
   const handleDispatch = useCallback(async () => {
     if (!canMutate) return;
     const confirmed = await showConfirm({
@@ -304,7 +317,7 @@ export default function OrderDetailScreen() {
     }
   }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
 
-  // ── Serial lookup ───────────────────────────────────────────────────────────
+  // Serial lookup
   const handleSerialLookup = useCallback(async () => {
     const serial = serialInput.trim();
     if (!serial) return;
@@ -320,8 +333,7 @@ export default function OrderDetailScreen() {
       setIsSerialSearching(false);
     }
   }, [serialInput]);
-
-  // ── Route-driven actions ────────────────────────────────────────────────────
+  // Route-driven actions
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit || !order) return;
     setFormData(toOrderEditForm(order));
@@ -339,8 +351,7 @@ export default function OrderDetailScreen() {
     setHasHandledRouteDispatch(true);
     void handleDispatch();
   }, [handleDispatch, hasHandledRouteDispatch, isDispatching, isLoading, order, routeWantsDispatch]);
-
-  // ── Card-level actions (edit/save/cancel for OrderDetailCard) ───────────────
+  // Card-level actions (edit/save/cancel for OrderDetailCard)
   const orderCardActions = useMemo<TopBarAction[]>(() => {
     if (!canMutate || !order) return [];
     if (isEditing) {
@@ -354,10 +365,9 @@ export default function OrderDetailScreen() {
       buildIconTopBarAction({ id: 'edit-order', label: 'Edit order', onPress: () => setIsEditing(true), icon: EditIcon, disabled: isLoading || isSaving }),
     ];
   }, [canMutate, handleCancelOrderEdit, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, order]);
-
-  // ── TopBar actions ──────────────────────────────────────────────────────────
+  // TopBar actions
   const topBarActions = useMemo<TopBarAction[]>(() => {
-    const backAction = buildBackTopBarAction({ onPress: () => router.back(), label: 'Back to orders' });
+    const backAction = buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()), label: 'Back to orders' });
     const actions: TopBarAction[] = [
       buildIconTopBarAction({
         id: 'refresh-order-details',
@@ -386,11 +396,11 @@ export default function OrderDetailScreen() {
       backAction,
     );
     return actions;
-  }, [canMutate, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, loadTracking, order, reload, router]);
+  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, loadTracking, order, reload, router]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // Render
   const isLoadingAny = isLoading || isLoadingTracking;
   const displayError = error ?? trackingError;
 

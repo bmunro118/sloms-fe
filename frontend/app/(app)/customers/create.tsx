@@ -1,7 +1,8 @@
 import { Redirect, useRouter } from 'expo-router';
 import { Save as SaveIcon } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
@@ -12,6 +13,7 @@ import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-
 import { CreateCustomerPayload, createCustomer } from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -38,6 +40,7 @@ const INITIAL_FORM: CreateCustomerPayload = {
 export default function CreateCustomerScreen() {
   const { role } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const { showConfirm, showSuccess, showDanger } = useAppModal();
 
@@ -54,6 +57,22 @@ export default function CreateCustomerScreen() {
     if (!form.companyName.trim()) return 'Company name is required.';
     return null;
   }, [form]);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(INITIAL_FORM),
+    [form],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
 
   const handleSave = useCallback(async () => {
     const error = validate();
@@ -107,7 +126,7 @@ export default function CreateCustomerScreen() {
   }, [form, validate, showConfirm, showSuccess, showDanger, router]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildBackTopBarAction({ onPress: () => router.back() }),
+    buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),
     buildIconTopBarAction({
       id: 'save-new-customer',
       label: 'Save customer',
@@ -115,7 +134,7 @@ export default function CreateCustomerScreen() {
       icon: SaveIcon,
       disabled: isSaving,
     }),
-  ], [handleSave, isSaving, router]);
+  ], [handleSave, isSaving, guardAction, router]);
 
   useScreenTopBar({ title: 'Create Customer', actions: topBarActions });
 
@@ -335,7 +354,7 @@ export default function CreateCustomerScreen() {
           />
           <ThemedButton
             label="Cancel"
-            onPress={() => router.back()}
+            onPress={() => void guardAction(() => router.back())}
             variant="secondary"
             disabled={isSaving}
             style={styles.submitButton}

@@ -4,6 +4,7 @@ import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAppModal } from '@src/hooks/useAppModal';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import {
   Address,
@@ -83,10 +84,18 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     setExpandedId(address.id);
   }, []);
 
+  const { guardAction: guardCancelEdit } = useUnsavedChangesGuard({
+    isDirty: editingId !== null && JSON.stringify(editForm) !== JSON.stringify(
+      addresses.find((a) => a.id === editingId) ?? {}
+    ),
+  });
+
   const cancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditForm({});
-  }, []);
+    void guardCancelEdit(() => {
+      setEditingId(null);
+      setEditForm({});
+    });
+  }, [guardCancelEdit]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!editingId || isSaving) return;

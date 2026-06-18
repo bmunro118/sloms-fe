@@ -6,6 +6,7 @@ import {
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
@@ -26,6 +27,7 @@ import { UserProfileCard } from '@src/features/users/components/UserProfileCard'
 import { UserActionsCard } from '@src/features/users/components/UserActionsCard';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -33,6 +35,7 @@ import { useThemedStyles } from '@theme/useThemedStyles';
 export default function UserDetailScreen() {
   const { isAdmin, isStaff, user: currentUser } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const { showConfirm, showSuccess, showDanger } = useAppModal();
   const params = useLocalSearchParams<{ id: string }>();
@@ -88,12 +91,31 @@ export default function UserDetailScreen() {
     setIsEditing(true);
   }, [user]);
 
+  // Unsaved changes guard
+  const isDirty = useMemo(
+    () => isEditing && !!user && JSON.stringify({ email: formData.email, fullName: formData.fullName, role: formData.role, linkedCustomerId: formData.linkedCustomerId }) !== JSON.stringify({ email: user.email, fullName: user.fullName, role: user.role, linkedCustomerId: user.linkedCustomerId ?? null }),
+    [isEditing, formData, user],
+  );
+
+  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!isDirty) return;
+      e.preventDefault();
+      void guardAction(() => navigation.dispatch(e.data.action));
+    });
+    return unsubscribe;
+  }, [navigation, isDirty, guardAction]);
+
   const handleCancelEdit = useCallback(() => {
-    setIsEditing(false);
-    if (user) {
-      setFormData({ email: user.email, fullName: user.fullName, role: user.role, linkedCustomerId: user.linkedCustomerId ?? null });
-    }
-  }, [user]);
+    void guardAction(() => {
+      setIsEditing(false);
+      if (user) {
+        setFormData({ email: user.email, fullName: user.fullName, role: user.role, linkedCustomerId: user.linkedCustomerId ?? null });
+      }
+    });
+  }, [guardAction, user]);
 
   const handleSave = useCallback(async () => {
     if (!user || !Number.isFinite(userId)) return;
@@ -199,7 +221,7 @@ export default function UserDetailScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const actions: TopBarAction[] = [
-      buildBackTopBarAction({ onPress: () => router.back() }),
+      buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),
     ];
 
     if (isAdmin && !isEditing) {
@@ -234,7 +256,7 @@ export default function UserDetailScreen() {
     }
 
     return actions;
-  }, [isAdmin, isEditing, isLoading, user, isSaving, handleStartEdit, handleSave, handleCancelEdit, router]);
+  }, [isAdmin, isEditing, isLoading, user, isSaving, guardAction, handleStartEdit, handleSave, handleCancelEdit, router]);
 
   useScreenTopBar({
     title: user ? (user.fullName ?? user.username ?? `User #${user.userId}`) : 'User',

@@ -21,6 +21,7 @@ import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
+import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createItemsStyles } from './orderItemsCardStyles';
@@ -142,10 +143,16 @@ export function OrderItemsCard({
     setItemFormData(toItemEditForm(item));
   }, []);
 
+  const { guardAction: guardCancelItem } = useUnsavedChangesGuard({
+    isDirty: editingItemSerial !== null,
+  });
+
   const handleCancelItemEdit = useCallback(() => {
-    setEditingItemSerial(null);
-    setItemFormData(toItemEditForm(null));
-  }, []);
+    void guardCancelItem(() => {
+      setEditingItemSerial(null);
+      setItemFormData(toItemEditForm(null));
+    });
+  }, [guardCancelItem]);
 
   const handleSaveItemEdit = useCallback(async () => {
     if (!editingItemSerial || isMutatingItems) return;
