@@ -186,6 +186,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
             </View>
           </TooltipPressable>
           <View style={styles.navList}>{renderNavItems(compact)}</View>
+          <View style={styles.sidebarSpacer} />
           <TooltipPressable
             tooltip="Sign out"
             style={(state) => [
@@ -313,6 +314,9 @@ function createStyles(theme: AppTheme) {
       zIndex: tokens.zIndex.floatingAction,
       elevation: tokens.zIndex.floatingAction,
       overflow: 'visible',
+    },
+    sidebarSpacer: {
+      flex: 1,
     },
     sidebarToggleButton: {
       width: compactRailInnerWidth,
