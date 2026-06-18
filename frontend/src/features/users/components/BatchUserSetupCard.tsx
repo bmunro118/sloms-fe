@@ -1,12 +1,10 @@
-import { ChevronDown } from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CollapsibleCard } from '@components/ui/CollapsibleCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
-import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
 import { BatchUserDefaults, UserRole } from '@src/features/users/types';
-import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
@@ -40,55 +38,6 @@ export function BatchUserSetupCard({
   totalCards: _totalCards,
 }: Props) {
   const styles = useThemedStyles(createStyles);
-  const theme = useAppTheme();
-
-  // Animated values for smooth expand/collapse transitions
-  const animatedHeight = useRef(new Animated.Value(expanded ? 1 : 0)).current;
-  const animatedOpacity = useRef(new Animated.Value(expanded ? 1 : 0)).current;
-  const chevronRotation = useRef(new Animated.Value(expanded ? 1 : 0)).current;
-  const [contentHeight, setContentHeight] = useState(0);
-
-  // Interpolated chevron rotation (0deg collapsed → 180deg expanded)
-  const chevronRotate = chevronRotation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-    extrapolate: 'clamp',
-  });
-
-  // Animate card expand/collapse (mirrors NavLayout sidebar animation pattern)
-  const animateCardExpansion = useCallback(
-    (isExpanded: boolean) => {
-      animatedHeight.stopAnimation();
-      animatedOpacity.stopAnimation();
-      chevronRotation.stopAnimation();
-
-      Animated.parallel([
-        Animated.timing(animatedHeight, {
-          toValue: isExpanded ? 1 : 0,
-          duration: 250,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-        Animated.timing(animatedOpacity, {
-          toValue: isExpanded ? 1 : 0,
-          duration: 180,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(chevronRotation, {
-          toValue: isExpanded ? 1 : 0,
-          duration: 250,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    },
-    [animatedHeight, animatedOpacity, chevronRotation]
-  );
-
-  useEffect(() => {
-    animateCardExpansion(expanded);
-  }, [animateCardExpansion, expanded]);
 
   const countString = count.toString();
   const countError = count < 1 || count > 20 || !Number.isInteger(count)
@@ -105,44 +54,18 @@ export function BatchUserSetupCard({
   }, [onCountChange]);
 
   return (
-    <ThemedCard style={styles.card}>
-      {/* Header: title + expand/collapse button on the same row */}
-      <View style={[styles.cardHeader, !expanded && styles.cardHeaderCollapsed]}>
-        <Text style={styles.cardTitle}>Batch User Setup</Text>
-        <ThemedButton
-          variant="icon"
-          icon={
-            <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-              <ChevronDown size={16} color={theme.colors.navTextStrong} />
-            </Animated.View>
-          }
-          onPress={onToggleExpanded}
-          tooltip={expanded ? 'Collapse batch setup' : 'Expand batch setup'}
-          style={styles.toggleButton}
-        />
-      </View>
-      <Animated.View
-        style={[
-          styles.contentContainer,
-          {
-            height: animatedHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, contentHeight],
-              extrapolate: 'clamp',
-            }),
-            opacity: animatedOpacity,
-          },
-        ]}
+    <CollapsibleCard
+      title="Batch User Setup"
+      expanded={expanded}
+      onToggleExpanded={onToggleExpanded}
+      tooltip={expanded ? 'Collapse batch setup' : 'Expand batch setup'}
+    >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
       >
-        <View
-          onLayout={(event) => {
-            const height = event.nativeEvent.layout.height;
-            setContentHeight(height);
-          }}
-          style={styles.contentInner}
-        >
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.contentScrollView}>
-          {/* 1. Default Role */}
+        {/* 1. Default Role */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Default Role</Text>
             <View style={styles.roleRow}>
@@ -263,48 +186,15 @@ export function BatchUserSetupCard({
               style={styles.actionButton}
             />
           </View>
-          </ScrollView>
-        </View>
-      </Animated.View>
-    </ThemedCard>
+        </ScrollView>
+    </CollapsibleCard>
   );
 }
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    card: {
-      marginBottom: theme.spacing.md,
-    },
-    contentContainer: {
-      overflow: 'hidden',
-    },
-    contentInner: {
-      paddingBottom: theme.spacing.xs,
-    },
-    contentScrollView: {
-      flex: 1,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: theme.spacing.md,
-    },
-    cardHeaderCollapsed: {
-      marginBottom: 0,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: theme.colors.textPrimary,
-    },
-    toggleButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      backgroundColor: theme.colors.navBackground,
-      borderWidth: 1,
-      borderColor: theme.colors.navBorder,
+    scrollContent: {
+      paddingBottom: theme.spacing.md,
     },
     field: {
       marginTop: theme.spacing.md,
