@@ -32,6 +32,8 @@ export interface ThemeColors {
   buttonSecondaryBorder: string;
   buttonIconBackground: string;
   buttonIconBorder: string;
+  buttonDangerBackground: string;
+  buttonDangerText: string;
   statusReceived: string;
   statusReceivedText: string;
   statusInProgress: string;

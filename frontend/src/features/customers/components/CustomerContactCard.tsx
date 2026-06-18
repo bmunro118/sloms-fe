@@ -195,9 +195,8 @@ export function CustomerContactCard({
                 <ThemedButton
                   label="Suspend Customer"
                   onPress={onSuspend}
-                  variant="outline"
-                  style={{ borderColor: theme.colors.danger, minWidth: 160 }}
-                  textStyle={{ color: theme.colors.danger }}
+                  variant="danger"
+                  style={{ minWidth: 160 }}
                 />
               </View>
             )}

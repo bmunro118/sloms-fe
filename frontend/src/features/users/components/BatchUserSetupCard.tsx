@@ -4,9 +4,9 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
-import { buildIconTopBarAction } from '@src/features/app-shell';
 import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
 import { BatchUserDefaults, UserRole } from '@src/features/users/types';
+import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
@@ -40,6 +40,7 @@ export function BatchUserSetupCard({
   totalCards: _totalCards,
 }: Props) {
   const styles = useThemedStyles(createStyles);
+  const theme = useAppTheme();
 
   const countString = count.toString();
   const countError = count < 1 || count > 20 || !Number.isInteger(count)
@@ -58,18 +59,18 @@ export function BatchUserSetupCard({
   const ChevronIcon = expanded ? ChevronUp : ChevronDown;
 
   return (
-    <ThemedCard
-      title="Batch User Setup"
-      actions={[
-        buildIconTopBarAction({
-          id: 'toggle-batch-setup',
-          label: expanded ? 'Collapse batch setup' : 'Expand batch setup',
-          onPress: onToggleExpanded,
-          icon: ChevronIcon,
-        }),
-      ]}
-      style={styles.card}
-    >
+    <ThemedCard style={styles.card}>
+      {/* Header: title + expand/collapse button on the same row */}
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>Batch User Setup</Text>
+        <ThemedButton
+          variant="icon"
+          icon={<ChevronIcon size={16} color={theme.colors.navTextStrong} />}
+          onPress={onToggleExpanded}
+          tooltip={expanded ? 'Collapse batch setup' : 'Expand batch setup'}
+          style={styles.toggleButton}
+        />
+      </View>
       {expanded ? (
         <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* 1. Default Role */}
@@ -203,6 +204,25 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
       marginBottom: theme.spacing.md,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: theme.spacing.md,
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.colors.textPrimary,
+    },
+    toggleButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      backgroundColor: theme.colors.navBackground,
+      borderWidth: 1,
+      borderColor: theme.colors.navBorder,
     },
     field: {
       marginTop: theme.spacing.md,

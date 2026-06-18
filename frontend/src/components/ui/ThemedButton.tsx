@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { ReactNode, useState } from 'react';
+import { Platform, StyleProp, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { TooltipPressable } from './TooltipPressable';
 
@@ -9,7 +9,7 @@ interface ThemedButtonProps {
   onPress: () => void;
   disabled?: boolean;
   /** 'primary' → solid, 'secondary' → outline (backward-compatible aliases). */
-  variant?: 'primary' | 'secondary' | 'solid' | 'outline' | 'icon';
+  variant?: 'primary' | 'secondary' | 'solid' | 'outline' | 'icon' | 'danger';
   /** Icon element. Required for icon variant; optional supplement for others. */
   icon?: ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -22,9 +22,10 @@ interface ThemedButtonProps {
 }
 
 /**
- * Centralised themed button component with four conceptual variants:
- * - `solid` / `primary` — accent fill, white text (modals, destructive confirmations)
- * - `outline` / `secondary` — bordered with muted background (form actions, cancel, edit)
+ * Centralised themed button component with five conceptual variants:
+ * - `solid` / `primary` — accent fill, white text (primary actions)
+ * - `outline` / `secondary` — bordered with muted background (secondary actions, cancel, edit)
+ * - `danger` — filled red, white text (destructive in-page actions)
  * - `icon` — 44×44px circular icon-only button (row-level actions, search in input)
  */
 export function ThemedButton({
@@ -40,6 +41,7 @@ export function ThemedButton({
   fillMode = false,
 }: ThemedButtonProps) {
   const { colors, radii } = useAppTheme();
+  const [isHovered, setIsHovered] = useState(false);
 
   // Normalise backward-compatible aliases
   const resolvedVariant =
@@ -49,24 +51,40 @@ export function ThemedButton({
         ? 'outline'
         : variant;
 
-  const containerStyle: StyleProp<ViewStyle> = [
+  const baseContainerStyle: StyleProp<ViewStyle> = [
     styles.base,
     resolvedVariant === 'solid' && {
       borderRadius: radii.md,
-      backgroundColor: colors.accent,
+      backgroundColor: isHovered && Platform.OS === 'web' ? colors.accentMuted : colors.accent,
       borderColor: 'transparent',
       borderWidth: 0,
     },
     resolvedVariant === 'outline' && {
       borderRadius: radii.md,
-      backgroundColor: colors.buttonSecondaryBackground,
-      borderColor: colors.buttonSecondaryBorder,
+      backgroundColor: isHovered && Platform.OS === 'web'
+        ? colors.surfaceMuted
+        : colors.buttonSecondaryBackground,
+      borderColor: isHovered && Platform.OS === 'web'
+        ? colors.borderStrong
+        : colors.buttonSecondaryBorder,
       borderWidth: 1,
+    },
+    resolvedVariant === 'danger' && {
+      borderRadius: radii.md,
+      backgroundColor: isHovered && Platform.OS === 'web'
+        ? colors.danger
+        : colors.buttonDangerBackground,
+      borderColor: 'transparent',
+      borderWidth: 0,
     },
     resolvedVariant === 'icon' && {
       borderRadius: radii.xl,
-      backgroundColor: colors.buttonIconBackground,
-      borderColor: colors.buttonIconBorder,
+      backgroundColor: isHovered && Platform.OS === 'web'
+        ? colors.surfaceMuted
+        : colors.buttonIconBackground,
+      borderColor: isHovered && Platform.OS === 'web'
+        ? colors.borderStrong
+        : colors.buttonIconBorder,
       borderWidth: 1,
       width: 44,
       height: 44,
@@ -88,14 +106,21 @@ export function ThemedButton({
   const textColor =
     resolvedVariant === 'solid'
       ? colors.accentText
-      : colors.buttonSecondaryText;
+      : resolvedVariant === 'danger'
+        ? colors.buttonDangerText
+        : colors.buttonSecondaryText;
 
   return (
     <TooltipPressable
       tooltip={tooltip ?? label ?? ''}
       onPress={onPress}
       disabled={disabled}
-      style={containerStyle}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={({ pressed }: { pressed: boolean }) => [
+        baseContainerStyle,
+        !disabled && pressed && styles.pressed,
+      ]}
     >
       {icon ? (
         <View style={resolvedVariant !== 'icon' ? styles.iconGap : undefined}>
@@ -128,5 +153,9 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.65,
+  },
+  pressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.97 }],
   },
 });

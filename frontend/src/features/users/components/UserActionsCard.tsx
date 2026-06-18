@@ -60,7 +60,6 @@ export function UserActionsCard({
   onDelete,
 }: Props) {
   const styles = useThemedStyles(createStyles);
-  const theme = useAppTheme();
   const [showResetForm, setShowResetForm] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [passwordRevealed, setPasswordRevealed] = useState(false);
@@ -134,9 +133,8 @@ export function UserActionsCard({
               <ThemedButton
                 label="Delete User"
                 onPress={onDelete}
-                variant="secondary"
-                style={[styles.actionButton, styles.dangerButton]}
-                textStyle={{ color: theme.colors.danger }}
+                variant="danger"
+                style={styles.actionButton}
               />
             ) : null}
           </View>
@@ -212,7 +210,6 @@ function createStyles(theme: AppTheme) {
       gap: theme.spacing.sm,
     },
     actionButton: { flexShrink: 1 },
-    dangerButton: { borderColor: theme.colors.danger },
     resetForm: {
       gap: theme.spacing.sm,
       paddingTop: theme.spacing.md,
