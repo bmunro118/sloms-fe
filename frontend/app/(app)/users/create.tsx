@@ -1,17 +1,21 @@
 import { Redirect, useRouter } from 'expo-router';
-import { Save as SaveIcon } from 'lucide-react-native';
+import { Save as SaveIcon, Trash2 as Trash2Icon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedCard } from '@components/ui/ThemedCard';
-import { ThemedButton } from '@components/ui/ThemedButton';
-import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
-import { CreateUserPayload, UserRole, createUser } from '@src/features/users/api';
-import { LinkedCustomerField } from '@src/features/users/components/LinkedCustomerField';
+import { CreateUserPayload, createUser } from '@src/features/users/api';
+import { BatchUserCard } from '@src/features/users/components/BatchUserCard';
+import { BatchUserSetupCard } from '@src/features/users/components/BatchUserSetupCard';
+import {
+  BatchCardState,
+  BatchUserDefaults,
+  INITIAL_BATCH_DEFAULTS,
+  buildEmptyCard,
+} from '@src/features/users/types';
 import { generatePassword } from '@src/features/users/utils/generatePassword';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -21,16 +25,28 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
-const ASSIGNABLE_ROLES: UserRole[] = ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'];
-
-const INITIAL_FORM: CreateUserPayload = {
-  username: '',
-  fullName: '',
-  email: '',
-  role: 'Operative',
-  password: '',
-  linkedCustomerId: null,
-};
+function validateCard(form: CreateUserPayload): string | null {
+  if (!form.username.trim()) return 'Username is required.';
+  if (/\s/.test(form.username)) return 'Username must not contain spaces.';
+  if (!/^[a-zA-Z0-9_.\-]+$/.test(form.username.trim()))
+    return 'Username may only contain letters, numbers, underscores, hyphens, and dots.';
+  if (!form.fullName.trim()) return 'Full name is required.';
+  if (!form.email.trim()) return 'Email is required.';
+  if (!form.password.trim()) return 'Password is required.';
+  if (form.password.length < 8) return 'Password must be at least 8 characters.';
+  if (!/[A-Z]/.test(form.password))
+    return 'Password must contain at least one uppercase letter.';
+  if (!/[a-z]/.test(form.password))
+    return 'Password must contain at least one lowercase letter.';
+  if (!/[0-9]/.test(form.password))
+    return 'Password must contain at least one number.';
+  if (!/[^a-zA-Z0-9]/.test(form.password))
+    return 'Password must contain at least one special character (e.g. !@#$).';
+  if (!form.role) return 'Role is required.';
+  if (form.role === 'Customer' && !form.linkedCustomerId)
+    return 'A linked customer account is required for Customer users.';
+  return null;
+}
 
 export default function CreateUserScreen() {
   const { isAdmin } = useAuth();
@@ -38,44 +54,28 @@ export default function CreateUserScreen() {
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
-  const { showSuccess, showDanger } = useAppModal();
+  const { showSuccess, showDanger, showConfirm } = useAppModal();
 
-  const [form, setForm] = useState<CreateUserPayload>(INITIAL_FORM);
+  const [batchExpanded, setBatchExpanded] = useState(true);
+  const [batchDefaults, setBatchDefaults] =
+    useState<BatchUserDefaults>(INITIAL_BATCH_DEFAULTS);
+  const [batchCount, setBatchCount] = useState(1);
+  const [cards, setCards] = useState<BatchCardState[]>(() => [
+    buildEmptyCard(0, INITIAL_BATCH_DEFAULTS),
+  ]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [passwordRevealed, setPasswordRevealed] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<string | null>(null);
 
-  const setField = useCallback(<K extends keyof CreateUserPayload>(key: K, value: CreateUserPayload[K]) => {
-    setValidationError(null);
-    setForm((f) => ({ ...f, [key]: value }));
-  }, []);
-
-  const handleGeneratePassword = useCallback(() => {
-    setValidationError(null);
-    setForm((f) => ({ ...f, password: generatePassword() }));
-    setPasswordRevealed(true);
-  }, []);
-
-  const validate = useCallback((): string | null => {
-    if (!form.username.trim()) return 'Username is required.';
-    if (/\s/.test(form.username)) return 'Username must not contain spaces.';
-    if (!/^[a-zA-Z0-9_.\-]+$/.test(form.username.trim())) return 'Username may only contain letters, numbers, underscores, hyphens, and dots.';
-    if (!form.fullName.trim()) return 'Full name is required.';
-    if (!form.email.trim()) return 'Email is required.';
-    if (!form.password.trim()) return 'Password is required.';
-    if (form.password.length < 8) return 'Password must be at least 8 characters.';
-    if (!/[A-Z]/.test(form.password)) return 'Password must contain at least one uppercase letter.';
-    if (!/[a-z]/.test(form.password)) return 'Password must contain at least one lowercase letter.';
-    if (!/[0-9]/.test(form.password)) return 'Password must contain at least one number.';
-    if (!/[^a-zA-Z0-9]/.test(form.password)) return 'Password must contain at least one special character (e.g. !@#$).';
-    if (!form.role) return 'Role is required.';
-    if (form.role === 'Customer' && !form.linkedCustomerId) return 'A linked customer account is required for Customer users.';
-    return null;
-  }, [form]);
-
+  // ── isDirty ─────────────────────────────────────────────────────────────────
   const isDirty = useMemo(
-    () => JSON.stringify(form) !== JSON.stringify(INITIAL_FORM),
-    [form],
+    () =>
+      cards.some((c) =>
+        Object.values(c.form).some(
+          (v) => v !== '' && v !== null && v !== 'Operative',
+        ),
+      ),
+    [cards],
   );
 
   const { guardAction } = useUnsavedChangesGuard({ isDirty });
@@ -89,49 +89,279 @@ export default function CreateUserScreen() {
     return unsubscribe;
   }, [navigation, isDirty, guardAction]);
 
+  // ── Card helpers ────────────────────────────────────────────────────────────
+
+  const updateCard = useCallback(
+    (id: string, updater: (prev: BatchCardState) => BatchCardState) => {
+      setCards((prev) => prev.map((c) => (c.id === id ? updater(c) : c)));
+    },
+    [],
+  );
+
+  const deleteCard = useCallback((id: string) => {
+    setCards((prev) => prev.filter((c) => c.id !== id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // ── handleGenerate ──────────────────────────────────────────────────────────
+
+  const handleGenerate = useCallback(async () => {
+    // Check for dirty cards
+    if (isDirty) {
+      const confirmed = await showConfirm({
+        title: 'Replace existing cards?',
+        message:
+          'Generating new cards will discard all current entries. Continue?',
+        confirmLabel: 'Replace',
+        cancelLabel: 'Keep current',
+        confirmVariant: 'danger',
+      });
+      if (!confirmed) return;
+    }
+
+    const newCards: BatchCardState[] = [];
+    for (let i = 0; i < batchCount; i++) {
+      const card = buildEmptyCard(i, batchDefaults);
+      if (batchDefaults.passwordStrategy === 'generate') {
+        card.form.password = generatePassword();
+        card.passwordRevealed = true;
+      }
+      if (
+        batchDefaults.passwordStrategy === 'shared' &&
+        batchDefaults.sharedPassword
+      ) {
+        card.form.password = batchDefaults.sharedPassword;
+        card.passwordRevealed = true;
+      }
+      newCards.push(card);
+    }
+
+    setCards(newCards);
+    setSelectedIds(new Set());
+  }, [isDirty, showConfirm, batchCount, batchDefaults]);
+
+  // ── handleSetSelected ───────────────────────────────────────────────────────
+
+  const handleSetSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setCards((prev) =>
+      prev.map((c) => {
+        if (!selectedIds.has(c.id)) return c;
+        const password =
+          batchDefaults.passwordStrategy === 'generate'
+            ? generatePassword()
+            : batchDefaults.passwordStrategy === 'shared' && batchDefaults.sharedPassword
+              ? batchDefaults.sharedPassword
+              : c.form.password;
+        return {
+          ...c,
+          form: {
+            ...c.form,
+            role: batchDefaults.role,
+            linkedCustomerId:
+              batchDefaults.role === 'Customer' ? batchDefaults.linkedCustomerId : null,
+            password,
+          },
+          passwordRevealed: true,
+          validationError: null,
+        };
+      }),
+    );
+  }, [selectedIds, batchDefaults]);
+
+  // ── handleSetAll ─────────────────────────────────────────────────────────────
+
+  const handleSetAll = useCallback(() => {
+    setCards((prev) =>
+      prev.map((c) => {
+        const password =
+          batchDefaults.passwordStrategy === 'generate'
+            ? generatePassword()
+            : batchDefaults.passwordStrategy === 'shared' && batchDefaults.sharedPassword
+              ? batchDefaults.sharedPassword
+              : c.form.password;
+        return {
+          ...c,
+          form: {
+            ...c.form,
+            role: batchDefaults.role,
+            linkedCustomerId:
+              batchDefaults.role === 'Customer' ? batchDefaults.linkedCustomerId : null,
+            password,
+          },
+          passwordRevealed: true,
+          validationError: null,
+        };
+      }),
+    );
+  }, [batchDefaults]);
+
+  // ── handleSave ─────────────────────────────────────────────────────────────
+
   const handleSave = useCallback(async () => {
-    const error = validate();
-    if (error) {
-      setValidationError(error);
-      showDanger('Validation Error', error);
+    // Validate all cards
+    let hasErrors = false;
+    const validated = cards.map((c) => {
+      const err = validateCard(c.form);
+      if (err) hasErrors = true;
+      return { ...c, validationError: err };
+    });
+    setCards(validated);
+
+    if (hasErrors) {
+      void showDanger(
+        'Validation errors',
+        'Fix errors on highlighted cards before saving.',
+      );
       return;
     }
 
     setIsSaving(true);
-    try {
-      const userPayload = {
-        username: form.username.trim().toLowerCase(),
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        role: form.role,
-        password: form.password,
-        ...(form.role === 'Customer' ? { linkedCustomerId: form.linkedCustomerId } : {}),
-      };
-      console.log('[UserCreate] Submitting new user — username:', userPayload.username, 'role:', userPayload.role);
-      await createUser(userPayload);
+    const results: { index: number; error: string | null }[] = [];
+
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      setSaveProgress(`Creating user ${i + 1} of ${cards.length}…`);
+
+      try {
+        const userPayload = {
+          username: card.form.username.trim().toLowerCase(),
+          fullName: card.form.fullName.trim(),
+          email: card.form.email.trim(),
+          role: card.form.role,
+          password: card.form.password,
+          ...(card.form.role === 'Customer'
+            ? { linkedCustomerId: card.form.linkedCustomerId }
+            : {}),
+        };
+        console.log(
+          `[UserCreate] Submitting card ${i + 1} — username:`,
+          userPayload.username,
+          'role:',
+          userPayload.role,
+        );
+        await createUser(userPayload);
+        results.push({ index: i, error: null });
+      } catch (err) {
+        console.error(`[UserCreate] API error for card ${i + 1}:`, err);
+        const message =
+          err instanceof Error ? err.message : 'Failed to create user.';
+        results.push({ index: i, error: message });
+      }
+    }
+
+    setSaveProgress(null);
+    setIsSaving(false);
+
+    const failures = results.filter((r) => r.error !== null);
+    const successes = results.length - failures.length;
+
+    if (failures.length === 0) {
       await showSuccess(
-        'User created',
-        `${form.fullName.trim()} has been created successfully.\n\nThey will be required to set a new password on first login.`
+        'Users created',
+        `${successes} user(s) created successfully.`,
       );
       router.replace('/(app)/users' as never);
-    } catch (err) {
-      console.error('[UserCreate] API error:', err);
-      showDanger('Create failed', err instanceof Error ? err.message : 'Failed to create user.');
-    } finally {
-      setIsSaving(false);
+    } else {
+      // Mark failed cards with error
+      setCards((prev) =>
+        prev.map((c, idx) => {
+          const failure = results.find((r) => r.index === idx);
+          return failure?.error
+            ? { ...c, validationError: failure.error }
+            : c;
+        }),
+      );
+      void showDanger(
+        'Some users could not be created',
+        `${successes} of ${cards.length} created. Review the highlighted cards and retry.`,
+      );
     }
-  }, [form, validate, showSuccess, showDanger, router]);
+  }, [cards, showSuccess, showDanger, router]);
 
-  const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),
-    buildIconTopBarAction({
-      id: 'save-new-user',
-      label: 'Save user',
-      onPress: handleSave,
-      icon: SaveIcon,
-      disabled: isSaving,
-    }),
-  ], [handleSave, isSaving, guardAction, router]);
+  // ── handleDeleteSelected ────────────────────────────────────────────────────
+
+  const handleDeleteSelected = useCallback(async () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+
+    const confirmed = await showConfirm({
+      title: 'Delete selected cards?',
+      message: `Remove ${count} selected card(s)?`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Keep',
+      confirmVariant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setCards((prev) => {
+      const remaining = prev.filter((c) => !selectedIds.has(c.id));
+      // Keep at least one card
+      if (remaining.length === 0) {
+        return [buildEmptyCard(0, batchDefaults)];
+      }
+      return remaining;
+    });
+    setSelectedIds(new Set());
+  }, [selectedIds, showConfirm, batchDefaults]);
+
+  // ── TopBar ──────────────────────────────────────────────────────────────────
+
+  const topBarActions = useMemo<TopBarAction[]>(() => {
+    const actions: TopBarAction[] = [
+      buildBackTopBarAction({
+        onPress: () => void guardAction(() => router.back()),
+      }),
+    ];
+
+    if (selectedIds.size > 0) {
+      actions.push(
+        buildIconTopBarAction({
+          id: 'delete-selected-users',
+          label: `Delete selected (${selectedIds.size})`,
+          onPress: handleDeleteSelected,
+          icon: Trash2Icon,
+          disabled: isSaving,
+        }),
+      );
+    }
+
+    actions.push(
+      buildIconTopBarAction({
+        id: 'save-new-users',
+        label: isSaving
+          ? saveProgress ?? 'Saving…'
+          : `Save ${cards.length} user${cards.length !== 1 ? 's' : ''}`,
+        onPress: handleSave,
+        icon: SaveIcon,
+        disabled: isSaving,
+      }),
+    );
+
+    return actions;
+  }, [
+    guardAction,
+    router,
+    selectedIds,
+    handleDeleteSelected,
+    isSaving,
+    saveProgress,
+    handleSave,
+    cards.length,
+  ]);
 
   useScreenTopBar({ title: 'Create User', actions: topBarActions });
 
@@ -141,106 +371,53 @@ export default function CreateUserScreen() {
 
   return (
     <ScreenContent>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <ThemedCard style={styles.card}>
-          <Text style={styles.sectionTitle}>New User Details</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <BatchUserSetupCard
+          expanded={batchExpanded}
+          onToggleExpanded={() => setBatchExpanded((e) => !e)}
+          count={batchCount}
+          onCountChange={setBatchCount}
+          defaults={batchDefaults}
+          onDefaultsChange={setBatchDefaults}
+          onGenerate={handleGenerate}
+          onSetSelected={handleSetSelected}
+          onSetAll={handleSetAll}
+          selectedCount={selectedIds.size}
+          totalCards={cards.length}
+        />
 
-          {validationError ? (
-            <View style={styles.validationBanner}>
-              <Text style={styles.validationText}>{validationError}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Username *</Text>
-            <ThemedInput
-              value={form.username}
-              onChangeText={(text) => setField('username', text)}
-              placeholder="e.g. jsmith"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Full Name *</Text>
-            <ThemedInput
-              value={form.fullName}
-              onChangeText={(text) => setField('fullName', text)}
-              placeholder="e.g. John Smith"
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Email *</Text>
-            <ThemedInput
-              value={form.email}
-              onChangeText={(text) => setField('email', text)}
-              placeholder="e.g. jsmith@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Password *</Text>
-            <ThemedInput
-              value={form.password}
-              onChangeText={(text) => {
-                setPasswordRevealed(false);
-                setField('password', text);
-              }}
-              placeholder="Temporary password"
-              secureTextEntry={!passwordRevealed}
-              style={styles.input}
-            />
-            <Text style={styles.fieldHint}>
-              Min. 8 characters — must include uppercase, lowercase, number, and special character (e.g. Password1!)
-            </Text>
-            <ThemedButton
-              label="Generate Temporary Password"
-              onPress={handleGeneratePassword}
-              variant="secondary"
-              style={styles.generateButton}
-              tooltip="Generate a random password that meets complexity requirements"
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Role *</Text>
-            <View style={styles.roleRow}>
-              {ASSIGNABLE_ROLES.map((role) => (
-                <ThemedButton
-                  key={role}
-                  label={role}
-                  onPress={() => {
-                    setValidationError(null);
-                    setForm((f) => ({
-                      ...f,
-                      role,
-                      linkedCustomerId: role === 'Customer' ? f.linkedCustomerId : null,
-                    }));
-                  }}
-                  variant={form.role === role ? 'primary' : 'secondary'}
-                  style={{ minWidth: 90 }}
-                  tooltip={`Select role: ${role}`}
-                />
-              ))}
-            </View>
-          </View>
-
-          {form.role === 'Customer' ? (
-            <LinkedCustomerField
-              isEditing
-              linkedCustomerId={form.linkedCustomerId}
-              onChange={(id) => setForm((f) => ({ ...f, linkedCustomerId: id }))}
-            />
-          ) : null}
-        </ThemedCard>
+        {cards.map((card, idx) => (
+          <BatchUserCard
+            key={card.id}
+            index={idx}
+            state={card}
+            totalCount={cards.length}
+            isSelected={selectedIds.has(card.id)}
+            onToggleSelect={() => toggleSelect(card.id)}
+            onDelete={() => deleteCard(card.id)}
+            onFormChange={(updater) =>
+              updateCard(card.id, (prev) => ({
+                ...prev,
+                form: updater(prev.form),
+              }))
+            }
+            onPasswordRevealChange={(revealed) =>
+              updateCard(card.id, (prev) => ({
+                ...prev,
+                passwordRevealed: revealed,
+              }))
+            }
+            onValidationErrorChange={(err) =>
+              updateCard(card.id, (prev) => ({
+                ...prev,
+                validationError: err,
+              }))
+            }
+          />
+        ))}
       </ScrollView>
     </ScreenContent>
   );
@@ -254,50 +431,7 @@ function createStyles(theme: AppTheme) {
     scrollContent: {
       paddingBottom: theme.spacing.xxl,
     },
+    sectionTitle: common.sectionTitle,
     card: common.card,
-    field: {
-      marginTop: theme.spacing.md,
-    },
-    fieldLabel: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: theme.colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.3,
-      marginBottom: theme.spacing.xs,
-    },
-    input: {
-      marginTop: 2,
-    },
-    fieldHint: {
-      fontSize: 11,
-      color: theme.colors.textMuted,
-      marginTop: theme.spacing.xs,
-      lineHeight: 16,
-    },
-    generateButton: {
-      marginTop: theme.spacing.sm,
-      alignSelf: 'flex-start',
-    },
-    roleRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.xs,
-    },
-    validationBanner: {
-      marginTop: theme.spacing.md,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.dangerSurface,
-      borderWidth: 1,
-      borderColor: theme.colors.danger,
-      padding: theme.spacing.md,
-    },
-    validationText: {
-      color: theme.colors.danger,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-
   });
 }
