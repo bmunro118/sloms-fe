@@ -61,7 +61,7 @@ export function BatchUserSetupCard({
   return (
     <ThemedCard style={styles.card}>
       {/* Header: title + expand/collapse button on the same row */}
-      <View style={styles.cardHeader}>
+      <View style={[styles.cardHeader, !expanded && styles.cardHeaderCollapsed]}>
         <Text style={styles.cardTitle}>Batch User Setup</Text>
         <ThemedButton
           variant="icon"
@@ -210,6 +210,9 @@ function createStyles(theme: AppTheme) {
       alignItems: 'center',
       justifyContent: 'space-between',
       marginBottom: theme.spacing.md,
+    },
+    cardHeaderCollapsed: {
+      marginBottom: 0,
     },
     cardTitle: {
       fontSize: 16,

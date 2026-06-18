@@ -56,7 +56,7 @@ export default function CreateUserScreen() {
   const theme = useAppTheme();
   const { showSuccess, showDanger, showConfirm } = useAppModal();
 
-  const [batchExpanded, setBatchExpanded] = useState(true);
+  const [batchExpanded, setBatchExpanded] = useState(false);
   const [batchDefaults, setBatchDefaults] =
     useState<BatchUserDefaults>(INITIAL_BATCH_DEFAULTS);
   const [batchCount, setBatchCount] = useState(1);
@@ -327,17 +327,15 @@ export default function CreateUserScreen() {
       }),
     ];
 
-    if (selectedIds.size > 0) {
-      actions.push(
-        buildIconTopBarAction({
-          id: 'delete-selected-users',
-          label: `Delete selected (${selectedIds.size})`,
-          onPress: handleDeleteSelected,
-          icon: Trash2Icon,
-          disabled: isSaving,
-        }),
-      );
-    }
+    actions.push(
+      buildIconTopBarAction({
+        id: 'delete-selected-users',
+        label: selectedIds.size > 0 ? `Delete selected (${selectedIds.size})` : 'Delete selected',
+        onPress: handleDeleteSelected,
+        icon: Trash2Icon,
+        disabled: selectedIds.size === 0 || isSaving,
+      }),
+    );
 
     actions.push(
       buildIconTopBarAction({
