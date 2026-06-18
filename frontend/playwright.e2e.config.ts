@@ -47,7 +47,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: `cd .. && npx expo start --web --port ${E2E_PORT} --clear`,
+    command: `npx expo start --web --port ${E2E_PORT} --clear`,
     url: E2E_BASE_URL,
     reuseExistingServer: false,
     timeout: 180_000,

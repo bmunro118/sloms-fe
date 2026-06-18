@@ -1,9 +1,9 @@
 import { RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { TooltipPressable } from '@components/ui/TooltipPressable';
+import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -13,7 +13,6 @@ import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
-import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -22,13 +21,13 @@ import { ENDPOINTS } from '@utils/config';
 
 export default function AccountScreen() {
   const { user } = useAuth();
-  const theme = useAppTheme();
   const { showConfirm } = useAppModal();
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profile, setProfile] = useState<UserRecord | null>(null);
@@ -49,9 +48,16 @@ export default function AccountScreen() {
   const canSubmitPasswordChange = useMemo(() => {
     const currentTrimmed = currentPassword.trim();
     const nextTrimmed = newPassword.trim();
+    const confirmTrimmed = confirmPassword.trim();
 
-    return !isSubmitting && currentTrimmed.length > 0 && nextTrimmed.length > 0 && currentTrimmed !== nextTrimmed;
-  }, [currentPassword, isSubmitting, newPassword]);
+    return (
+      !isSubmitting &&
+      currentTrimmed.length > 0 &&
+      nextTrimmed.length > 0 &&
+      currentTrimmed !== nextTrimmed &&
+      nextTrimmed === confirmTrimmed
+    );
+  }, [confirmPassword, currentPassword, isSubmitting, newPassword]);
 
   const performPasswordChange = useCallback(async () => {
     setStatus(null);
@@ -74,6 +80,7 @@ export default function AccountScreen() {
         setStatus('Password updated successfully.');
         setCurrentPassword('');
         setNewPassword('');
+        setConfirmPassword('');
       }
     } catch (err) {
       if (isMountedRef.current) {
@@ -106,8 +113,8 @@ export default function AccountScreen() {
   }, [isSubmitting, performPasswordChange, showConfirm]);
 
   const isDirty = useMemo(
-    () => currentPassword.trim().length > 0 || newPassword.trim().length > 0,
-    [currentPassword, newPassword],
+    () => currentPassword.trim().length > 0 || newPassword.trim().length > 0 || confirmPassword.trim().length > 0,
+    [confirmPassword, currentPassword, newPassword],
   );
 
   const { guardAction } = useUnsavedChangesGuard({ isDirty });
@@ -130,6 +137,7 @@ export default function AccountScreen() {
           void guardAction(() => {
             setCurrentPassword('');
             setNewPassword('');
+            setConfirmPassword('');
             setStatus(null);
           });
         },
@@ -149,49 +157,44 @@ export default function AccountScreen() {
       {profile?.email ? <Text style={styles.meta}>Email: {profile.email}</Text> : null}
 
       <Text style={styles.sectionTitle}>Change Password</Text>
-      <ThemedInput
-        secureTextEntry
-        placeholder="Current password"
-        style={[styles.input, styles.passwordInput]}
-        value={currentPassword}
-        onChangeText={setCurrentPassword}
-        editable={!isSubmitting}
-      />
-      <ThemedInput
-        secureTextEntry
-        placeholder="New password"
-        style={[styles.input, styles.passwordInput]}
-        value={newPassword}
-        onChangeText={setNewPassword}
-        editable={!isSubmitting}
-      />
-      <View style={styles.contentActionRowRight}>
-        <TooltipPressable
-          tooltip={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
-          accessibilityRole="button"
-          accessibilityLabel={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
+      <View style={styles.formContainer}>
+        <ThemedInput
+          secureTextEntry
+          placeholder="Current password"
+          style={styles.input}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          editable={!isSubmitting}
+        />
+        <ThemedInput
+          secureTextEntry
+          placeholder="New password"
+          style={styles.input}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          editable={!isSubmitting}
+        />
+        <ThemedInput
+          secureTextEntry
+          placeholder="Confirm new password"
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          editable={!isSubmitting}
+        />
+        <ThemedButton
+          label={isSubmitting ? 'Saving...' : 'Save Password'}
+          icon={<SaveIcon size={16} color="white" />}
+          variant="solid"
           disabled={!canSubmitPasswordChange}
           onPress={handlePasswordChange}
-          style={(state) => [
-            styles.contentActionButton,
-            !canSubmitPasswordChange ? styles.contentActionButtonDisabled : null,
-            isHovered(state) && canSubmitPasswordChange ? styles.contentActionButtonHover : null,
-            state.pressed && canSubmitPasswordChange ? styles.contentActionButtonPressed : null,
-          ]}
-        >
-          <SaveIcon size={16} color={canSubmitPasswordChange ? theme.colors.navTextStrong : theme.colors.textMuted} />
-          <Text style={[styles.contentActionButtonText, !canSubmitPasswordChange ? styles.contentActionButtonTextDisabled : null]}>
-            {isSubmitting ? 'Saving...' : 'Save Password'}
-          </Text>
-        </TooltipPressable>
+          tooltip={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
+          style={styles.saveButton}
+        />
+        {status ? <Text style={styles.status}>{status}</Text> : null}
       </View>
-      {status ? <Text style={styles.status}>{status}</Text> : null}
     </ScreenContent>
   );
-}
-
-function isHovered(state: PressableStateCallbackType) {
-  return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
 }
 
 function createStyles(theme: AppTheme) {
@@ -199,8 +202,13 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
-    passwordInput: {
+    formContainer: {
       maxWidth: 440,
+      width: '100%',
+      gap: 16,
+    },
+    saveButton: {
+      alignSelf: 'flex-end',
     },
   });
 }
