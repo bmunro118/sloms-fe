@@ -80,6 +80,7 @@ export default function LoginScreen() {
         autoCorrect={false}
         placeholder="Username"
         accessibilityLabel="Username"
+        testID="login-username"
         style={styles.formInput}
         value={username}
         onChangeText={setUsername}
@@ -90,6 +91,7 @@ export default function LoginScreen() {
         secureTextEntry
         placeholder="Password"
         accessibilityLabel="Password"
+        testID="login-password"
         style={styles.formInput}
         value={password}
         onChangeText={setPassword}
@@ -104,6 +106,7 @@ export default function LoginScreen() {
         disabled={isSubmitting}
         style={styles.signInButton}
         tooltip={isSubmitting ? 'Signing in…' : 'Sign in'}
+        testID="login-button"
       />
     </View>
   );

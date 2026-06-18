@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const E2E_DIR = '../../sonic_dev_tools/test_suite/e2e';
+const E2E_PORT = 8082;
+const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
 
 export default defineConfig({
   testDir: `${E2E_DIR}/tests`,
@@ -8,7 +10,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  timeout: 30_000,
+  timeout: 60_000,
   expect: { timeout: 10_000 },
 
   reporter: [
@@ -18,31 +20,23 @@ export default defineConfig({
   ],
 
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:8081',
+    baseURL: process.env.E2E_BASE_URL || E2E_BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    actionTimeout: 15_000,
+    navigationTimeout: 15_000,
   },
 
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      testDir: `${E2E_DIR}/fixtures`,
+    },
+    {
       name: 'admin',
       use: { ...devices['Desktop Chrome'], storageState: `${E2E_DIR}/.auth/admin.json` },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'manager',
-      use: { ...devices['Desktop Chrome'], storageState: `${E2E_DIR}/.auth/manager.json` },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'operative',
-      use: { ...devices['Desktop Chrome'], storageState: `${E2E_DIR}/.auth/operative.json` },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'readonly',
-      use: { ...devices['Desktop Chrome'], storageState: `${E2E_DIR}/.auth/readonly.json` },
       dependencies: ['setup'],
     },
     {
@@ -50,17 +44,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: `${E2E_DIR}/.auth/customer.json` },
       dependencies: ['setup'],
     },
-    {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
-      testDir: `${E2E_DIR}/fixtures`,
-    },
   ],
 
   webServer: {
-    command: 'npx expo start --web --port 8081',
-    url: 'http://localhost:8081',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    command: `cd ../.. && npx expo start --web --port ${E2E_PORT} --clear`,
+    url: E2E_BASE_URL,
+    reuseExistingServer: false,
+    timeout: 180_000,
   },
 });

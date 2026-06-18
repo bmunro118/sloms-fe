@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "cross-env NODE_PATH=node_modules playwright test --config playwright.e2e.config.ts",
+    "test:e2e:admin": "cross-env NODE_PATH=node_modules E2E_ROLE=admin playwright test --config playwright.e2e.config.ts --project=admin",
+    "test:e2e:customer": "cross-env NODE_PATH=node_modules E2E_ROLE=customer playwright test --config playwright.e2e.config.ts --project=customer",
     "test:e2e:ui": "cross-env NODE_PATH=node_modules playwright test --config playwright.e2e.config.ts --ui",
     "test:e2e:report": "playwright show-report ../../sonic_dev_tools/test_suite/e2e/reports/html",
     "test:e2e:codegen": "playwright codegen http://localhost:8081"
