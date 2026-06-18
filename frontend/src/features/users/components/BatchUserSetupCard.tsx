@@ -1,6 +1,6 @@
-import { ChevronDown, ChevronUp } from 'lucide-react-native';
-import { useCallback } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChevronDown } from 'lucide-react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -42,6 +42,54 @@ export function BatchUserSetupCard({
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
 
+  // Animated values for smooth expand/collapse transitions
+  const animatedHeight = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  const animatedOpacity = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  const chevronRotation = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  const [contentHeight, setContentHeight] = useState(0);
+
+  // Interpolated chevron rotation (0deg collapsed → 180deg expanded)
+  const chevronRotate = chevronRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+    extrapolate: 'clamp',
+  });
+
+  // Animate card expand/collapse (mirrors NavLayout sidebar animation pattern)
+  const animateCardExpansion = useCallback(
+    (isExpanded: boolean) => {
+      animatedHeight.stopAnimation();
+      animatedOpacity.stopAnimation();
+      chevronRotation.stopAnimation();
+
+      Animated.parallel([
+        Animated.timing(animatedHeight, {
+          toValue: isExpanded ? 1 : 0,
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        }),
+        Animated.timing(animatedOpacity, {
+          toValue: isExpanded ? 1 : 0,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(chevronRotation, {
+          toValue: isExpanded ? 1 : 0,
+          duration: 250,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    },
+    [animatedHeight, animatedOpacity, chevronRotation]
+  );
+
+  useEffect(() => {
+    animateCardExpansion(expanded);
+  }, [animateCardExpansion, expanded]);
+
   const countString = count.toString();
   const countError = count < 1 || count > 20 || !Number.isInteger(count)
     ? 'Enter a number between 1 and 20.'
@@ -56,8 +104,6 @@ export function BatchUserSetupCard({
     }
   }, [onCountChange]);
 
-  const ChevronIcon = expanded ? ChevronUp : ChevronDown;
-
   return (
     <ThemedCard style={styles.card}>
       {/* Header: title + expand/collapse button on the same row */}
@@ -65,14 +111,37 @@ export function BatchUserSetupCard({
         <Text style={styles.cardTitle}>Batch User Setup</Text>
         <ThemedButton
           variant="icon"
-          icon={<ChevronIcon size={16} color={theme.colors.navTextStrong} />}
+          icon={
+            <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+              <ChevronDown size={16} color={theme.colors.navTextStrong} />
+            </Animated.View>
+          }
           onPress={onToggleExpanded}
           tooltip={expanded ? 'Collapse batch setup' : 'Expand batch setup'}
           style={styles.toggleButton}
         />
       </View>
-      {expanded ? (
-        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <Animated.View
+        style={[
+          styles.contentContainer,
+          {
+            height: animatedHeight.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, contentHeight],
+              extrapolate: 'clamp',
+            }),
+            opacity: animatedOpacity,
+          },
+        ]}
+      >
+        <View
+          onLayout={(event) => {
+            const height = event.nativeEvent.layout.height;
+            setContentHeight(height);
+          }}
+          style={styles.contentInner}
+        >
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.contentScrollView}>
           {/* 1. Default Role */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Default Role</Text>
@@ -194,8 +263,9 @@ export function BatchUserSetupCard({
               style={styles.actionButton}
             />
           </View>
-        </ScrollView>
-      ) : null}
+          </ScrollView>
+        </View>
+      </Animated.View>
     </ThemedCard>
   );
 }
@@ -204,6 +274,15 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
       marginBottom: theme.spacing.md,
+    },
+    contentContainer: {
+      overflow: 'hidden',
+    },
+    contentInner: {
+      paddingBottom: theme.spacing.xs,
+    },
+    contentScrollView: {
+      flex: 1,
     },
     cardHeader: {
       flexDirection: 'row',
