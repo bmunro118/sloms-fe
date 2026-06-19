@@ -17,9 +17,10 @@ export interface CustomerCardData {
 
 interface CustomerCardProps {
   customer: CustomerCardData;
+  canMutate: boolean;
 }
 
-export function CustomerCard({ customer }: CustomerCardProps) {
+export function CustomerCard({ customer, canMutate }: CustomerCardProps) {
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
 
@@ -38,9 +39,10 @@ export function CustomerCard({ customer }: CustomerCardProps) {
         label: 'Edit customer',
         onPress: handleOpenCustomerEdit,
         icon: EditCustomerIcon,
+        hidden: !canMutate,
       }),
     ];
-  }, [customer.customerId, handleOpenCustomerEdit]);
+  }, [canMutate, customer.customerId, handleOpenCustomerEdit]);
 
   return (
     <ThemedCard

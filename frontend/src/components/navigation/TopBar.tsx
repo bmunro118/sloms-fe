@@ -6,6 +6,7 @@ import { createWideStyles, TopBarWideLayout } from './TopBarWideLayout';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppShell } from '@src/features/app-shell';
+import { useAuth } from '@context/AuthContext';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
 import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -35,6 +36,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [overflowPos, setOverflowPos] = useState({ left: 0, top: 0 });
   const { platformProfile } = useAppShell();
+  const { canMutate } = useAuth();
   const isWideLayout = platformProfile === 'web-desktop' || platformProfile === 'web-compact' || platformProfile === 'native-tablet';
   const backActions = useMemo(() => actions.filter((action) => action.isBack === true), [actions]);
   const nonBackActions = useMemo(() => actions.filter((action) => action.isBack !== true), [actions]);
@@ -168,6 +170,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
         wideBackAction={wideBackAction}
         wideEditAction={wideEditAction}
         wideSaveAction={wideSaveAction}
+        showEditSaveSlots={canMutate}
         wideOverflowActions={wideOverflowActions}
         wideHasOverflow={wideHasOverflow}
         overflowOpen={overflowOpen}

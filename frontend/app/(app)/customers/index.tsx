@@ -60,7 +60,7 @@ function normalizeCustomers(rows: CustomerRecord[]): CustomerCardRow[] {
 const INITIAL_FILTERS: CustomerFilters = { includeSuspended: false };
 
 export default function CustomersListScreen() {
-  const { isStaff, role } = useAuth();
+  const { isStaff, role, canMutate } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
@@ -185,6 +185,7 @@ export default function CustomersListScreen() {
               <CustomerCard
                 key={customer.renderKey}
                 customer={customer}
+                canMutate={canMutate}
               />
             ))}
           </ScrollView>

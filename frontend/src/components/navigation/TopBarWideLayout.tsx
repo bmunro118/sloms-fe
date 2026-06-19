@@ -16,6 +16,7 @@ interface TopBarWideLayoutProps {
   wideBackAction: TopBarAction | null;
   wideEditAction: TopBarAction | null;
   wideSaveAction: TopBarAction | null;
+  showEditSaveSlots: boolean;
   wideOverflowActions: TopBarAction[];
   wideHasOverflow: boolean;
   overflowOpen: boolean;
@@ -39,6 +40,7 @@ export function TopBarWideLayout({
   wideBackAction,
   wideEditAction,
   wideSaveAction,
+  showEditSaveSlots,
   wideOverflowActions,
   wideHasOverflow,
   overflowOpen,
@@ -54,7 +56,9 @@ export function TopBarWideLayout({
   theme,
 }: TopBarWideLayoutProps) {
   const moreButtonRef = useRef<RNView>(null);
-  const primarySlots = [wideBackAction, wideEditAction, wideSaveAction];
+  const primarySlots = showEditSaveSlots
+    ? [wideBackAction, wideEditAction, wideSaveAction]
+    : [wideBackAction];
 
   const handleMorePress = () => {
     if (!wideHasOverflow) return;
