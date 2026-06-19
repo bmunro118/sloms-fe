@@ -1,9 +1,10 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Modal, Platform, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import type { View as RNView } from 'react-native';
 import { ArrowBigLeft as BackSlotIcon, Menu as MenuIcon, MoreHorizontal as MoreIcon, Pencil as EditSlotIcon, Save as SaveSlotIcon, X as CloseIcon } from 'lucide-react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { useTooltipDismissal } from '@context/TooltipDismissalContext';
 import { tokens } from '@src/theme/tokens';
 import { AppTheme } from '@theme/types';
 
@@ -56,6 +57,14 @@ export function TopBarWideLayout({
   theme,
 }: TopBarWideLayoutProps) {
   const moreButtonRef = useRef<RNView>(null);
+  const { registerModal } = useTooltipDismissal();
+
+  useEffect(() => {
+    if (overflowOpen) {
+      return registerModal();
+    }
+  }, [overflowOpen, registerModal]);
+
   const primarySlots = showEditSaveSlots
     ? [wideBackAction, wideEditAction, wideSaveAction]
     : [wideBackAction];

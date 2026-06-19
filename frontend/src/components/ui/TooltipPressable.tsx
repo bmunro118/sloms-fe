@@ -126,7 +126,7 @@ export function TooltipPressable({
     });
   }, [clearShowDelay, tooltipOpacity]);
 
-  const { dismissedRef, checkCooldown } = useTooltipDismissalGate({
+  const { dismissedRef, checkCooldown, dismiss } = useTooltipDismissalGate({
     onDismiss: hideTooltip,
   });
 
@@ -184,9 +184,18 @@ export function TooltipPressable({
   const handlePress: NonNullable<PressableProps['onPress']> = useCallback(
     (event) => {
       hideTooltip();
+      if (hasTooltip) {
+        if (pressableRef.current) {
+          pressableRef.current.measureInWindow((x, y, width, height) => {
+            dismiss({ x, y, width, height });
+          });
+        } else {
+          dismiss();
+        }
+      }
       onPress?.(event);
     },
-    [hideTooltip, onPress]
+    [hideTooltip, onPress, dismiss, hasTooltip]
   );
 
   const handleLongPress: NonNullable<PressableProps['onLongPress']> = useCallback(
@@ -207,10 +216,13 @@ export function TooltipPressable({
 
   const resolvePressableStyle: NonNullable<PressableProps['style']> = useCallback(
     (state: any) => {
-      const incomingStyle = typeof style === 'function' ? style(state) : style;
+      const gatedState = dismissedRef.current
+        ? { ...state, hovered: false, pressed: false }
+        : state;
+      const incomingStyle = typeof style === 'function' ? style(gatedState) : style;
       return [incomingStyle, styles.pressableBase];
     },
-    [style]
+    [style, dismissedRef]
   );
 
   const tooltipPlacement = useMemo(() => {

@@ -142,5 +142,6 @@ export function useTooltipDismissalGate(
     gateClearedAtRef,
     hideTooltipWithSuppression,
     checkCooldown,
+    dismiss,
   };
 }

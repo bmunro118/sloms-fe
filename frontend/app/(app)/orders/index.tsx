@@ -143,7 +143,7 @@ export default function OrdersListScreen() {
     if (isStaff && canMutate) {
       actions.push(buildIconTopBarAction({
         id: 'create-order',
-        label: 'Create order',
+        label: 'New Order',
         onPress: () => router.push('/(app)/orders/create'),
         icon: PackagePlusIcon,
       }));

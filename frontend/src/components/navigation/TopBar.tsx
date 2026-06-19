@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppShell } from '@src/features/app-shell';
 import { useAuth } from '@context/AuthContext';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
+import { useTooltipDismissal } from '@context/TooltipDismissalContext';
 import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
@@ -35,9 +36,16 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const [barWidth, setBarWidth] = useState(0);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [overflowPos, setOverflowPos] = useState({ left: 0, top: 0 });
+  const { registerModal } = useTooltipDismissal();
   const { platformProfile } = useAppShell();
   const { canMutate } = useAuth();
   const isWideLayout = platformProfile === 'web-desktop' || platformProfile === 'web-compact' || platformProfile === 'native-tablet';
+
+  useEffect(() => {
+    if (overflowOpen && !isWideLayout) {
+      return registerModal();
+    }
+  }, [overflowOpen, isWideLayout, registerModal]);
   const backActions = useMemo(() => actions.filter((action) => action.isBack === true), [actions]);
   const nonBackActions = useMemo(() => actions.filter((action) => action.isBack !== true), [actions]);
   const hasBackAction = backActions.length > 0;

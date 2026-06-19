@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MoreHorizontal as MoreIcon } from 'lucide-react-native';
 import { TopBarAction } from '@context/ScreenTitleContext';
+import { useTooltipDismissal } from '@context/TooltipDismissalContext';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { TooltipPressable } from './TooltipPressable';
@@ -41,6 +42,13 @@ export function ActionOverflowRow({ actions }: ActionOverflowRowProps) {
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const rootRef = useRef<View>(null);
+  const { registerModal } = useTooltipDismissal();
+
+  useEffect(() => {
+    if (overflowOpen) {
+      return registerModal();
+    }
+  }, [overflowOpen, registerModal]);
 
   const visibleActionSet = useMemo(() => actions.filter((action) => action.hidden !== true), [actions]);
   const mobilePinnedEditAction = useMemo(() => {
