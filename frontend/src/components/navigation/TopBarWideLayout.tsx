@@ -1,4 +1,6 @@
-import { Modal, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { Modal, Platform, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
+import type { View as RNView } from 'react-native';
 import { ArrowBigLeft as BackSlotIcon, Menu as MenuIcon, MoreHorizontal as MoreIcon, Pencil as EditSlotIcon, Save as SaveSlotIcon, X as CloseIcon } from 'lucide-react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -17,14 +19,13 @@ interface TopBarWideLayoutProps {
   wideOverflowActions: TopBarAction[];
   wideHasOverflow: boolean;
   overflowOpen: boolean;
-  onOpenOverflow: () => void;
+  onOpenOverflow: (screenX: number, screenY: number) => void;
   onCloseOverflow: () => void;
-  onMoreButtonLayout: (x: number) => void;
-  wideMoreButtonX: number;
   onMenuPress?: () => void;
   sidebarOpen?: boolean;
   onBarLayout: (width: number) => void;
   paddingTop: number;
+  overflowLeft: number;
   overflowTop: number;
   styles: ReturnType<typeof createWideStyles>;
   theme: AppTheme;
@@ -43,17 +44,33 @@ export function TopBarWideLayout({
   overflowOpen,
   onOpenOverflow,
   onCloseOverflow,
-  onMoreButtonLayout,
-  wideMoreButtonX,
   onMenuPress,
   sidebarOpen,
   onBarLayout,
   paddingTop,
+  overflowLeft,
   overflowTop,
   styles,
   theme,
 }: TopBarWideLayoutProps) {
+  const moreButtonRef = useRef<RNView>(null);
   const primarySlots = [wideBackAction, wideEditAction, wideSaveAction];
+
+  const handleMorePress = () => {
+    if (!wideHasOverflow) return;
+    if (Platform.OS === 'web' && moreButtonRef.current) {
+      (moreButtonRef.current as unknown as HTMLElement).getBoundingClientRect !== undefined
+        ? (() => {
+            const rect = (moreButtonRef.current as unknown as HTMLElement).getBoundingClientRect();
+            onOpenOverflow(rect.left, rect.bottom);
+          })()
+        : onOpenOverflow(overflowLeft, overflowTop);
+    } else if (moreButtonRef.current) {
+      moreButtonRef.current.measureInWindow((x, y) => onOpenOverflow(x, y));
+    } else {
+      onOpenOverflow(overflowLeft, overflowTop);
+    }
+  };
 
   return (
     <View
@@ -99,28 +116,29 @@ export function TopBarWideLayout({
           );
         })}
 
-        <TooltipPressable
-          tooltip={wideHasOverflow ? 'Show more actions' : 'No additional actions'}
-          accessibilityRole="button"
-          accessibilityLabel="More top bar actions"
-          disabled={!wideHasOverflow}
-          onPress={wideHasOverflow ? onOpenOverflow : () => {}}
-          onLayout={(e) => onMoreButtonLayout(e.nativeEvent.layout.x)}
-          style={(state) => [
-            styles.actionButton,
-            !wideHasOverflow ? styles.actionButtonDisabled : null,
-            isHovered(state) && wideHasOverflow ? styles.actionButtonHover : null,
-            state.pressed && wideHasOverflow ? styles.actionButtonPressed : null,
-          ]}
-        >
-          <MoreIcon size={18} color={wideHasOverflow ? theme.colors.navTextStrong : theme.colors.textMuted} />
-        </TooltipPressable>
+        <View ref={moreButtonRef} collapsable={false}>
+          <TooltipPressable
+            tooltip={wideHasOverflow ? 'Show more actions' : 'No additional actions'}
+            accessibilityRole="button"
+            accessibilityLabel="More top bar actions"
+            disabled={!wideHasOverflow}
+            onPress={handleMorePress}
+            style={(state) => [
+              styles.actionButton,
+              !wideHasOverflow ? styles.actionButtonDisabled : null,
+              isHovered(state) && wideHasOverflow ? styles.actionButtonHover : null,
+              state.pressed && wideHasOverflow ? styles.actionButtonPressed : null,
+            ]}
+          >
+            <MoreIcon size={18} color={wideHasOverflow ? theme.colors.navTextStrong : theme.colors.textMuted} />
+          </TooltipPressable>
+        </View>
       </View>
 
       <Modal animationType="fade" transparent visible={overflowOpen} onRequestClose={onCloseOverflow}>
         <View style={styles.modalRoot}>
           <Pressable style={styles.modalBackdrop} onPress={onCloseOverflow} />
-          <View style={[styles.overflowMenu, { top: overflowTop, left: wideMoreButtonX + 16 }]}>
+          <View style={[styles.overflowMenu, { top: overflowTop, left: overflowLeft }]}>
             {wideOverflowActions.map((action, index) => (
               <TooltipPressable
                 key={action.id}

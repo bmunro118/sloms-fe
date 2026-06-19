@@ -33,7 +33,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const wideStyles = useMemo(() => createWideStyles(theme), [theme]);
   const [barWidth, setBarWidth] = useState(0);
   const [overflowOpen, setOverflowOpen] = useState(false);
-  const [wideMoreButtonX, setWideMoreButtonX] = useState(0);
+  const [overflowPos, setOverflowPos] = useState({ left: 0, top: 0 });
   const { platformProfile } = useAppShell();
   const isWideLayout = platformProfile === 'web-desktop' || platformProfile === 'web-compact' || platformProfile === 'native-tablet';
   const backActions = useMemo(() => actions.filter((action) => action.isBack === true), [actions]);
@@ -171,15 +171,14 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
         wideOverflowActions={wideOverflowActions}
         wideHasOverflow={wideHasOverflow}
         overflowOpen={overflowOpen}
-        onOpenOverflow={() => setOverflowOpen(true)}
+        onOpenOverflow={(x, y) => { setOverflowPos({ left: x, top: y }); setOverflowOpen(true); }}
         onCloseOverflow={closeOverflow}
-        onMoreButtonLayout={(x) => setWideMoreButtonX(x)}
-        wideMoreButtonX={wideMoreButtonX}
         onMenuPress={onMenuPress}
         sidebarOpen={sidebarOpen}
         onBarLayout={(w) => setBarWidth(w)}
         paddingTop={insets.top + 8}
-        overflowTop={insets.top + 80}
+        overflowLeft={overflowPos.left}
+        overflowTop={overflowPos.top}
         styles={wideStyles}
         theme={theme}
       />
