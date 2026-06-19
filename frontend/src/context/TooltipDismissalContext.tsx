@@ -4,7 +4,7 @@ interface TooltipDismissalContextValue {
   dismissAllTooltips: () => void;
   registerTooltip: (dismissCallback: () => void) => () => void;
   modalOpen: boolean;
-  setModalOpen: (open: boolean) => void;
+  registerModal: () => () => void;
 }
 
 const TooltipDismissalContext = createContext<TooltipDismissalContextValue | undefined>(undefined);
@@ -12,6 +12,7 @@ const TooltipDismissalContext = createContext<TooltipDismissalContextValue | und
 export function TooltipDismissalProvider({ children }: PropsWithChildren) {
   const dismissCallbacks = useRef(new Set<() => void>());
   const [modalOpen, setModalOpen] = useState(false);
+  const modalCountRef = useRef(0);
 
   const dismissAllTooltips = useCallback(() => {
     dismissCallbacks.current.forEach((callback) => callback());
@@ -24,9 +25,20 @@ export function TooltipDismissalProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
+  const registerModal = useCallback(() => {
+    modalCountRef.current += 1;
+    setModalOpen(true);
+    return () => {
+      modalCountRef.current = Math.max(0, modalCountRef.current - 1);
+      if (modalCountRef.current === 0) {
+        setModalOpen(false);
+      }
+    };
+  }, []);
+
   const value = useMemo<TooltipDismissalContextValue>(
-    () => ({ dismissAllTooltips, registerTooltip, modalOpen, setModalOpen }),
-    [dismissAllTooltips, registerTooltip, modalOpen],
+    () => ({ dismissAllTooltips, registerTooltip, modalOpen, registerModal }),
+    [dismissAllTooltips, registerTooltip, modalOpen, registerModal],
   );
 
   return (

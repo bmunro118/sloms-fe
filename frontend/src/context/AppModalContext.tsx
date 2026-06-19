@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { PropsWithChildren, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppModal } from '@components/ui/AppModal';
 import { registerAppModalController } from '@src/features/modal/modal-controller';
 import { useTooltipDismissal } from '@context/TooltipDismissalContext';
@@ -50,21 +50,28 @@ function buildResolvedRequest(request: AppModalRequest): AppModalResolvedRequest
 
 export function AppModalProvider({ children }: PropsWithChildren) {
   const [activeModal, setActiveModal] = useState<AppModalResolvedRequest | null>(null);
-  const { dismissAllTooltips, setModalOpen } = useTooltipDismissal();
+  const { dismissAllTooltips, registerModal } = useTooltipDismissal();
+  const unregisterModalRef = useRef<(() => void) | null>(null);
 
   const closeModal = useCallback(() => {
-    setModalOpen(false);
+    if (unregisterModalRef.current) {
+      unregisterModalRef.current();
+      unregisterModalRef.current = null;
+    }
     setActiveModal((current) => {
       current?.onDismiss?.();
       return null;
     });
-  }, [setModalOpen]);
+  }, []);
 
   const openModal = useCallback((request: AppModalRequest) => {
     dismissAllTooltips();
-    setModalOpen(true);
+    if (unregisterModalRef.current) {
+      unregisterModalRef.current();
+    }
+    unregisterModalRef.current = registerModal();
     setActiveModal(buildResolvedRequest(request));
-  }, [dismissAllTooltips, setModalOpen]);
+  }, [dismissAllTooltips, registerModal]);
 
   const showInfo = useCallback((title: string, message?: string) => {
     openModal({ type: 'info', title, message });

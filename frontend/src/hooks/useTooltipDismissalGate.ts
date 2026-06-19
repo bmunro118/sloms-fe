@@ -14,6 +14,7 @@ interface UseTooltipDismissalGateReturn {
   gateClearedAtRef: React.MutableRefObject<number | null>;
   hideTooltipWithSuppression: () => void;
   checkCooldown: () => boolean;
+  dismiss: (triggerBounds?: { x: number; y: number; width: number; height: number }) => void;
 }
 
 export function useTooltipDismissalGate(
@@ -46,6 +47,19 @@ export function useTooltipDismissalGate(
       x: latestPtrPosRef.current.x,
       y: latestPtrPosRef.current.y,
     };
+
+    // Note: Cooldown starts when modal closes, not here
+  }, [onDismiss]);
+
+  const dismiss = useCallback((triggerBounds?: { x: number; y: number; width: number; height: number }) => {
+    onDismiss();
+
+    dismissedRef.current = true;
+    lastDismissPtrPos.current = {
+      x: latestPtrPosRef.current.x,
+      y: latestPtrPosRef.current.y,
+    };
+    dismissTriggerBounds.current = triggerBounds ?? null;
 
     // Note: Cooldown starts when modal closes, not here
   }, [onDismiss]);
