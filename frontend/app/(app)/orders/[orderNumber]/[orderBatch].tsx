@@ -1,13 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
   Archive as ArchiveIcon,
   Download as DownloadIcon,
   Pencil as EditIcon,
   PencilOff as CancelEditIcon,
-  RefreshCw,
   RotateCcw as ResetIcon,
   Save as SaveIcon,
   Send,
@@ -79,6 +78,7 @@ export default function OrderDetailScreen() {
   const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
   const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
   const [itemsRefreshSignal, setItemsRefreshSignal] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const isEditingRef = useRef(false);
   // Tracking data (extracted into dedicated hook)
   const {
@@ -368,15 +368,7 @@ export default function OrderDetailScreen() {
   // TopBar actions
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()), label: 'Back to orders' });
-    const actions: TopBarAction[] = [
-      buildIconTopBarAction({
-        id: 'refresh-order-details',
-        label: 'Refresh order',
-        onPress: () => { void reload(); void loadTracking(); setItemsRefreshSignal((n) => n + 1); },
-        icon: RefreshCw,
-        disabled: isLoading,
-      }),
-    ];
+    const actions: TopBarAction[] = [];
 
     // Dispatch action (moved from OrderDetailCard to TopBar as required)
     if (canMutate && order) {
@@ -396,7 +388,7 @@ export default function OrderDetailScreen() {
       backAction,
     );
     return actions;
-  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, loadTracking, order, reload, router]);
+  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, order, router]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
@@ -410,7 +402,15 @@ export default function OrderDetailScreen() {
       {displayError ? <Text style={styles.error}>{displayError}</Text> : null}
 
       {!isLoadingAny && !displayError ? (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            Platform.OS !== 'web' ? (
+              <RefreshControl
+                refreshing={isRefreshing && (isLoading || isLoadingTracking)}
+                onRefresh={() => { void guardAction(async () => { setIsRefreshing(true); void reload(); void loadTracking(); setItemsRefreshSignal((n) => n + 1); }); }}
+              />
+            ) : undefined
+          }>
           {/* CARD 1: Order Details — read-only summary (tracking + order data) or editable form */}
           {isEditing ? (
             <OrderDetailCard

@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
@@ -59,6 +59,8 @@ export default function PriceListScreen() {
     handleActivateRevision,
     handleDeleteType,
     topBarActions,
+    isRefreshing,
+    handlePullToRefresh,
   } = usePriceList();
 
   useScreenTopBar({ title: 'Price List', actions: topBarActions });
@@ -98,8 +100,16 @@ export default function PriceListScreen() {
           </View>
         ) : null}
 
-        {/* ── Items tab ── */}
-        {activeTab === 'items' ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            Platform.OS !== 'web' ? (
+              <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+            ) : undefined
+          }
+        >
+          {/* ── Items tab ── */}
+          {activeTab === 'items' ? (
           <ItemsTab
             filteredItems={filteredItems}
             isLoading={isItemsLoading}
@@ -143,6 +153,7 @@ export default function PriceListScreen() {
             onDeleteType={handleDeleteType}
           />
         ) : null}
+        </ScrollView>
       </ScreenContent>
 
       <FilterModal

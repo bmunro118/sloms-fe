@@ -1,7 +1,7 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, RefreshControl, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
@@ -44,6 +44,7 @@ export default function CustomerDetailScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<CustomerRecord>>({});
   const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit) return;
@@ -76,7 +77,7 @@ export default function CustomerDetailScreen() {
       }
     })();
     return () => controller.abort();
-  }, [customerId, isStaff]);
+  }, [customerId, isStaff, refreshTick]);
 
   const performSave = useCallback(async () => {
     if (!Number.isFinite(customerId) || !customer) return;
@@ -142,6 +143,19 @@ export default function CustomerDetailScreen() {
   );
 
   const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    void guardAction(async () => {
+      setIsRefreshing(true);
+      setRefreshTick((t) => t + 1);
+    });
+  }, [guardAction]);
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -251,7 +265,12 @@ export default function CustomerDetailScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {customer ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false}
+          refreshControl={
+            Platform.OS !== 'web' ? (
+              <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+            ) : undefined
+          }>
           <CustomerInfoCard
             customer={customer}
             isEditing={isEditing}

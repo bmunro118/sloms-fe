@@ -1,14 +1,13 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { RefreshCw as RefreshIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction } from '@src/features/app-shell';
 import {
   AuditLogEntry,
   AuditLogEventType,
@@ -62,6 +61,16 @@ export default function UserAuditLogScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   // Active filters
   const [activeEventFilter, setActiveEventFilter] = useState<AuditLogEventType | undefined>(undefined);
@@ -108,14 +117,7 @@ export default function UserAuditLogScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
     buildBackTopBarAction({ onPress: () => router.back() }),
-    buildIconTopBarAction({
-      id: 'refresh-audit',
-      label: 'Refresh',
-      onPress: () => setRefreshTick((t) => t + 1),
-      icon: RefreshIcon,
-      disabled: isLoading,
-    }),
-  ], [isLoading, router]);
+  ], [router]);
 
   const title = prefilledUserId ? `Audit Log — User #${prefilledUserId}` : 'User Audit Log';
   useScreenTopBar({ title, actions: topBarActions });
@@ -132,7 +134,12 @@ export default function UserAuditLogScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {!isLoading && !error ? (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            Platform.OS !== 'web' ? (
+              <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+            ) : undefined
+          }>
           {/* ── Event type filter chips ── */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             {EVENT_TYPES.map((event) => (

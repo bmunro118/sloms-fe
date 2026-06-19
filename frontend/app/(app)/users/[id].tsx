@@ -5,7 +5,7 @@ import {
   Save as SaveIcon,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, RefreshControl, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
@@ -47,6 +47,7 @@ export default function UserDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<UpdateUserPayload>({});
+  const [refreshTick, setRefreshTick] = useState(0);
 
   const isSelf = currentUser?.userId === userId;
 
@@ -83,7 +84,7 @@ export default function UserDetailScreen() {
     })();
 
     return () => controller.abort();
-  }, [userId, isStaff]);
+  }, [userId, isStaff, refreshTick]);
 
   const handleStartEdit = useCallback(() => {
     if (!user) return;
@@ -98,6 +99,19 @@ export default function UserDetailScreen() {
   );
 
   const { guardAction } = useUnsavedChangesGuard({ isDirty });
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    void guardAction(async () => {
+      setIsRefreshing(true);
+      setRefreshTick((t) => t + 1);
+    });
+  }, [guardAction]);
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -293,7 +307,12 @@ export default function UserDetailScreen() {
 
   return (
     <ScreenContent>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+          ) : undefined
+        }>
         <UserProfileCard
           user={user}
           isEditing={isEditing}

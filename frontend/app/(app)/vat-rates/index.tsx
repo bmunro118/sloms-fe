@@ -1,10 +1,7 @@
 import { Redirect } from 'expo-router';
-import {
-  Plus as AddIcon,
-  RefreshCw as RefreshIcon,
-} from 'lucide-react-native';
+import { Plus as AddIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
@@ -55,6 +52,18 @@ export default function VatRatesScreen() {
   const [closingId, setClosingId] = useState<number | null>(null);
 
   const [refreshTick, setRefreshTick] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((t) => t + 1);
+  }, []);
+
+  const isLoading = isLoadingList || isLoadingCurrent;
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   // ── Load all rates ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -171,8 +180,6 @@ export default function VatRatesScreen() {
     }
   }, [showConfirm, showSuccess, showDanger]);
 
-  const isLoading = isLoadingList || isLoadingCurrent;
-
   // ── TopBar actions ────────────────────────────────────────────────────────────
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const actions: TopBarAction[] = [];
@@ -189,18 +196,8 @@ export default function VatRatesScreen() {
       );
     }
 
-    actions.push(
-      buildIconTopBarAction({
-        id: 'refresh-vat-rates',
-        label: 'Refresh',
-        onPress: () => setRefreshTick((t) => t + 1),
-        icon: RefreshIcon,
-        disabled: isLoading,
-      })
-    );
-
     return actions;
-  }, [isAdmin, showCreateForm, isCreating, isLoading]);
+  }, [isAdmin, showCreateForm, isCreating]);
 
   useScreenTopBar({ title: 'VAT Rates', actions: topBarActions });
 
@@ -215,7 +212,12 @@ export default function VatRatesScreen() {
 
   return (
     <ScreenContent>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+          ) : undefined
+        }>
 
         {/* ── Current rate card ── */}
         <ThemedCard style={styles.card}>

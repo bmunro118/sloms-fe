@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import { PackagePlus as PackagePlusIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
+import { PackagePlus as PackagePlusIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
@@ -73,6 +73,7 @@ export default function OrdersListScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [dispatchingOrderKey, setDispatchingOrderKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     appliedFilters,
@@ -127,16 +128,17 @@ export default function OrdersListScreen() {
     }
   }, [canMutate, showConfirm]);
 
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
+
   const topBarActions = useMemo<TopBarAction[]>(() => {
-    const actions: TopBarAction[] = [
-      buildIconTopBarAction({
-        id: 'refresh-orders',
-        label: 'Refresh orders',
-        onPress: () => setRefreshTick((value) => value + 1),
-        icon: RefreshIcon,
-        disabled: isLoading,
-      }),
-    ];
+    const actions: TopBarAction[] = [];
 
     if (isStaff && canMutate) {
       actions.push(buildIconTopBarAction({
@@ -148,7 +150,7 @@ export default function OrdersListScreen() {
     }
 
     return actions;
-  }, [canMutate, isLoading, isStaff, router]);
+  }, [canMutate, isStaff, router]);
 
   const listQuery = useMemo<OrdersListQuery>(() => {
     const customerIdRaw = appliedFilters.customerId.trim();
@@ -258,16 +260,28 @@ export default function OrdersListScreen() {
 
         {isLoading ? <LoadingSpinner message="Loading orders..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {!isLoading && !error && orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
 
-        {!isLoading && !error && orders.map((order) => (
-          <OrderCard
-            key={`${order.orderNumber}-${order.orderBatch}`}
-            order={order}
-            onDispatch={handleDispatchFromList}
-            isDispatching={dispatchingOrderKey === `${order.orderNumber}-${order.orderBatch}`}
-          />
-        ))}
+        {!isLoading && !error ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              Platform.OS !== 'web' ? (
+                <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+              ) : undefined
+            }
+          >
+            {orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
+            {orders.map((order) => (
+              <OrderCard
+                key={`${order.orderNumber}-${order.orderBatch}`}
+                order={order}
+                onDispatch={handleDispatchFromList}
+                isDispatching={dispatchingOrderKey === `${order.orderNumber}-${order.orderBatch}`}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
       </ScreenContent>
 
       <FilterModal
@@ -345,6 +359,9 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    listContent: {
+      gap: 12,
+    },
     filterLabel: {
       fontSize: 12,
       fontWeight: '600',

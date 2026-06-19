@@ -1,7 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
-import { Building2 as CreateCustomerIcon, RefreshCw as RefreshIcon } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Building2 as CreateCustomerIcon } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
@@ -68,6 +68,16 @@ export default function CustomersListScreen() {
   const [customers, setCustomers] = useState<CustomerCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   const {
     appliedFilters,
@@ -93,13 +103,6 @@ export default function CustomersListScreen() {
         icon: CreateCustomerIcon,
         disabled: isLoading,
         hidden: role !== 'Admin' && role !== 'Manager',
-      }),
-      buildIconTopBarAction({
-        id: 'refresh-customers',
-        label: 'Refresh customers',
-        onPress: () => setRefreshTick((value) => value + 1),
-        icon: RefreshIcon,
-        disabled: isLoading,
       }),
     ];
   }, [isLoading, role, router]);
@@ -166,13 +169,26 @@ export default function CustomersListScreen() {
 
         {isLoading ? <LoadingSpinner message="Loading customers..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {!isLoading && !error && filteredCustomers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
-        {!isLoading && !error && filteredCustomers.map((customer) => (
-          <CustomerCard
-            key={customer.renderKey}
-            customer={customer}
-          />
-        ))}
+
+        {!isLoading && !error ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              Platform.OS !== 'web' ? (
+                <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+              ) : undefined
+            }
+          >
+            {filteredCustomers.length === 0 ? <Text style={styles.muted}>No customers found.</Text> : null}
+            {filteredCustomers.map((customer) => (
+              <CustomerCard
+                key={customer.renderKey}
+                customer={customer}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
       </ScreenContent>
 
       <FilterModal
@@ -201,6 +217,9 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    listContent: {
+      gap: 12,
+    },
     toggleRow: {
       flexDirection: 'row',
       alignItems: 'center',

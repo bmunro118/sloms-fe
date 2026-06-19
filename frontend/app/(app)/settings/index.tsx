@@ -1,11 +1,8 @@
-import { RefreshCw as RefreshIcon } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, Text } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform, RefreshControl, ScrollView, Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
-import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildIconTopBarAction } from '@src/features/app-shell';
 import {
   UserSettingRecord,
   listUserSettings,
@@ -29,6 +26,16 @@ export default function SettingsScreen() {
   const [savingUserKey, setSavingUserKey] = useState<string | null>(null);
   const [deletingUserKey, setDeletingUserKey] = useState<string | null>(null);
   const [refreshUserTick, setRefreshUserTick] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshUserTick((t) => t + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoadingUser) setIsRefreshing(false);
+  }, [isLoadingUser]);
 
   // Load user settings (all authenticated users)
   useEffect(() => {
@@ -94,21 +101,16 @@ export default function SettingsScreen() {
     }
   }, [showConfirm, showSuccess, showDanger]);
 
-  const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildIconTopBarAction({
-      id: 'refresh-settings',
-      label: 'Refresh',
-      onPress: () => setRefreshUserTick((t) => t + 1),
-      icon: RefreshIcon,
-      disabled: isLoadingUser,
-    }),
-  ], [isLoadingUser]);
-
-  useScreenTopBar({ title: 'Settings', actions: topBarActions });
+  useScreenTopBar({ title: 'Settings' });
 
   return (
     <ScreenContent>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+          ) : undefined
+        }>
 
         <ThemedCard title="My Preferences" style={styles.card}>
           <Text style={styles.sectionSubtitle}>Personal preferences for your account.</Text>

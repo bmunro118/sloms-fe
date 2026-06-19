@@ -1,7 +1,6 @@
 import * as DocumentPicker from 'expo-document-picker';
 import {
   Download as DownloadIcon,
-  RefreshCw as RefreshIcon,
   Upload as UploadIcon,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -88,6 +87,20 @@ export function usePriceList() {
     applyFilters,
     clearFilters,
   } = useListFilters<PriceListFilters>(INITIAL_FILTERS);
+
+  // ── Pull-to-refresh ────────────────────────────────────────────────────────
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((t) => t + 1);
+  }, []);
+
+  const isAnyLoading = isItemsLoading || isRevisionsLoading || isTypesLoading;
+
+  useEffect(() => {
+    if (!isAnyLoading) setIsRefreshing(false);
+  }, [isAnyLoading]);
 
   // ── Load items ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -367,18 +380,8 @@ export function usePriceList() {
       );
     }
 
-    actions.push(
-      buildIconTopBarAction({
-        id: 'refresh-price-list',
-        label: 'Refresh',
-        onPress: () => setRefreshTick((t) => t + 1),
-        icon: RefreshIcon,
-        disabled: isItemsLoading || isRevisionsLoading,
-      })
-    );
-
     return actions;
-  }, [handleExport, handleImport, isAdmin, isExporting, isImporting, isItemsLoading, isRevisionsLoading]);
+  }, [handleExport, handleImport, isAdmin, isExporting, isImporting]);
 
   return {
     // Identity
@@ -441,5 +444,9 @@ export function usePriceList() {
 
     // TopBar
     topBarActions,
+
+    // Pull-to-refresh
+    isRefreshing,
+    handlePullToRefresh,
   };
 }

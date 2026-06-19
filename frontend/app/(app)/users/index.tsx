@@ -1,8 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Redirect } from 'expo-router';
-import { RefreshCw as RefreshIcon, UserPlus as UserPlusIcon } from 'lucide-react-native';
+import { UserPlus as UserPlusIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
@@ -84,6 +84,16 @@ export default function UsersScreen() {
   const [users, setUsers] = useState<UserCardRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handlePullToRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTick((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
   const {
     appliedFilters,
@@ -109,13 +119,6 @@ export default function UsersScreen() {
         icon: UserPlusIcon,
         disabled: isLoading,
         hidden: !isAdmin,
-      }),
-      buildIconTopBarAction({
-        id: 'refresh-users',
-        label: 'Refresh users',
-        onPress: () => setRefreshTick((value) => value + 1),
-        icon: RefreshIcon,
-        disabled: isLoading,
       }),
     ];
   }, [isLoading, isAdmin, router]);
@@ -195,13 +198,26 @@ export default function UsersScreen() {
 
         {isLoading ? <LoadingSpinner message="Loading users..." fullScreen /> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {!isLoading && !error && filteredUsers.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}
-        {!isLoading && !error && filteredUsers.map((entry) => (
-          <UserCard
-            key={entry.renderKey}
-            user={entry}
-          />
-        ))}
+
+        {!isLoading && !error ? (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              Platform.OS !== 'web' ? (
+                <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+              ) : undefined
+            }
+          >
+            {filteredUsers.length === 0 ? <Text style={styles.muted}>No users found.</Text> : null}
+            {filteredUsers.map((entry) => (
+              <UserCard
+                key={entry.renderKey}
+                user={entry}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
       </ScreenContent>
 
       <FilterModal
@@ -230,6 +246,9 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
+    listContent: {
+      gap: 12,
+    },
     toggleRow: {
       flexDirection: 'row',
       alignItems: 'center',
