@@ -1,35 +1,26 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
-import { useAppTheme } from '@theme/ThemeProvider';
-import { AppTheme } from '@theme/types';
 import { useScreenTitle } from '@src/hooks/useScreenTitle';
+import { useThemedStyles } from '@src/theme/useThemedStyles';
+import { OrderSummaryCards } from '@src/features/dashboard/components/OrderSummaryCards';
 
 export default function DashboardScreen() {
-  const { user, role } = useAuth();
-  const theme = useAppTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user } = useAuth();
   useScreenTitle('Dashboard');
 
-  return (
-    <ScreenContent gap={8}>
-      <Text style={styles.subtitle}>Welcome {user?.fullName ?? user?.username ?? 'User'}</Text>
-      <Text style={styles.body}>Current role: {role}</Text>
-      <Text style={styles.body}>Use the left navigation to access your allowed modules.</Text>
-    </ScreenContent>
-  );
-}
-
-function createStyles(theme: AppTheme) {
-  return StyleSheet.create({
+  const styles = useThemedStyles((theme) => ({
     subtitle: {
       fontSize: 16,
       color: theme.colors.textSecondary,
+      marginBottom: 4,
     },
-    body: {
-      fontSize: 14,
-      color: theme.colors.textMuted,
-    },
-  });
+  }));
+
+  return (
+    <ScreenContent gap={12}>
+      <Text style={styles.subtitle}>Welcome {user?.fullName ?? user?.username ?? 'User'}</Text>
+      <OrderSummaryCards />
+    </ScreenContent>
+  );
 }
