@@ -27,6 +27,7 @@ interface BuildIconTopBarActionOptions {
   disabled?: boolean;
   hidden?: boolean;
   primary?: boolean;
+  secondary?: boolean;
 }
 
 export function buildIconTopBarAction({
@@ -38,6 +39,7 @@ export function buildIconTopBarAction({
   disabled,
   hidden,
   primary,
+  secondary,
 }: BuildIconTopBarActionOptions): TopBarAction {
   return {
     id,
@@ -47,6 +49,7 @@ export function buildIconTopBarAction({
     disabled,
     hidden,
     primary,
+    secondary,
     renderIcon: ({ color, size }) => React.createElement(Icon, { color, size }),
   };
 }

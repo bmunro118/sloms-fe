@@ -9,7 +9,7 @@ import { ThemedInput } from '@components/ui/ThemedInput';
 import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildCloseTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -239,6 +239,7 @@ export default function CreateOrderScreen() {
         onPress: handleCreate,
         icon: CreateIcon,
         disabled: isSaving,
+        primary: true,
       }),
       buildIconTopBarAction({
         id: 'reset-create-order-form',
@@ -260,9 +261,8 @@ export default function CreateOrderScreen() {
         icon: ResetIcon,
         disabled: isSaving,
       }),
-      buildCloseTopBarAction({
-        onPress: () => void guardAction(() => router.replace('/(app)/orders')),
-        label: 'Close create order',
+      buildBackTopBarAction({
+        onPress: () => void guardAction(() => router.back()),
       }),
     ];
   }, [handleCreate, isSaving, guardAction, router]);

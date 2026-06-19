@@ -103,6 +103,7 @@ export default function CustomersListScreen() {
         icon: CreateCustomerIcon,
         disabled: isLoading,
         hidden: role !== 'Admin' && role !== 'Manager',
+        secondary: true,
       }),
     ];
   }, [isLoading, role, router]);

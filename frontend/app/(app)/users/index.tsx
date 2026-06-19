@@ -119,6 +119,7 @@ export default function UsersScreen() {
         icon: UserPlusIcon,
         disabled: isLoading,
         hidden: !isAdmin,
+        secondary: true,
       }),
     ];
   }, [isLoading, isAdmin, router]);
