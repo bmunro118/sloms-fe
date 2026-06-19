@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -73,21 +73,12 @@ export function AppModal({ visible, request, onClose, onActionPress }: AppModalP
 
           <View style={styles.actionsRow}>
             {request.actions.map((action) => (
-              <Pressable
+              <ModalActionButton
                 key={action.id}
-                accessibilityRole="button"
-                accessibilityLabel={action.label}
-                disabled={action.disabled}
-                onPress={() => onActionPress(action)}
-                style={({ pressed }) => [
-                  styles.actionButton,
-                  resolveActionVariantStyle(action.variant, styles),
-                  action.disabled ? styles.actionDisabled : null,
-                  pressed ? styles.actionPressed : null,
-                ]}
-              >
-                <Text style={[styles.actionText, resolveActionTextVariantStyle(action.variant, styles)]}>{action.label}</Text>
-              </Pressable>
+                action={action}
+                styles={styles}
+                onActionPress={onActionPress}
+              />
             ))}
           </View>
         </View>
@@ -96,19 +87,51 @@ export function AppModal({ visible, request, onClose, onActionPress }: AppModalP
   );
 }
 
+function ModalActionButton({
+  action,
+  styles,
+  onActionPress,
+}: {
+  action: AppModalResolvedAction;
+  styles: ReturnType<typeof createStyles>;
+  onActionPress: (action: AppModalResolvedAction) => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={action.label}
+      disabled={action.disabled}
+      onPress={() => onActionPress(action)}
+      onHoverIn={Platform.OS === 'web' ? () => setIsHovered(true) : undefined}
+      onHoverOut={Platform.OS === 'web' ? () => setIsHovered(false) : undefined}
+      style={({ pressed }) => [
+        styles.actionButton,
+        resolveActionVariantStyle(action.variant, styles, isHovered),
+        action.disabled ? styles.actionDisabled : null,
+        pressed ? styles.actionPressed : null,
+      ]}
+    >
+      <Text style={[styles.actionText, resolveActionTextVariantStyle(action.variant, styles)]}>{action.label}</Text>
+    </Pressable>
+  );
+}
+
 function resolveActionVariantStyle(
   variant: AppModalResolvedAction['variant'],
   styles: ReturnType<typeof createStyles>,
+  isHovered: boolean,
 ) {
   if (variant === 'secondary') {
-    return styles.actionSecondary;
+    return isHovered && Platform.OS === 'web' ? styles.actionSecondaryHovered : styles.actionSecondary;
   }
 
   if (variant === 'danger') {
-    return styles.actionDanger;
+    return isHovered && Platform.OS === 'web' ? styles.actionDangerHovered : styles.actionDanger;
   }
 
-  return styles.actionPrimary;
+  return isHovered && Platform.OS === 'web' ? styles.actionPrimaryHovered : styles.actionPrimary;
 }
 
 function resolveActionTextVariantStyle(
@@ -265,19 +288,32 @@ function createStyles(theme: AppTheme, presentation: ModalPresentation) {
       backgroundColor: theme.colors.accent,
       borderColor: theme.colors.accent,
     },
+    actionPrimaryHovered: {
+      backgroundColor: theme.colors.accentMuted,
+      borderColor: theme.colors.accentMuted,
+    },
     actionSecondary: {
       backgroundColor: theme.colors.buttonSecondaryBackground,
       borderColor: theme.colors.buttonSecondaryBorder,
     },
+    actionSecondaryHovered: {
+      backgroundColor: theme.colors.surfaceMuted,
+      borderColor: theme.colors.borderStrong,
+    },
     actionDanger: {
+      backgroundColor: theme.colors.buttonDangerBackground,
+      borderColor: theme.colors.buttonDangerBackground,
+    },
+    actionDangerHovered: {
       backgroundColor: theme.colors.danger,
       borderColor: theme.colors.danger,
     },
     actionPressed: {
-      opacity: 0.86,
+      opacity: 0.82,
+      transform: [{ scale: 0.97 }],
     },
     actionDisabled: {
-      opacity: 0.56,
+      opacity: 0.65,
     },
     actionText: {
       fontSize: 14,
