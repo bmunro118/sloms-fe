@@ -379,12 +379,13 @@ export default function OrderDetailScreen() {
         onPress: () => { void handleDispatch(); },
         icon: Send,
         disabled: isDispatching || dispatched || isLoading || !order,
+        primary: true,
       }));
     }
 
     actions.push(
       buildIconTopBarAction({ id: 'download-order-breakdown', label: 'Download breakdown', onPress: () => { void handleDownloadBreakdown(); }, icon: DownloadIcon, disabled: isLoading || !order }),
-      buildIconTopBarAction({ id: 'void-order', label: 'Void order', onPress: () => { void handleVoidOrder(); }, icon: ArchiveIcon, disabled: isLoading || !order || !canMutate }),
+      buildIconTopBarAction({ id: 'void-order', label: 'Void order', onPress: () => { void handleVoidOrder(); }, icon: ArchiveIcon, disabled: isLoading || !order || !canMutate, secondary: true }),
       backAction,
     );
     return actions;
