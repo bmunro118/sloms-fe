@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'expo-router';
 import { Modal, Platform, Pressable, PressableStateCallbackType, StyleSheet, Text, View } from 'react-native';
 import { Menu as MenuIcon, MoreHorizontal as MoreIcon, X as CloseIcon } from 'lucide-react-native';
+import { createWideStyles, TopBarWideLayout } from './TopBarWideLayout';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppShell } from '@src/features/app-shell';
 import { useScreenTitleContext } from '@context/ScreenTitleContext';
 import { tokens } from '@src/theme/tokens';
 import { useAppTheme } from '@theme/ThemeProvider';
@@ -28,9 +30,12 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const wideStyles = useMemo(() => createWideStyles(theme), [theme]);
   const [barWidth, setBarWidth] = useState(0);
   const [overflowOpen, setOverflowOpen] = useState(false);
-
+  const [wideMoreButtonX, setWideMoreButtonX] = useState(0);
+  const { platformProfile } = useAppShell();
+  const isWideLayout = platformProfile === 'web-desktop' || platformProfile === 'web-compact' || platformProfile === 'native-tablet';
   const backActions = useMemo(() => actions.filter((action) => action.isBack === true), [actions]);
   const nonBackActions = useMemo(() => actions.filter((action) => action.isBack !== true), [actions]);
   const hasBackAction = backActions.length > 0;
@@ -127,18 +132,59 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
     return [...overflowNonBack, ...remainingBackActions];
   }, [backActions, directNonBackCount, hasBackAction, mobileOverflowNonBackActions, nonBackActions]);
 
-  useEffect(() => {
-    setOverflowOpen(false);
-  }, [directActionCount, title]);
+  const widePrimaryActions = useMemo(() => {
+    if (!isWideLayout) return [];
+    return actions.filter((action) =>
+      action.isBack === true || isEditAction(action) || isSaveAction(action)
+    );
+  }, [isWideLayout, actions]);
+
+  const wideOverflowActions = useMemo(() => {
+    if (!isWideLayout) return [];
+    const primaryIds = new Set(widePrimaryActions.map((a) => a.id));
+    return actions.filter((action) => !primaryIds.has(action.id));
+  }, [isWideLayout, actions, widePrimaryActions]);
+
+  const [wideBackAction, wideEditAction, wideSaveAction] = useMemo(() => [
+    widePrimaryActions.find((a) => a.isBack === true) ?? null,
+    widePrimaryActions.find((a) => isEditAction(a)) ?? null,
+    widePrimaryActions.find((a) => isSaveAction(a)) ?? null,
+  ], [widePrimaryActions]);
+  const wideHasOverflow = wideOverflowActions.length > 0;
 
   useEffect(() => {
     setOverflowOpen(false);
-  }, [pathname]);
+  }, [directActionCount, title, pathname]);
 
   const closeOverflow = () => setOverflowOpen(false);
   const isHovered = (state: PressableStateCallbackType) => {
     return (state as PressableStateCallbackType & { hovered?: boolean }).hovered === true;
   };
+
+  if (isWideLayout) {
+    return (
+      <TopBarWideLayout
+        title={title}
+        wideBackAction={wideBackAction}
+        wideEditAction={wideEditAction}
+        wideSaveAction={wideSaveAction}
+        wideOverflowActions={wideOverflowActions}
+        wideHasOverflow={wideHasOverflow}
+        overflowOpen={overflowOpen}
+        onOpenOverflow={() => setOverflowOpen(true)}
+        onCloseOverflow={closeOverflow}
+        onMoreButtonLayout={(x) => setWideMoreButtonX(x)}
+        wideMoreButtonX={wideMoreButtonX}
+        onMenuPress={onMenuPress}
+        sidebarOpen={sidebarOpen}
+        onBarLayout={(w) => setBarWidth(w)}
+        paddingTop={insets.top + 8}
+        overflowTop={insets.top + 80}
+        styles={wideStyles}
+        theme={theme}
+      />
+    );
+  }
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 12 }]} onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}>
@@ -200,7 +246,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
       <Modal animationType="fade" transparent visible={overflowOpen} onRequestClose={closeOverflow}>
         <View style={styles.modalRoot}>
           <Pressable style={styles.modalBackdrop} onPress={closeOverflow} />
-          <View style={[styles.overflowMenu, { top: insets.top + 54 }]}>
+          <View style={[styles.overflowMenu, { top: insets.top + 54, right: 16 }]}>
             {overflowActions.map((action, index) => (
               <TooltipPressable
                 key={action.id}
@@ -248,6 +294,19 @@ function isEditAction(action: { id: string; label?: string; accessibilityLabel: 
     || id.startsWith('edit-')
     || editWord.test(label)
     || editWord.test(accessibilityLabel);
+}
+
+function isSaveAction(action: { id: string; label?: string; accessibilityLabel: string }): boolean {
+  const id = action.id.trim().toLowerCase();
+  const label = (action.label ?? '').trim().toLowerCase();
+  const accessibilityLabel = action.accessibilityLabel.trim().toLowerCase();
+  const saveWord = /\bsave\b/;
+
+  return id === 'save'
+    || id.endsWith('-save')
+    || id.startsWith('save-')
+    || saveWord.test(label)
+    || saveWord.test(accessibilityLabel);
 }
 
 function createStyles(theme: AppTheme) {
@@ -312,7 +371,6 @@ function createStyles(theme: AppTheme) {
     },
     overflowMenu: {
       position: 'absolute',
-      right: 16,
       minWidth: 188,
       borderRadius: 14,
       backgroundColor: theme.colors.surfaceElevated,
