@@ -16,7 +16,7 @@ interface TopBarWideLayoutProps {
   title: string;
   wideBackAction: TopBarAction | null;
   wideEditAction: TopBarAction | null;
-  wideSaveAction: TopBarAction | null;
+  widePrimaryAction: TopBarAction | null;
   showEditSaveSlots: boolean;
   wideOverflowActions: TopBarAction[];
   wideHasOverflow: boolean;
@@ -40,7 +40,7 @@ export function TopBarWideLayout({
   title,
   wideBackAction,
   wideEditAction,
-  wideSaveAction,
+  widePrimaryAction,
   showEditSaveSlots,
   wideOverflowActions,
   wideHasOverflow,
@@ -66,7 +66,7 @@ export function TopBarWideLayout({
   }, [overflowOpen, registerModal]);
 
   const primarySlots = showEditSaveSlots
-    ? [wideBackAction, wideEditAction, wideSaveAction]
+    ? [wideBackAction, wideEditAction, widePrimaryAction]
     : [wideBackAction];
 
   const handleMorePress = () => {

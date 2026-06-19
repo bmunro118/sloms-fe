@@ -146,6 +146,7 @@ export default function OrdersListScreen() {
         label: 'New Order',
         onPress: () => router.push('/(app)/orders/create'),
         icon: PackagePlusIcon,
+        primary: true,
       }));
     }
 

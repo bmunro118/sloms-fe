@@ -145,7 +145,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
   const widePrimaryActions = useMemo(() => {
     if (!isWideLayout) return [];
     return actions.filter((action) =>
-      action.isBack === true || isEditAction(action) || isSaveAction(action)
+      action.isBack === true || isEditAction(action) || action.primary === true || isSaveAction(action)
     );
   }, [isWideLayout, actions]);
 
@@ -155,10 +155,10 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
     return actions.filter((action) => !primaryIds.has(action.id));
   }, [isWideLayout, actions, widePrimaryActions]);
 
-  const [wideBackAction, wideEditAction, wideSaveAction] = useMemo(() => [
+  const [wideBackAction, wideEditAction, widePrimaryAction] = useMemo(() => [
     widePrimaryActions.find((a) => a.isBack === true) ?? null,
     widePrimaryActions.find((a) => isEditAction(a)) ?? null,
-    widePrimaryActions.find((a) => isSaveAction(a)) ?? null,
+    widePrimaryActions.find((a) => a.primary === true) ?? widePrimaryActions.find((a) => isSaveAction(a)) ?? null,
   ], [widePrimaryActions]);
   const wideHasOverflow = wideOverflowActions.length > 0;
 
@@ -177,7 +177,7 @@ export function TopBar({ onMenuPress, sidebarOpen }: TopBarProps) {
         title={title}
         wideBackAction={wideBackAction}
         wideEditAction={wideEditAction}
-        wideSaveAction={wideSaveAction}
+        widePrimaryAction={widePrimaryAction}
         showEditSaveSlots={canMutate}
         wideOverflowActions={wideOverflowActions}
         wideHasOverflow={wideHasOverflow}
