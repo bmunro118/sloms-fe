@@ -5,19 +5,19 @@ import { FieldPair } from '@components/ui/FieldPair';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { CustomerDetails } from '../types';
+import { CustomerDetails, CustomerFormMode } from '../types';
 
 type Props = {
-  customer: CustomerDetails;
-  isEditing: boolean;
+  mode: CustomerFormMode;
+  customer?: CustomerDetails;
   isSaving: boolean;
   formData: Partial<CustomerDetails>;
   onFormChange: (data: Partial<CustomerDetails>) => void;
 };
 
-export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFormChange }: Props) {
+export function CustomerInfoCard({ mode, customer, isSaving, formData, onFormChange }: Props) {
   const { width } = useWindowDimensions();
-  const isCompact = width < 768 || isEditing;
+  const isCompact = width < 768 || mode !== 'view';
   const styles = useThemedStyles(createStyles);
 
   return (
@@ -30,8 +30,8 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           compact={isCompact}
           left={
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{isEditing ? 'Company Name *' : 'Company Name'}</Text>
-              {isEditing ? (
+              <Text style={styles.fieldLabel}>{mode !== 'view' ? 'Company Name *' : 'Company Name'}</Text>
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Company Name"
                   value={formData.companyName ?? ''}
@@ -39,14 +39,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.companyName ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.companyName ?? 'N/A'}</Text>
               )}
             </View>
           }
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Account Number</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Account Number"
                   value={formData.accountNumber ?? ''}
@@ -54,7 +54,7 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.accountNumber ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.accountNumber ?? 'N/A'}</Text>
               )}
             </View>
           }
@@ -62,7 +62,7 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
 
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Centre Number</Text>
-          {isEditing ? (
+          {mode !== 'view' ? (
             <ThemedInput
               placeholder="Centre Number"
               value={formData.centreNumber ?? ''}
@@ -70,7 +70,7 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
               editable={!isSaving}
             />
           ) : (
-            <Text style={styles.fieldValue}>{customer.centreNumber ?? 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{customer?.centreNumber ?? 'N/A'}</Text>
           )}
         </View>
       </ThemedCard>
@@ -84,14 +84,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           left={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Building Name</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Building Name"
                   value={formData.invBuildingName ?? ''}
                   onChangeText={(text) => onFormChange({ ...formData, invBuildingName: text })}
                   editable={!isSaving}
                 />
-              ) : customer.invBuildingName ? (
+              ) : customer?.invBuildingName ? (
                 <Text style={styles.fieldValue}>{customer.invBuildingName}</Text>
               ) : null}
             </View>
@@ -99,14 +99,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Address Line 1</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Address Line 1"
                   value={formData.invAddressLn1 ?? ''}
                   onChangeText={(text) => onFormChange({ ...formData, invAddressLn1: text })}
                   editable={!isSaving}
                 />
-              ) : customer.invAddressLn1 ? (
+              ) : customer?.invAddressLn1 ? (
                 <Text style={styles.fieldValue}>{customer.invAddressLn1}</Text>
               ) : null}
             </View>
@@ -117,14 +117,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           left={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Address Line 2</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Address Line 2"
                   value={formData.invAddressLn2 ?? ''}
                   onChangeText={(text) => onFormChange({ ...formData, invAddressLn2: text })}
                   editable={!isSaving}
                 />
-              ) : customer.invAddressLn2 ? (
+              ) : customer?.invAddressLn2 ? (
                 <Text style={styles.fieldValue}>{customer.invAddressLn2}</Text>
               ) : null}
             </View>
@@ -132,14 +132,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Town / City</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Town or City"
                   value={formData.invTownOrCity ?? ''}
                   onChangeText={(text) => onFormChange({ ...formData, invTownOrCity: text })}
                   editable={!isSaving}
                 />
-              ) : customer.invTownOrCity ? (
+              ) : customer?.invTownOrCity ? (
                 <Text style={styles.fieldValue}>{customer.invTownOrCity}</Text>
               ) : null}
             </View>
@@ -150,14 +150,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           left={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>County</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="County"
                   value={formData.invCounty ?? ''}
                   onChangeText={(text) => onFormChange({ ...formData, invCounty: text })}
                   editable={!isSaving}
                 />
-              ) : customer.invCounty ? (
+              ) : customer?.invCounty ? (
                 <Text style={styles.fieldValue}>{customer.invCounty}</Text>
               ) : null}
             </View>
@@ -165,14 +165,14 @@ export function CustomerInfoCard({ customer, isEditing, isSaving, formData, onFo
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Postcode</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Postcode"
                   value={formData.invPostCode ?? ''}
                   onChangeText={(text) => onFormChange({ ...formData, invPostCode: text })}
                   editable={!isSaving}
                 />
-              ) : customer.invPostCode ? (
+              ) : customer?.invPostCode ? (
                 <Text style={styles.fieldValue}>{customer.invPostCode}</Text>
               ) : null}
             </View>

@@ -3,6 +3,8 @@
 // Re-export from api.ts as CustomerDetails so existing component imports stay valid
 export type { CustomerRecord as CustomerDetails } from './api';
 
+export type CustomerFormMode = 'view' | 'edit' | 'create';
+
 export type Address = {
   id: number;
   siteCompanyName?: string;

@@ -6,23 +6,23 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { CustomerDetails } from '../types';
+import { CustomerDetails, CustomerFormMode } from '../types';
 import { ThemedButton } from '@components/ui/ThemedButton';
 
 type Props = {
-  customer: CustomerDetails;
-  isEditing: boolean;
+  mode: CustomerFormMode;
+  customer?: CustomerDetails;
   isSaving: boolean;
   formData: Partial<CustomerDetails>;
   onFormChange: (data: Partial<CustomerDetails>) => void;
   canMutate: boolean;
-  onSuspend: () => void;
-  onReinstate: () => void;
+  onSuspend?: () => void;
+  onReinstate?: () => void;
 };
 
 export function CustomerContactCard({
+  mode,
   customer,
-  isEditing,
   isSaving,
   formData,
   onFormChange,
@@ -32,7 +32,7 @@ export function CustomerContactCard({
 }: Props) {
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
-  const isCompact = width < 768 || isEditing;
+  const isCompact = width < 768 || mode !== 'view';
   const theme = useAppTheme();
 
   return (
@@ -46,7 +46,7 @@ export function CustomerContactCard({
           left={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Contact Name</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Contact Name"
                   value={formData.contactName ?? ''}
@@ -54,14 +54,14 @@ export function CustomerContactCard({
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.contactName ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.contactName ?? 'N/A'}</Text>
               )}
             </View>
           }
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Email</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Email"
                   value={formData.contactEmail ?? ''}
@@ -70,7 +70,7 @@ export function CustomerContactCard({
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.contactEmail ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.contactEmail ?? 'N/A'}</Text>
               )}
             </View>
           }
@@ -80,7 +80,7 @@ export function CustomerContactCard({
           left={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Phone</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Phone"
                   value={formData.contactPhone ?? ''}
@@ -89,14 +89,14 @@ export function CustomerContactCard({
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.contactPhone ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.contactPhone ?? 'N/A'}</Text>
               )}
             </View>
           }
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Mobile</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Mobile"
                   value={formData.contactMobile ?? ''}
@@ -105,7 +105,7 @@ export function CustomerContactCard({
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.contactMobile ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.contactMobile ?? 'N/A'}</Text>
               )}
             </View>
           }
@@ -115,7 +115,7 @@ export function CustomerContactCard({
           left={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Fax</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Fax"
                   value={formData.contactFax ?? ''}
@@ -123,14 +123,14 @@ export function CustomerContactCard({
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.contactFax ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.contactFax ?? 'N/A'}</Text>
               )}
             </View>
           }
           right={
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Report Email</Text>
-              {isEditing ? (
+              {mode !== 'view' ? (
                 <ThemedInput
                   placeholder="Report Email"
                   value={formData.reportEmail ?? ''}
@@ -139,14 +139,14 @@ export function CustomerContactCard({
                   editable={!isSaving}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{customer.reportEmail ?? 'N/A'}</Text>
+                <Text style={styles.fieldValue}>{customer?.reportEmail ?? 'N/A'}</Text>
               )}
             </View>
           }
         />
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Price Band</Text>
-          {isEditing ? (
+          {mode !== 'view' ? (
             <ThemedInput
               placeholder="Price Band (e.g. NHS1)"
               value={formData.band ?? ''}
@@ -154,13 +154,13 @@ export function CustomerContactCard({
               editable={!isSaving}
             />
           ) : (
-            <Text style={styles.fieldValue}>{customer.band ?? 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{customer?.band ?? 'N/A'}</Text>
           )}
         </View>
       </ThemedCard>
 
       {/* Admin Actions */}
-      {canMutate ? (
+      {canMutate && mode !== 'create' ? (
         <ThemedCard style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.sectionTitle}>Actions</Text>
@@ -168,23 +168,23 @@ export function CustomerContactCard({
               style={[
                 styles.statusBadge,
                 {
-                  borderColor: customer.isSuspended ? theme.colors.danger : theme.colors.accent,
-                  backgroundColor: customer.isSuspended ? theme.colors.dangerSurface : theme.colors.surface,
+                  borderColor: customer?.isSuspended ? theme.colors.danger : theme.colors.accent,
+                  backgroundColor: customer?.isSuspended ? theme.colors.dangerSurface : theme.colors.surface,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.statusBadgeText,
-                  { color: customer.isSuspended ? theme.colors.danger : theme.colors.accent },
+                  { color: customer?.isSuspended ? theme.colors.danger : theme.colors.accent },
                 ]}
               >
-                {customer.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
+                {customer?.isSuspended ? 'SUSPENDED' : 'ACTIVE'}
               </Text>
             </View>
           </View>
           <View style={styles.actionsStack}>
-            {customer.isSuspended ? (
+            {customer?.isSuspended ? (
               <ThemedButton
                 label="Reinstate Customer"
                 onPress={onReinstate}

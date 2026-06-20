@@ -15,6 +15,7 @@ import {
   setDefaultAddress,
   updateAddress,
 } from '../api';
+import { CustomerFormMode } from '../types';
 import { AddressDetail } from './AddressDetail';
 import { AddressForm } from './AddressForm';
 import { createStyles } from './addresses-styles';
@@ -34,12 +35,28 @@ const EMPTY_FORM: CreateAddressPayload = {
   defaultAddress: false,
 };
 
-type Props = {
-  customerId: number;
-  canMutate: boolean;
-};
+type Props =
+  | {
+      mode: Exclude<CustomerFormMode, 'create'>;
+      customerId: number;
+      canMutate: boolean;
+      pendingAddresses?: never;
+      onPendingAddressesChange?: never;
+    }
+  | {
+      mode: 'create';
+      customerId?: never;
+      canMutate: boolean;
+      pendingAddresses: CreateAddressPayload[];
+      onPendingAddressesChange: (addresses: CreateAddressPayload[]) => void;
+    };
 
-export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) {
+export function CustomerDeliveryAddressesCard(props: Props) {
+  const { mode, canMutate } = props;
+  const isCreateMode = mode === 'create';
+  const customerId = isCreateMode ? undefined : (props as Extract<Props, { mode: Exclude<CustomerFormMode, 'create'> }>).customerId;
+  const pendingAddresses = isCreateMode ? (props as Extract<Props, { mode: 'create' }>).pendingAddresses : undefined;
+  const onPendingAddressesChange = isCreateMode ? (props as Extract<Props, { mode: 'create' }>).onPendingAddressesChange : undefined;
   const { width } = useWindowDimensions();
   const isCompact = useMemo(() => width < 768, [width]);
   const styles = useThemedStyles(createStyles);
@@ -54,7 +71,21 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState<CreateAddressPayload>(EMPTY_FORM);
 
+  // In create mode, map pending addresses to Address-like objects with temp negative IDs
+  // so the render tree remains the same for both modes
+  const effectiveAddresses: Address[] = useMemo(() => {
+    if (isCreateMode && pendingAddresses) {
+      return pendingAddresses.map((addr, idx) => ({
+        id: -(idx + 1),
+        ...addr,
+      }));
+    }
+    return addresses;
+  }, [isCreateMode, pendingAddresses, addresses]);
+
   const reload = useCallback(async (signal?: AbortSignal) => {
+    if (isCreateMode) return;
+    if (customerId === undefined) return;
     try {
       const response = await listAddresses(customerId, { signal });
       if (!signal?.aborted) {
@@ -67,14 +98,18 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [customerId]);
+  }, [customerId, isCreateMode]);
 
   useEffect(() => {
+    if (isCreateMode) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const controller = new AbortController();
     reload(controller.signal);
     return () => controller.abort();
-  }, [reload]);
+  }, [reload, isCreateMode]);
 
   // ── Edit ──────────────────────────────────────────────────────────────────────
 
@@ -86,7 +121,7 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
 
   const { guardAction: guardCancelEdit } = useUnsavedChangesGuard({
     isDirty: editingId !== null && JSON.stringify(editForm) !== JSON.stringify(
-      addresses.find((a) => a.id === editingId) ?? {}
+      effectiveAddresses.find((a) => a.id === editingId) ?? {}
     ),
   });
 
@@ -99,9 +134,19 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
 
   const handleSaveEdit = useCallback(async () => {
     if (!editingId || isSaving) return;
+    if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
+      const idx = effectiveAddresses.findIndex((a) => a.id === editingId);
+      if (idx === -1) return;
+      const updated = [...pendingAddresses];
+      updated[idx] = { ...updated[idx], ...editForm };
+      onPendingAddressesChange(updated);
+      setEditingId(null);
+      setEditForm({});
+      return;
+    }
     setIsSaving(true);
     try {
-      await updateAddress(customerId, editingId, editForm);
+      await updateAddress(customerId!, editingId, editForm);
       showSuccess('Address updated', 'The address has been saved.');
       setEditingId(null);
       setEditForm({});
@@ -111,11 +156,19 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     } finally {
       setIsSaving(false);
     }
-  }, [customerId, editForm, editingId, isSaving, reload, showDanger, showSuccess]);
+  }, [customerId, editForm, editingId, isCreateMode, isSaving, onPendingAddressesChange, pendingAddresses, effectiveAddresses, reload, showDanger, showSuccess]);
 
   // ── Delete ────────────────────────────────────────────────────────────────────
 
   const handleDelete = useCallback(async (address: Address) => {
+    if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
+      const idx = pendingAddresses.findIndex((_, i) => -(i + 1) === address.id);
+      if (idx === -1) return;
+      onPendingAddressesChange(pendingAddresses.filter((_, i) => i !== idx));
+      if (expandedId === address.id) setExpandedId(null);
+      if (editingId === address.id) { setEditingId(null); setEditForm({}); }
+      return;
+    }
     const confirmed = await showConfirm({
       title: 'Delete address?',
       message: 'This address will be permanently removed from the customer.',
@@ -124,7 +177,7 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     });
     if (!confirmed) return;
     try {
-      await deleteAddress(customerId, address.id);
+      await deleteAddress(customerId!, address.id);
       showSuccess('Address deleted');
       if (expandedId === address.id) setExpandedId(null);
       if (editingId === address.id) { setEditingId(null); setEditForm({}); }
@@ -132,11 +185,19 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     } catch (err) {
       showDanger('Delete failed', err instanceof Error ? err.message : 'Could not delete address.');
     }
-  }, [customerId, editingId, expandedId, reload, showConfirm, showDanger, showSuccess]);
+  }, [customerId, editingId, expandedId, isCreateMode, onPendingAddressesChange, pendingAddresses, reload, showConfirm, showDanger, showSuccess]);
 
   // ── Set Default ───────────────────────────────────────────────────────────────
 
   const handleSetDefault = useCallback(async (address: Address) => {
+    if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
+      const updated = pendingAddresses.map((addr, i) => ({
+        ...addr,
+        defaultAddress: -(i + 1) === address.id,
+      }));
+      onPendingAddressesChange(updated);
+      return;
+    }
     const confirmed = await showConfirm({
       title: 'Set as default address?',
       message: 'This address will be used as the default delivery address.',
@@ -144,24 +205,33 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     });
     if (!confirmed) return;
     try {
-      await setDefaultAddress(customerId, address.id);
+      await setDefaultAddress(customerId!, address.id);
       showSuccess('Default address updated');
       await reload();
     } catch (err) {
       showDanger('Failed', err instanceof Error ? err.message : 'Could not update default address.');
     }
-  }, [customerId, reload, showConfirm, showDanger, showSuccess]);
+  }, [customerId, isCreateMode, onPendingAddressesChange, pendingAddresses, reload, showConfirm, showDanger, showSuccess]);
 
   // ── Add ───────────────────────────────────────────────────────────────────────
 
   const handleAdd = useCallback(async () => {
     if (isSaving) return;
+    if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
+      const payload: CreateAddressPayload = Object.fromEntries(
+        Object.entries(addForm).filter(([, v]) => v !== '' && v !== undefined)
+      ) as CreateAddressPayload;
+      onPendingAddressesChange([...pendingAddresses, payload]);
+      setShowAddForm(false);
+      setAddForm(EMPTY_FORM);
+      return;
+    }
     setIsSaving(true);
     try {
       const payload: CreateAddressPayload = Object.fromEntries(
         Object.entries(addForm).filter(([, v]) => v !== '' && v !== undefined)
       ) as CreateAddressPayload;
-      await createAddress(customerId, payload);
+      await createAddress(customerId!, payload);
       showSuccess('Address added');
       setShowAddForm(false);
       setAddForm(EMPTY_FORM);
@@ -171,7 +241,7 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     } finally {
       setIsSaving(false);
     }
-  }, [addForm, customerId, isSaving, reload, showDanger, showSuccess]);
+  }, [addForm, customerId, isCreateMode, isSaving, onPendingAddressesChange, pendingAddresses, reload, showDanger, showSuccess]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -188,14 +258,14 @@ export function CustomerDeliveryAddressesCard({ customerId, canMutate }: Props) 
     <ThemedCard style={styles.card}>
       <Text style={styles.sectionTitle}>Delivery Addresses</Text>
 
-      {addresses.length === 0 && !showAddForm ? (
+      {effectiveAddresses.length === 0 && !showAddForm ? (
         <Text style={styles.muted}>No delivery addresses on record.</Text>
       ) : null}
 
-      {addresses.map((address, idx) => {
+      {effectiveAddresses.map((address, idx) => {
         const isExpanded = expandedId === address.id;
         const isEditing = editingId === address.id;
-        const isLast = idx === addresses.length - 1;
+        const isLast = idx === effectiveAddresses.length - 1;
         const label = address.siteCompanyName || address.delAddressLn1 || `Address ${idx + 1}`;
 
         return (

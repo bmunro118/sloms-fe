@@ -272,15 +272,15 @@ export default function CustomerDetailScreen() {
             ) : undefined
           }>
           <CustomerInfoCard
+            mode={isEditing ? 'edit' : 'view'}
             customer={customer}
-            isEditing={isEditing}
             isSaving={isSaving}
             formData={formData}
             onFormChange={setFormData}
           />
           <CustomerContactCard
+            mode={isEditing ? 'edit' : 'view'}
             customer={customer}
-            isEditing={isEditing}
             isSaving={isSaving}
             formData={formData}
             onFormChange={setFormData}
@@ -288,7 +288,11 @@ export default function CustomerDetailScreen() {
             onSuspend={handleSuspend}
             onReinstate={handleReinstate}
           />
-          <CustomerDeliveryAddressesCard customerId={customerId} canMutate={canMutate} />
+          <CustomerDeliveryAddressesCard
+            mode={isEditing ? 'edit' : 'view'}
+            customerId={customerId}
+            canMutate={canMutate}
+          />
         </ScrollView>
       ) : null}
     </ScreenContent>
