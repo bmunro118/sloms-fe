@@ -88,22 +88,23 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
       actions={actions}
       onPress={handleOpenOrder}
     >
-      <View style={styles.customerInfo}>
-        {order.customerName ? (
-          <>
-            <Text style={styles.cardMeta}>{order.customerName}</Text>
-            {order.customerAccountNumber ? (
-              <Text style={styles.cardMetaSecondary}>{order.customerAccountNumber}</Text>
-            ) : null}
-          </>
-        ) : typeof order.customerAccount === 'number' ? (
-          <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
-        ) : null}
+      <View style={styles.infoRow}>
+        <View style={styles.customerInfo}>
+          {order.customerName ? (
+            <>
+              <Text style={styles.customerName}>{order.customerName}</Text>
+              {order.customerAccountNumber ? (
+                <Text style={styles.customerNumber}>{order.customerAccountNumber}</Text>
+              ) : null}
+            </>
+          ) : typeof order.customerAccount === 'number' ? (
+            <Text style={styles.customerName}>Customer: {order.customerAccount}</Text>
+          ) : null}
+        </View>
+        <OrderStatusBadge
+          status={resolveOrderStatus(order) ?? 'Unknown'}
+        />
       </View>
-      <OrderStatusBadge
-        status={resolveOrderStatus(order) ?? 'Unknown'}
-        style={styles.badge}
-      />
     </ThemedCard>
   );
 }
@@ -113,20 +114,24 @@ function createStyles(theme: AppTheme) {
 
   return {
     card: common.card,
-    cardMeta: common.cardMeta,
-    cardMetaSecondary: {
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+    },
+    customerInfo: {
+      flexShrink: 1,
+      marginRight: 12,
+    },
+    customerName: {
+      color: theme.colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    customerNumber: {
       color: theme.colors.textMuted,
       fontSize: 11,
       marginTop: 2,
-    },
-    customerInfo: {
-      paddingRight: 80,
-      paddingBottom: 36,
-    },
-    badge: {
-      position: 'absolute',
-      bottom: 12,
-      right: 12,
     },
   };
 }
