@@ -20,6 +20,10 @@ export interface OrderCardData {
   void?: boolean;
   dispatchedOn?: string | null;
   customerAccount?: number;
+  /** Resolved customer company name (from useBulkOrderCustomers) */
+  customerName?: string | null;
+  /** Resolved customer account number (from useBulkOrderCustomers) */
+  customerAccountNumber?: string | null;
 }
 
 interface OrderCardProps {
@@ -84,14 +88,22 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
       actions={actions}
       onPress={handleOpenOrder}
     >
-      <View style={styles.bottomRow}>
-        <View>
-          {typeof order.customerAccount === 'number' ? (
-            <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
-          ) : null}
-        </View>
-        <OrderStatusBadge status={resolveOrderStatus(order) ?? 'Unknown'} />
+      <View style={styles.customerInfo}>
+        {order.customerName ? (
+          <>
+            <Text style={styles.cardMeta}>{order.customerName}</Text>
+            {order.customerAccountNumber ? (
+              <Text style={styles.cardMetaSecondary}>{order.customerAccountNumber}</Text>
+            ) : null}
+          </>
+        ) : typeof order.customerAccount === 'number' ? (
+          <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
+        ) : null}
       </View>
+      <OrderStatusBadge
+        status={resolveOrderStatus(order) ?? 'Unknown'}
+        style={styles.badge}
+      />
     </ThemedCard>
   );
 }
@@ -102,12 +114,19 @@ function createStyles(theme: AppTheme) {
   return {
     card: common.card,
     cardMeta: common.cardMeta,
-    bottomRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      gap: 8,
-      flexWrap: 'wrap',
+    cardMetaSecondary: {
+      color: theme.colors.textMuted,
+      fontSize: 11,
+      marginTop: 2,
+    },
+    customerInfo: {
+      paddingRight: 80,
+      paddingBottom: 36,
+    },
+    badge: {
+      position: 'absolute',
+      bottom: 12,
+      right: 12,
     },
   };
 }

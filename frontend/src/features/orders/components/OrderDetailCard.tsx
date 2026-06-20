@@ -17,6 +17,10 @@ interface OrderDetailCardProps {
   cardActions: TopBarAction[];
   deliveryAddressOptions: SelectOption<number>[];
   isLoadingDeliveryAddresses: boolean;
+  /** Resolved customer company name (from useOrderCustomer hook) */
+  customerName?: string | null;
+  /** Resolved customer account number (from useOrderCustomer hook) */
+  customerAccountNumber?: string | null;
 }
 
 export function OrderDetailCard({
@@ -28,6 +32,8 @@ export function OrderDetailCard({
   cardActions,
   deliveryAddressOptions,
   isLoadingDeliveryAddresses,
+  customerName,
+  customerAccountNumber,
 }: OrderDetailCardProps) {
   const styles = useThemedStyles(createStyles);
 
@@ -41,7 +47,13 @@ export function OrderDetailCard({
       </View>
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Customer</Text>
-        <Text style={styles.fieldValue}>{order.customerAccount ?? 'N/A'}</Text>
+        <Text style={styles.fieldValue}>{customerName ?? 'N/A'}</Text>
+      </View>
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Account No.</Text>
+        <Text style={styles.fieldValue}>
+          {customerAccountNumber ?? (order.customerAccount != null ? String(order.customerAccount) : 'N/A')}
+        </Text>
       </View>
 
       {isEditing ? (

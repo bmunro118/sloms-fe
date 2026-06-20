@@ -11,6 +11,7 @@ import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { OrdersListQuery } from '@src/features/orders/api';
 import { OrderCard } from '@src/features/orders/components/OrderCard';
+import { useBulkOrderCustomers } from '@src/features/orders/hooks/useBulkOrderCustomers';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useListFilters } from '@src/hooks/useListFilters';
@@ -217,6 +218,8 @@ export default function OrdersListScreen() {
     };
   }, [hasServerFilterQuery, listQuery, refreshTick]);
 
+  const customerMap = useBulkOrderCustomers(allOrders);
+
   const ordersByFilter = allOrders.filter((o) => {
     const customerIdRaw = appliedFilters.customerId.trim();
     const parsedCustomerId = customerIdRaw ? Number(customerIdRaw) : NaN;
@@ -248,6 +251,17 @@ export default function OrdersListScreen() {
       })
     : ordersByFilter;
 
+  const resolvedOrders = useMemo(
+    () =>
+      customerMap.size > 0
+        ? orders.map((o) => {
+            const info = o.customerAccount != null ? customerMap.get(o.customerAccount) : undefined;
+            return info ? { ...o, customerName: info.customerName, customerAccountNumber: info.customerAccountNumber } : o;
+          })
+        : orders,
+    [customerMap, orders],
+  );
+
   return (
     <>
       <ScreenContent>
@@ -272,8 +286,8 @@ export default function OrdersListScreen() {
               ) : undefined
             }
           >
-            {orders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
-            {orders.map((order) => (
+            {resolvedOrders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
+            {resolvedOrders.map((order) => (
               <OrderCard
                 key={`${order.orderNumber}-${order.orderBatch}`}
                 order={order}

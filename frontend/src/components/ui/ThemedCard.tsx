@@ -14,6 +14,8 @@ interface ThemedCardProps extends PropsWithChildren {
   title?: string;
   titleNode?: PropsWithChildren['children'];
   actions?: TopBarAction[];
+  /** Suppress the minHeight: 32 on the header row. Use on detail/section cards where the title text is naturally tall enough to contain action buttons. */
+  compactHeader?: boolean;
 }
 
 export function ThemedCard({
@@ -25,6 +27,7 @@ export function ThemedCard({
   title,
   titleNode,
   actions = [],
+  compactHeader = false,
 }: ThemedCardProps) {
   const { colors, radii, spacing } = useAppTheme();
   const visibleActions = actions.filter((action) => action.hidden !== true);
@@ -58,7 +61,7 @@ export function ThemedCard({
             styles.headerRow,
             {
               marginBottom: headerBottomSpacing,
-              minHeight: visibleActions.length > 0 ? 32 : undefined,
+              minHeight: !compactHeader && visibleActions.length > 0 ? 32 : undefined,
             },
           ]}
         >

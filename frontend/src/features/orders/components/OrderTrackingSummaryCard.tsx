@@ -21,6 +21,10 @@ interface OrderTrackingSummaryCardProps {
   isEditing: boolean;
   /** Card-level actions passed through when editing (edit/save/cancel from the main screen) */
   cardActions: TopBarAction[];
+  /** Resolved customer company name (from useOrderCustomer hook) */
+  customerName?: string | null;
+  /** Resolved customer account number (from useOrderCustomer hook) */
+  customerAccountNumber?: string | null;
 }
 
 export function OrderTrackingSummaryCard({
@@ -32,6 +36,8 @@ export function OrderTrackingSummaryCard({
   itemsCount,
   isEditing: _isEditing,
   cardActions,
+  customerName,
+  customerAccountNumber,
 }: OrderTrackingSummaryCardProps) {
   const { canMutate } = useAuth();
   const { width } = useWindowDimensions();
@@ -43,7 +49,7 @@ export function OrderTrackingSummaryCard({
   const displayStatus = resolveOrderStatus(order);
 
   return (
-    <ThemedCard style={styles.card} title="Order Details" actions={canMutate ? cardActions : undefined}>
+    <ThemedCard style={styles.card} title="Order Details" actions={canMutate ? cardActions : undefined} compactHeader>
       {/* Status badge — marginTop cancels ThemedCard headerBottomSpacing so net gap = card gap (8px) */}
       <OrderStatusBadge status={displayStatus} style={{ marginTop: -8 }} />
 
@@ -58,10 +64,16 @@ export function OrderTrackingSummaryCard({
         right={
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Customer</Text>
-            <Text style={styles.fieldValue}>{order.customerAccount ?? 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{customerName ?? 'N/A'}</Text>
           </View>
         }
       />
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>Account No.</Text>
+        <Text style={styles.fieldValue}>
+          {customerAccountNumber ?? (order.customerAccount != null ? String(order.customerAccount) : 'N/A')}
+        </Text>
+      </View>
       <FieldPair
         compact={isCompact}
         left={

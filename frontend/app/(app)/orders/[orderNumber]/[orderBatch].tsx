@@ -51,6 +51,7 @@ import { OrderTrackingSummaryCard } from '@src/features/orders/components/OrderT
 import { OrderSystemNotificationsCard } from '@src/features/orders/components/OrderSystemNotificationsCard';
 import { OrderUpdatesCard } from '@src/features/orders/components/OrderUpdatesCard';
 import { SerialLookupCard } from '@src/features/orders/components/SerialLookupCard';
+import { useOrderCustomer } from '@src/features/orders/hooks/useOrderCustomer';
 import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 
 export default function OrderDetailScreen() {
@@ -102,6 +103,7 @@ export default function OrderDetailScreen() {
     selectedFilterLabel,
     loadTracking,
   } = useOrderTracking(orderNumber, orderBatch);
+  const { customerName, customerAccountNumber } = useOrderCustomer(order?.customerAccount);
   // Serial number lookup state
   const [serialInput, setSerialInput] = useState('');
   const [isSerialSearching, setIsSerialSearching] = useState(false);
@@ -109,15 +111,13 @@ export default function OrderDetailScreen() {
   const [serialError, setSerialError] = useState<string | null>(null);
 
   useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
-  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() => {
-    return deliveryAddresses.map((address, index) => {
+  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() =>
+    deliveryAddresses.map((address, index) => {
       const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
       const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
       const defaultBadge = address.defaultAddress ? ' (Default)' : '';
       return { value: address.id, label: `${line}${city}${defaultBadge}` };
-    });
-  }, [deliveryAddresses]);
-
+    }), [deliveryAddresses]);
   // Data loading
   const reload = useCallback(async (signal?: AbortSignal) => {
     if (!isMountedRef.current || signal?.aborted) return;
@@ -135,7 +135,6 @@ export default function OrderDetailScreen() {
       if (isMountedRef.current && !signal?.aborted) setIsLoading(false);
     }
   }, [isMountedRef, orderBatch, orderNumber]);
-
   useEffect(() => {
     if (!Number.isFinite(orderNumber) || !Number.isFinite(orderBatch)) {
       setError('Invalid order route parameters.');
@@ -143,8 +142,7 @@ export default function OrderDetailScreen() {
       return;
     }
     const controller = new AbortController();
-    void reload(controller.signal);
-    void loadTracking(controller.signal);
+    void reload(controller.signal); void loadTracking(controller.signal);
     return () => { controller.abort(); };
   }, [orderBatch, orderNumber, reload, loadTracking]);
   // Delivery addresses
@@ -369,8 +367,7 @@ export default function OrderDetailScreen() {
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()), label: 'Back to orders' });
     const actions: TopBarAction[] = [];
-
-    // Dispatch action (moved from OrderDetailCard to TopBar as required)
+    // Dispatch action
     if (canMutate && order) {
       const dispatched = resolveOrderStatus(order) === 'Dispatched';
       actions.push(buildIconTopBarAction({
@@ -382,7 +379,6 @@ export default function OrderDetailScreen() {
         primary: true,
       }));
     }
-
     actions.push(
       buildIconTopBarAction({ id: 'download-order-breakdown', label: 'Download breakdown', onPress: () => { void handleDownloadBreakdown(); }, icon: DownloadIcon, disabled: isLoading || !order }),
       buildIconTopBarAction({ id: 'void-order', label: 'Void order', onPress: () => { void handleVoidOrder(); }, icon: ArchiveIcon, disabled: isLoading || !order || !canMutate, secondary: true }),
@@ -423,6 +419,8 @@ export default function OrderDetailScreen() {
               cardActions={orderCardActions}
               deliveryAddressOptions={deliveryAddressOptions}
               isLoadingDeliveryAddresses={isLoadingDeliveryAddresses}
+              customerName={customerName}
+              customerAccountNumber={customerAccountNumber}
             />
           ) : (
             <OrderTrackingSummaryCard
@@ -434,6 +432,8 @@ export default function OrderDetailScreen() {
               itemsCount={trackingItems.length}
               isEditing={false}
               cardActions={orderCardActions}
+              customerName={customerName}
+              customerAccountNumber={customerAccountNumber}
             />
           )}
 
