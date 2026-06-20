@@ -88,7 +88,7 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
       actions={actions}
       onPress={handleOpenOrder}
     >
-      <View style={styles.infoRow}>
+      <View style={styles.bottomRow}>
         <View style={styles.customerInfo}>
           {order.customerName ? (
             <>
@@ -103,6 +103,7 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
         </View>
         <OrderStatusBadge
           status={resolveOrderStatus(order) ?? 'Unknown'}
+          style={{ alignSelf: 'flex-end' }}
         />
       </View>
     </ThemedCard>
@@ -114,10 +115,10 @@ function createStyles(theme: AppTheme) {
 
   return {
     card: common.card,
-    infoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-end',
+    bottomRow: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'flex-end' as const,
     },
     customerInfo: {
       flexShrink: 1,
@@ -126,7 +127,7 @@ function createStyles(theme: AppTheme) {
     customerName: {
       color: theme.colors.textPrimary,
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '600' as const,
     },
     customerNumber: {
       color: theme.colors.textMuted,
