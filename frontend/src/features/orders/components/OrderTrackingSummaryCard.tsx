@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { OrderStatusBadge } from '@components/ui/OrderStatusBadge';
 import { FieldPair } from '@components/ui/FieldPair';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { useAuth } from '@context/AuthContext';
 import { OrderDetails, resolveOrderStatus } from '../types';
-import { OrderTrackingPayload, formatStatusLabel, formatTrackingDate, getStatusIcon } from '../tracking-types';
+import { OrderTrackingPayload, formatTrackingDate } from '../tracking-types';
 import { TopBarAction } from '@context/ScreenTitleContext';
 
 interface OrderTrackingSummaryCardProps {
@@ -40,33 +41,12 @@ export function OrderTrackingSummaryCard({
   if (!order) return null;
 
   const displayStatus = resolveOrderStatus(order);
-  const StatusIcon = getStatusIcon(currentStatus !== 'Unknown' ? currentStatus : displayStatus);
 
   return (
     <ThemedCard style={styles.card} title="Order Details" actions={canMutate ? cardActions : undefined}>
       {/* Status badge */}
       <View style={styles.summaryHeadRow}>
-        <View style={[
-          styles.statusBadge,
-          displayStatus === 'Received' ? styles.statusBadgeReceived :
-          displayStatus === 'InProduction' ? styles.statusBadgeInProgress :
-          (displayStatus === 'Ready' || displayStatus === 'Dispatched') ? styles.statusBadgeComplete :
-          null
-        ]}>
-          <StatusIcon color={
-            displayStatus === 'Received' ? styles.badgeTextReceived.color :
-            displayStatus === 'InProduction' ? styles.badgeTextInProgress.color :
-            (displayStatus === 'Ready' || displayStatus === 'Dispatched') ? styles.badgeTextComplete.color :
-            styles.badgeText.color
-          } size={14} />
-          <Text style={[
-            styles.badgeText,
-            displayStatus === 'Received' ? styles.badgeTextReceived :
-            displayStatus === 'InProduction' ? styles.badgeTextInProgress :
-            (displayStatus === 'Ready' || displayStatus === 'Dispatched') ? styles.badgeTextComplete :
-            null
-          ]}>{formatStatusLabel(displayStatus)}</Text>
-        </View>
+        <OrderStatusBadge status={displayStatus} />
       </View>
 
       <FieldPair
@@ -138,50 +118,6 @@ function createStyles(theme: AppTheme) {
       justifyContent: 'space-between',
       gap: 10,
       flexWrap: 'wrap',
-    },
-    statusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: theme.radii.md,
-      borderWidth: 1,
-      borderColor: theme.colors.borderStrong,
-      backgroundColor: theme.colors.accentMuted,
-      alignSelf: 'flex-start',
-    },
-    badgeText: {
-      color: theme.colors.textPrimary,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextReceived: {
-      color: theme.colors.statusReceivedText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextInProgress: {
-      color: theme.colors.statusInProgressText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextComplete: {
-      color: theme.colors.statusCompleteText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    statusBadgeReceived: {
-      backgroundColor: theme.colors.statusReceived,
-      borderColor: theme.colors.border,
-    },
-    statusBadgeInProgress: {
-      backgroundColor: theme.colors.statusInProgress,
-      borderColor: theme.colors.accent,
-    },
-    statusBadgeComplete: {
-      backgroundColor: theme.colors.statusComplete,
-      borderColor: theme.colors.accent,
     },
     cardMeta: {
       color: theme.colors.textMuted,

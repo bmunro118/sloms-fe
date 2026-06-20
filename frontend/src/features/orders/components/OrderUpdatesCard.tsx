@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { OrderStatusBadge } from '@components/ui/OrderStatusBadge';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
@@ -8,8 +9,6 @@ import { tokens } from '@src/theme/tokens';
 import {
   FilterOption,
   TimelineUpdate,
-  formatStatusLabel,
-  getStatusIcon,
 } from '../tracking-types';
 
 interface OrderUpdatesCardProps {
@@ -95,7 +94,6 @@ export function OrderUpdatesCard({
         <Text style={styles.muted}>No updates match this filter.</Text>
       ) : (
         updates.map((entry, index) => {
-          const StatusIcon = getStatusIcon(entry.status);
           const isExpanded = expandedUpdateId === entry.id;
 
           return (
@@ -109,27 +107,7 @@ export function OrderUpdatesCard({
                 accessibilityLabel={`Toggle details for ${entry.statusLabel} update`}
               >
                 <View style={styles.updateHeaderMain}>
-                  <View style={[
-                    styles.updateStatusBadge,
-                    entry.status === 'Received' ? styles.statusBadgeReceived :
-                    entry.status === 'InProduction' ? styles.statusBadgeInProgress :
-                    (entry.status === 'Ready' || entry.status === 'Dispatched') ? styles.statusBadgeComplete :
-                    null
-                  ]}>
-                    <StatusIcon size={14} color={
-                      entry.status === 'Received' ? styles.badgeTextReceived.color :
-                      entry.status === 'InProduction' ? styles.badgeTextInProgress.color :
-                      (entry.status === 'Ready' || entry.status === 'Dispatched') ? styles.badgeTextComplete.color :
-                      styles.badgeText.color
-                    } />
-                    <Text style={[
-                      styles.badgeText,
-                      entry.status === 'Received' ? styles.badgeTextReceived :
-                      entry.status === 'InProduction' ? styles.badgeTextInProgress :
-                      (entry.status === 'Ready' || entry.status === 'Dispatched') ? styles.badgeTextComplete :
-                      null
-                    ]}>{entry.statusLabel}</Text>
-                  </View>
+                  <OrderStatusBadge status={entry.status} size="sm" />
                   <Text style={styles.updateTimestamp}>{entry.timestampLabel}</Text>
                 </View>
                 {isExpanded ? (
@@ -270,18 +248,6 @@ function createStyles(theme: AppTheme) {
       gap: 8,
       flexWrap: 'wrap',
     },
-    updateStatusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: theme.radii.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-      alignSelf: 'flex-start',
-    },
     updateTimestamp: {
       color: theme.colors.textMuted,
       fontSize: 12,
@@ -300,38 +266,6 @@ function createStyles(theme: AppTheme) {
     },
     fieldLabel: common.fieldLabel,
     fieldValue: common.fieldValue,
-    badgeText: {
-      color: theme.colors.textPrimary,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextReceived: {
-      color: theme.colors.statusReceivedText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextInProgress: {
-      color: theme.colors.statusInProgressText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextComplete: {
-      color: theme.colors.statusCompleteText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    statusBadgeReceived: {
-      backgroundColor: theme.colors.statusReceived,
-      borderColor: theme.colors.border,
-    },
-    statusBadgeInProgress: {
-      backgroundColor: theme.colors.statusInProgress,
-      borderColor: theme.colors.accent,
-    },
-    statusBadgeComplete: {
-      backgroundColor: theme.colors.statusComplete,
-      borderColor: theme.colors.accent,
-    },
     cardMeta: {
       color: theme.colors.textMuted,
       fontSize: 12,

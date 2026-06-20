@@ -1,9 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { OrderStatusBadge } from '@components/ui/OrderStatusBadge';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
-import { TrackingItem, formatStatusLabel, getStatusIcon } from '../tracking-types';
+import { TrackingItem } from '../tracking-types';
 
 interface OrderItemsSnapshotCardProps {
   items: TrackingItem[];
@@ -17,33 +18,11 @@ export function OrderItemsSnapshotCard({ items }: OrderItemsSnapshotCardProps) {
       {items.length === 0 ? (
         <Text style={styles.muted}>No item details returned for this order.</Text>
       ) : (
-        items.map((item, index) => {
-          const ItemStatusIcon = getStatusIcon(item.status);
-          return (
+        items.map((item, index) => (
             <View key={`${item.serialNumber ?? 'item'}-${index}`} style={styles.itemRow}>
               <View style={styles.itemTitleRow}>
                 <Text style={styles.cardItem}>{item.serialNumber ?? 'Unknown serial'}</Text>
-                <View style={[
-                  styles.itemStatusBadge,
-                  item.status === 'Received' ? styles.statusBadgeReceived :
-                  item.status === 'InProduction' ? styles.statusBadgeInProgress :
-                  (item.status === 'Ready' || item.status === 'Dispatched') ? styles.statusBadgeComplete :
-                  null
-                ]}>
-                  <ItemStatusIcon size={12} color={
-                    item.status === 'Received' ? styles.badgeTextReceived.color :
-                    item.status === 'InProduction' ? styles.badgeTextInProgress.color :
-                    (item.status === 'Ready' || item.status === 'Dispatched') ? styles.badgeTextComplete.color :
-                    styles.itemBadgeText.color
-                  } />
-                  <Text style={[
-                    styles.itemBadgeText,
-                    item.status === 'Received' ? styles.badgeTextReceived :
-                    item.status === 'InProduction' ? styles.badgeTextInProgress :
-                    (item.status === 'Ready' || item.status === 'Dispatched') ? styles.badgeTextComplete :
-                    null
-                  ]}>{formatStatusLabel(item.status)}</Text>
-                </View>
+                <OrderStatusBadge status={item.status ?? ''} size="sm" />
               </View>
               <Text style={styles.cardMeta}>{item.description ?? 'No description'}</Text>
               {item.side ? (
@@ -53,9 +32,9 @@ export function OrderItemsSnapshotCard({ items }: OrderItemsSnapshotCardProps) {
                 </View>
               ) : null}
             </View>
-          );
-        })
-      )}
+          ))
+        )
+      }
     </ThemedCard>
   );
 }
@@ -83,49 +62,6 @@ function createStyles(theme: AppTheme) {
       justifyContent: 'space-between',
       gap: 8,
       flexWrap: 'wrap',
-    },
-    itemStatusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: theme.radii.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-    },
-    itemBadgeText: {
-      color: theme.colors.textSecondary,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    badgeTextReceived: {
-      color: theme.colors.statusReceivedText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextInProgress: {
-      color: theme.colors.statusInProgressText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextComplete: {
-      color: theme.colors.statusCompleteText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    statusBadgeReceived: {
-      backgroundColor: theme.colors.statusReceived,
-      borderColor: theme.colors.border,
-    },
-    statusBadgeInProgress: {
-      backgroundColor: theme.colors.statusInProgress,
-      borderColor: theme.colors.accent,
-    },
-    statusBadgeComplete: {
-      backgroundColor: theme.colors.statusComplete,
-      borderColor: theme.colors.accent,
     },
     cardMeta: {
       color: theme.colors.textMuted,

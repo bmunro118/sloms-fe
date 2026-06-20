@@ -24,51 +24,6 @@ export function createStyles(theme: AppTheme) {
       gap: 10,
       flexWrap: 'wrap',
     },
-    statusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: theme.radii.md,
-      borderWidth: 1,
-      borderColor: theme.colors.borderStrong,
-      backgroundColor: theme.colors.accentMuted,
-      alignSelf: 'flex-start',
-    },
-    badgeText: {
-      color: theme.colors.textPrimary,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextReceived: {
-      color: theme.colors.statusReceivedText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextInProgress: {
-      color: theme.colors.statusInProgressText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    badgeTextComplete: {
-      color: theme.colors.statusCompleteText,
-      fontWeight: '700',
-      fontSize: 12,
-    },
-    // Status-specific badge backgrounds (subtle)
-    statusBadgeReceived: {
-      backgroundColor: theme.colors.statusReceived,
-      borderColor: theme.colors.border,
-    },
-    statusBadgeInProgress: {
-      backgroundColor: theme.colors.statusInProgress,
-      borderColor: theme.colors.accent,
-    },
-    statusBadgeComplete: {
-      backgroundColor: theme.colors.statusComplete,
-      borderColor: theme.colors.accent,
-    },
     stepRail: {
       flexDirection: 'row',
       flexWrap: 'wrap',

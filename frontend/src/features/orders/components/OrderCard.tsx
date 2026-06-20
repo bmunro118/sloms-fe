@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
 import { Pencil as EditOrderIcon, Send as DispatchOrderIcon, SquareCheck as DispatchedOrderIcon } from 'lucide-react-native';
 import { useCallback, useMemo } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { OrderStatusBadge } from '@components/ui/OrderStatusBadge';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
@@ -83,10 +84,14 @@ export function OrderCard({ order, onDispatch, isDispatching = false }: OrderCar
       actions={actions}
       onPress={handleOpenOrder}
     >
-      <Text style={styles.cardMeta}>Status: {resolveOrderStatus(order) ?? 'Unknown'}</Text>
-      {typeof order.customerAccount === 'number' ? (
-        <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
-      ) : null}
+      <View style={styles.bottomRow}>
+        <View>
+          {typeof order.customerAccount === 'number' ? (
+            <Text style={styles.cardMeta}>Customer: {order.customerAccount}</Text>
+          ) : null}
+        </View>
+        <OrderStatusBadge status={resolveOrderStatus(order) ?? 'Unknown'} />
+      </View>
     </ThemedCard>
   );
 }
@@ -97,5 +102,12 @@ function createStyles(theme: AppTheme) {
   return {
     card: common.card,
     cardMeta: common.cardMeta,
+    bottomRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
   };
 }

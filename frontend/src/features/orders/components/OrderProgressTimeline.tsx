@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { ChevronRight, ChevronDown } from 'lucide-react-native';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { useAppTheme } from '@theme/ThemeProvider';
+import { AppTheme } from '@theme/types';
 import { createStyles } from '../tracking-styles';
 import { getStatusIcon, type JourneyStep } from '../tracking-types';
 
@@ -21,15 +23,15 @@ function getStepChipStyle(status: string, styles: ReturnType<typeof createStyles
   }
 }
 
-function getStepTextColor(status: string, styles: ReturnType<typeof createStyles>) {
+function getStepTextColor(status: string, theme: AppTheme): string | undefined {
   switch (status) {
     case 'Received':
-      return styles.badgeTextReceived.color;
+      return theme.colors.statusReceivedText;
     case 'InProduction':
-      return styles.badgeTextInProgress.color;
+      return theme.colors.statusInProgressText;
     case 'Ready':
     case 'Dispatched':
-      return styles.badgeTextComplete.color;
+      return theme.colors.statusCompleteText;
     default:
       return undefined;
   }
@@ -44,6 +46,7 @@ interface OrderProgressTimelineProps {
 export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
   const { width } = useWindowDimensions();
   const styles = useThemedStyles(createStyles);
+  const theme = useAppTheme();
 
   const isMobile = useMemo(() => width < 768, [width]);
 
@@ -56,7 +59,7 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
           const isComplete = step.state === 'complete';
           const isUpcoming = step.state === 'upcoming';
           const chipStyle = getStepChipStyle(step.status, styles);
-          const textColor = getStepTextColor(step.status, styles);
+          const textColor = getStepTextColor(step.status, theme);
           const isFirst = index === 0;
           const isLast = index === steps.length - 1;
           const prevComplete = index > 0 && steps[index - 1].state === 'complete';
@@ -129,7 +132,7 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
           const isComplete = step.state === 'complete';
           const isUpcoming = step.state === 'upcoming';
           const chipStyle = getStepChipStyle(step.status, styles);
-          const textColor = getStepTextColor(step.status, styles);
+          const textColor = getStepTextColor(step.status, theme);
           const isFirst = index === 0;
           const isLast = index === steps.length - 1;
           const prevComplete = index > 0 && steps[index - 1].state === 'complete';
