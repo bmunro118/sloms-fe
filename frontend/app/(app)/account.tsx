@@ -151,47 +151,49 @@ export default function AccountScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <Text style={styles.meta}>Username: {profile?.username ?? user?.username ?? 'Unknown'}</Text>
-      <Text style={styles.meta}>Role: {profile?.role ?? user?.role ?? 'Unknown'}</Text>
-      {profile?.fullName ? <Text style={styles.meta}>Name: {profile.fullName}</Text> : null}
-      {profile?.email ? <Text style={styles.meta}>Email: {profile.email}</Text> : null}
+      <View style={styles.centeredBlock}>
+        <Text style={styles.meta}>Username: {profile?.username ?? user?.username ?? 'Unknown'}</Text>
+        <Text style={styles.meta}>Role: {profile?.role ?? user?.role ?? 'Unknown'}</Text>
+        {profile?.fullName ? <Text style={styles.meta}>Name: {profile.fullName}</Text> : null}
+        {profile?.email ? <Text style={styles.meta}>Email: {profile.email}</Text> : null}
 
-      <Text style={styles.sectionTitle}>Change Password</Text>
-      <View style={styles.formContainer}>
-        <ThemedInput
-          secureTextEntry
-          placeholder="Current password"
-          style={styles.input}
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          editable={!isSubmitting}
-        />
-        <ThemedInput
-          secureTextEntry
-          placeholder="New password"
-          style={styles.input}
-          value={newPassword}
-          onChangeText={setNewPassword}
-          editable={!isSubmitting}
-        />
-        <ThemedInput
-          secureTextEntry
-          placeholder="Confirm new password"
-          style={styles.input}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          editable={!isSubmitting}
-        />
-        <ThemedButton
-          label={isSubmitting ? 'Saving...' : 'Save Password'}
-          icon={<SaveIcon size={16} color="white" />}
-          variant="solid"
-          disabled={!canSubmitPasswordChange}
-          onPress={handlePasswordChange}
-          tooltip={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
-          style={styles.saveButton}
-        />
-        {status ? <Text style={styles.status}>{status}</Text> : null}
+        <Text style={styles.sectionTitle}>Change Password</Text>
+        <View style={styles.formContainer}>
+          <ThemedInput
+            secureTextEntry
+            placeholder="Current password"
+            style={styles.input}
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            editable={!isSubmitting}
+          />
+          <ThemedInput
+            secureTextEntry
+            placeholder="New password"
+            style={styles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            editable={!isSubmitting}
+          />
+          <ThemedInput
+            secureTextEntry
+            placeholder="Confirm new password"
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            editable={!isSubmitting}
+          />
+          <ThemedButton
+            label={isSubmitting ? 'Saving...' : 'Save Password'}
+            icon={<SaveIcon size={16} color="white" />}
+            variant="solid"
+            disabled={!canSubmitPasswordChange}
+            onPress={handlePasswordChange}
+            tooltip={canSubmitPasswordChange ? 'Save password change' : 'Save password change disabled'}
+            style={styles.saveButton}
+          />
+          {status ? <Text style={styles.status}>{status}</Text> : null}
+        </View>
       </View>
     </ScreenContent>
   );
@@ -202,8 +204,13 @@ function createStyles(theme: AppTheme) {
 
   return StyleSheet.create({
     ...common,
-    formContainer: {
+    centeredBlock: {
       maxWidth: 440,
+      width: '100%',
+      alignSelf: 'center',
+      gap: 10,
+    },
+    formContainer: {
       width: '100%',
       gap: 16,
     },
