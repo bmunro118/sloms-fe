@@ -44,10 +44,8 @@ export function OrderTrackingSummaryCard({
 
   return (
     <ThemedCard style={styles.card} title="Order Details" actions={canMutate ? cardActions : undefined}>
-      {/* Status badge */}
-      <View style={styles.summaryHeadRow}>
-        <OrderStatusBadge status={displayStatus} />
-      </View>
+      {/* Status badge — marginTop cancels ThemedCard headerBottomSpacing so net gap = card gap (8px) */}
+      <OrderStatusBadge status={displayStatus} style={{ marginTop: -8 }} />
 
       <FieldPair
         compact={isCompact}
@@ -112,13 +110,6 @@ function createStyles(theme: AppTheme) {
     field: { marginTop: theme.spacing.sm },
     fieldLabel: common.fieldLabel,
     fieldValue: common.fieldValue,
-    summaryHeadRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 10,
-      flexWrap: 'wrap',
-    },
     cardMeta: {
       color: theme.colors.textMuted,
       fontSize: 12,

@@ -31,7 +31,7 @@ export function ThemedCard({
   const hasTitle = Boolean(titleNode) || Boolean(title);
   const showHeaderRow = hasTitle || visibleActions.length > 0;
   const hasFloatingActionRow = !hasTitle && visibleActions.length > 0;
-  const headerBottomSpacing = hasTitle ? spacing.xs + (visibleActions.length > 0 ? 6 : 0) : 0;
+  const headerBottomSpacing = hasTitle ? spacing.xs + (visibleActions.length > 0 ? 4 : 0) : 0;
   const [actionRowWidth, setActionRowWidth] = useState(0);
   const titleRightInset = hasTitle && visibleActions.length > 0 ? actionRowWidth + spacing.xs : 0;
 
