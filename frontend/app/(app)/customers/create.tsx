@@ -64,7 +64,7 @@ export default function CreateCustomerScreen() {
     [formData, pendingAddresses],
   );
 
-  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -133,13 +133,14 @@ export default function CreateCustomerScreen() {
       }
 
       showSuccess('Customer created', `${formData.companyName.trim()} has been created successfully.`);
+      skipNextGuard();
       router.replace('/(app)/customers' as never);
     } catch (err) {
       showDanger('Create failed', err instanceof Error ? err.message : 'Failed to create customer.');
     } finally {
       setIsSaving(false);
     }
-  }, [formData, pendingAddresses, validate, showConfirm, showSuccess, showDanger, showWarning, router]);
+  }, [formData, pendingAddresses, validate, showConfirm, showSuccess, showDanger, showWarning, router, skipNextGuard]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
     buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),

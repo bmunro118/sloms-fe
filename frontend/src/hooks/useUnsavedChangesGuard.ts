@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAppModal } from '@src/hooks/useAppModal';
 
 interface UseUnsavedChangesGuardOptions {
@@ -7,16 +7,19 @@ interface UseUnsavedChangesGuardOptions {
 
 interface UseUnsavedChangesGuardResult {
   guardAction: (action: () => void | Promise<void>) => Promise<boolean>;
+  skipNextGuard: () => void;
 }
 
 export function useUnsavedChangesGuard({
   isDirty,
 }: UseUnsavedChangesGuardOptions): UseUnsavedChangesGuardResult {
   const { showConfirm } = useAppModal();
+  const skipNextRef = useRef(false);
 
   const guardAction = useCallback(
     async (action: () => void | Promise<void>): Promise<boolean> => {
-      if (!isDirty) {
+      if (skipNextRef.current || !isDirty) {
+        skipNextRef.current = false;
         await action();
         return true;
       }
@@ -37,7 +40,11 @@ export function useUnsavedChangesGuard({
     [isDirty, showConfirm],
   );
 
-  return { guardAction };
+  const skipNextGuard = useCallback(() => {
+    skipNextRef.current = true;
+  }, []);
+
+  return { guardAction, skipNextGuard };
 }
 
 /**

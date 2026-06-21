@@ -175,6 +175,7 @@ export default function CreateOrderScreen() {
 
       const result = await createOrder(payload);
       console.log('[OrderCreate] Order created successfully:', result);
+      skipNextGuard();
       router.replace('/(app)/orders');
     } catch (err) {
       console.error('[OrderCreate] API error:', err);
@@ -186,7 +187,7 @@ export default function CreateOrderScreen() {
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderBatch, orderContact, orderNumber, priceBand, receivedOn, router, showDanger]);
+  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderBatch, orderContact, orderNumber, priceBand, receivedOn, router, showDanger, skipNextGuard]);
 
   const handleCreate = useCallback(async () => {
     if (isSaving) {
@@ -215,11 +216,19 @@ export default function CreateOrderScreen() {
   }, [isSaving, showConfirm, customerAccount, customers, orderNumber, performCreate]);
 
   const isDirty = useMemo(
-    () => orderNumber !== '' || customerAccount !== null || orderBatch !== '' || customerRef !== '' || orderContact !== '' || priceBand !== '' || receivedOn !== '',
-    [orderNumber, customerAccount, orderBatch, customerRef, orderContact, priceBand, receivedOn],
+    () =>
+      orderNumber !== '' ||
+      customerAccount !== null ||
+      orderBatch !== '' ||
+      customerRef !== '' ||
+      orderContact !== '' ||
+      priceBand !== '' ||
+      receivedOn !== '' ||
+      deliveryAddress !== null,
+    [orderNumber, customerAccount, orderBatch, customerRef, orderContact, priceBand, receivedOn, deliveryAddress],
   );
 
-  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {

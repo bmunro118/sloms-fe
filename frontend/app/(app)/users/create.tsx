@@ -78,7 +78,7 @@ export default function CreateUserScreen() {
     [cards],
   );
 
-  const { guardAction } = useUnsavedChangesGuard({ isDirty });
+  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -303,6 +303,7 @@ export default function CreateUserScreen() {
         'Users created',
         `${successes} user(s) created successfully.`,
       );
+      skipNextGuard();
       router.replace('/(app)/users' as never);
     } else {
       // Mark failed cards with error
@@ -319,7 +320,7 @@ export default function CreateUserScreen() {
         `${successes} of ${cards.length} created. Review the highlighted cards and retry.`,
       );
     }
-  }, [cards, showSuccess, showDanger, router]);
+  }, [cards, showSuccess, showDanger, router, skipNextGuard]);
 
   // ── handleDeleteSelected ────────────────────────────────────────────────────
 
