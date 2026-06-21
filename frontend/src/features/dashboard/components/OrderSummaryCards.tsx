@@ -51,7 +51,7 @@ export function OrderSummaryCards() {
       label: 'Ready',
       sublabel: 'Awaiting Dispatch',
       icon: PackageCheck,
-      accentColor: theme.colors.statusCompleteText,
+      accentColor: theme.colors.statusReadyText,
       value: data.ready,
     },
     {

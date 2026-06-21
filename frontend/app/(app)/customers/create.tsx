@@ -1,10 +1,9 @@
 import { Redirect, useRouter } from 'expo-router';
 import { Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
-import { ThemedButton } from '@components/ui/ThemedButton';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -181,21 +180,6 @@ export default function CreateCustomerScreen() {
           pendingAddresses={pendingAddresses}
           onPendingAddressesChange={setPendingAddresses}
         />
-        <View style={styles.submitRow}>
-          <ThemedButton
-            label={isSaving ? 'Creating…' : 'Create Customer'}
-            onPress={handleSave}
-            disabled={isSaving}
-            style={styles.submitButton}
-          />
-          <ThemedButton
-            label="Cancel"
-            onPress={() => void guardAction(() => router.back())}
-            variant="secondary"
-            disabled={isSaving}
-            style={styles.submitButton}
-          />
-        </View>
       </ScrollView>
     </ScreenContent>
   );
@@ -205,15 +189,6 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     scrollContent: {
       paddingBottom: theme.spacing.xxl,
-    },
-    submitRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.lg,
-      flexWrap: 'wrap',
-    },
-    submitButton: {
-      minWidth: 120,
     },
   });
 }

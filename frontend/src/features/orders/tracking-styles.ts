@@ -29,41 +29,6 @@ export function createStyles(theme: AppTheme) {
       flexWrap: 'wrap',
       gap: 8,
     },
-    stepChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.surfaceMuted,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-    },
-    stepChipReceived: {
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.statusReceived,
-    },
-    stepChipInProgress: {
-      borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.statusInProgress,
-    },
-    stepChipComplete: {
-      borderColor: theme.colors.accent,
-      backgroundColor: theme.colors.statusComplete,
-    },
-    stepChipCurrent: {
-      borderColor: theme.colors.borderStrong,
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    stepChipText: {
-      color: theme.colors.textSecondary,
-      fontWeight: '600',
-      fontSize: 12,
-    },
-    stepChipStateText: {
-      color: theme.colors.textPrimary,
-    },
     // Vertical timeline (mobile)
     verticalTimeline: {
       paddingLeft: tokens.spacing.lg,
@@ -143,38 +108,6 @@ export function createStyles(theme: AppTheme) {
       flexDirection: 'column' as const,
       alignItems: 'center' as const,
       gap: tokens.spacing.xs,
-    },
-    // Step badge styles (refined from stepChip)
-    stepBadge: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: 6,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: theme.radii.md,
-      backgroundColor: theme.colors.surfaceMuted,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    stepBadgeCurrent: {
-      borderColor: theme.colors.borderStrong,
-      backgroundColor: theme.colors.navItemHoverBackground,
-    },
-    stepBadgeUpcoming: {
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surfaceMuted,
-      opacity: 0.7,
-    },
-    stepBadgeText: {
-      color: theme.colors.textSecondary,
-      fontWeight: '600' as const,
-      fontSize: 12,
-    },
-    stepBadgeStateText: {
-      color: theme.colors.textPrimary,
-    },
-    stepBadgeUpcomingText: {
-      color: theme.colors.textMuted,
     },
     // Connector dot styles
     connectorDot: {

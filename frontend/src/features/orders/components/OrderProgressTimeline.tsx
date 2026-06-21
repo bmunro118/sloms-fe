@@ -1,41 +1,10 @@
 import { useMemo } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { ChevronRight, ChevronDown } from 'lucide-react-native';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { useAppTheme } from '@theme/ThemeProvider';
-import { AppTheme } from '@theme/types';
+import { OrderStatusBadge } from '@components/ui/OrderStatusBadge';
 import { createStyles } from '../tracking-styles';
-import { getStatusIcon, type JourneyStep } from '../tracking-types';
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function getStepChipStyle(status: string, styles: ReturnType<typeof createStyles>) {
-  switch (status) {
-    case 'Received':
-      return styles.stepChipReceived;
-    case 'InProduction':
-      return styles.stepChipInProgress;
-    case 'Ready':
-    case 'Dispatched':
-      return styles.stepChipComplete;
-    default:
-      return undefined;
-  }
-}
-
-function getStepTextColor(status: string, theme: AppTheme): string | undefined {
-  switch (status) {
-    case 'Received':
-      return theme.colors.statusReceivedText;
-    case 'InProduction':
-      return theme.colors.statusInProgressText;
-    case 'Ready':
-    case 'Dispatched':
-      return theme.colors.statusCompleteText;
-    default:
-      return undefined;
-  }
-}
+import type { JourneyStep } from '../tracking-types';
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -46,7 +15,6 @@ interface OrderProgressTimelineProps {
 export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
   const { width } = useWindowDimensions();
   const styles = useThemedStyles(createStyles);
-  const theme = useAppTheme();
 
   const isMobile = useMemo(() => width < 768, [width]);
 
@@ -54,15 +22,11 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
     return (
       <View style={styles.progressContainerVertical}>
         {steps.map((step, index) => {
-          const StepIcon = getStatusIcon(step.status);
-          const isCurrent = step.state === 'current';
           const isComplete = step.state === 'complete';
-          const isUpcoming = step.state === 'upcoming';
-          const chipStyle = getStepChipStyle(step.status, styles);
-          const textColor = getStepTextColor(step.status, theme);
           const isFirst = index === 0;
           const isLast = index === steps.length - 1;
           const prevComplete = index > 0 && steps[index - 1].state === 'complete';
+          const state = step.state === 'current' ? 'current' : step.state === 'upcoming' ? 'upcoming' : 'complete';
 
           return (
             <View key={step.id} style={styles.progressColumnItem}>
@@ -83,33 +47,7 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
               )}
 
               {/* Step badge */}
-              <View
-                style={[
-                  styles.stepBadge,
-                  isComplete && chipStyle ? chipStyle : null,
-                  isCurrent ? styles.stepBadgeCurrent : null,
-                  isUpcoming ? styles.stepBadgeUpcoming : null,
-                ]}
-              >
-                <StepIcon
-                  size={14}
-                  color={
-                    isCurrent || isComplete
-                      ? (textColor ?? styles.stepBadgeStateText.color)
-                      : styles.stepBadgeUpcomingText.color
-                  }
-                />
-                <Text
-                  style={[
-                    styles.stepBadgeText,
-                    (isCurrent || isComplete) ? styles.stepBadgeStateText : null,
-                    isComplete && textColor ? { color: textColor } : null,
-                    isUpcoming ? styles.stepBadgeUpcomingText : null,
-                  ]}
-                >
-                  {step.label}
-                </Text>
-              </View>
+              <OrderStatusBadge status={step.status} state={state as 'current' | 'complete' | 'upcoming'} size="md" context="progress" />
 
               {/* Bottom dot (except last item) */}
               {!isLast && (
@@ -127,15 +65,11 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
     <View style={styles.progressContainer}>
       <View style={styles.progressRow}>
         {steps.map((step, index) => {
-          const StepIcon = getStatusIcon(step.status);
-          const isCurrent = step.state === 'current';
           const isComplete = step.state === 'complete';
-          const isUpcoming = step.state === 'upcoming';
-          const chipStyle = getStepChipStyle(step.status, styles);
-          const textColor = getStepTextColor(step.status, theme);
           const isFirst = index === 0;
           const isLast = index === steps.length - 1;
           const prevComplete = index > 0 && steps[index - 1].state === 'complete';
+          const state = step.state === 'current' ? 'current' : step.state === 'upcoming' ? 'upcoming' : 'complete';
 
           return (
             <View key={step.id} style={styles.progressItem}>
@@ -156,33 +90,7 @@ export function OrderProgressTimeline({ steps }: OrderProgressTimelineProps) {
               )}
 
               {/* Step badge */}
-              <View
-                style={[
-                  styles.stepBadge,
-                  isComplete && chipStyle ? chipStyle : null,
-                  isCurrent ? styles.stepBadgeCurrent : null,
-                  isUpcoming ? styles.stepBadgeUpcoming : null,
-                ]}
-              >
-                <StepIcon
-                  size={14}
-                  color={
-                    isCurrent || isComplete
-                      ? (textColor ?? styles.stepBadgeStateText.color)
-                      : styles.stepBadgeUpcomingText.color
-                  }
-                />
-                <Text
-                  style={[
-                    styles.stepBadgeText,
-                    (isCurrent || isComplete) ? styles.stepBadgeStateText : null,
-                    isComplete && textColor ? { color: textColor } : null,
-                    isUpcoming ? styles.stepBadgeUpcomingText : null,
-                  ]}
-                >
-                  {step.label}
-                </Text>
-              </View>
+              <OrderStatusBadge status={step.status} state={state as 'current' | 'complete' | 'upcoming'} size="md" context="progress" />
 
               {/* Trailing dot (except last item) */}
               {!isLast && (

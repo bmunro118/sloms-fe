@@ -64,7 +64,7 @@ export function createStyles(theme: AppTheme) {
     actionBtn: { flex: 1, minWidth: 80 },
     rowBtn: { marginLeft: 8 },
     dangerText: { color: theme.colors.danger },
-    addRow: { marginTop: 12, alignItems: 'flex-start' },
+    addRow: { marginTop: 12, alignItems: 'flex-end' },
     addBtn: {},
   });
 }

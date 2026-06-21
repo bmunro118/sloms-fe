@@ -40,6 +40,13 @@ export interface ThemeColors {
   statusInProgressText: string;
   statusComplete: string;
   statusCompleteText: string;
+  statusReady: string;
+  statusReadyText: string;
+  // Progress-tracker tokens (context="progress" in OrderStatusBadge)
+  statusProgressComplete: string;
+  statusProgressCompleteText: string;
+  statusProgressCurrent: string;
+  statusProgressCurrentText: string;
 }
 
 export interface ThemeSpacing {

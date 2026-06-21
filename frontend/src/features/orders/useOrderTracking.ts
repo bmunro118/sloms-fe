@@ -207,7 +207,8 @@ export function useOrderTracking(
         if (index < currentStepIndex) {
           state = 'complete';
         } else if (index === currentStepIndex) {
-          state = 'current';
+          // When the active step is the final terminal step (Dispatched), show as complete/green
+          state = index === ORDER_STEPS.length - 1 ? 'complete' : 'current';
         }
       }
 

@@ -42,6 +42,12 @@ const lightColors: ThemeColors = {
   statusInProgressText: '#1e40af',
   statusComplete: '#dcfce7',
   statusCompleteText: '#166534',
+  statusReady: '#FEF3C7',
+  statusReadyText: '#92400E',
+  statusProgressComplete: '#dcfce7',
+  statusProgressCompleteText: '#166534',
+  statusProgressCurrent: '#dbeafe',
+  statusProgressCurrentText: '#1e40af',
 };
 
 const darkColors: ThemeColors = {
@@ -84,6 +90,12 @@ const darkColors: ThemeColors = {
   statusInProgressText: '#93c5fd',
   statusComplete: '#14532d',
   statusCompleteText: '#86efac',
+  statusReady: '#78350F',
+  statusReadyText: '#FDE68A',
+  statusProgressComplete: '#14532d',
+  statusProgressCompleteText: '#86efac',
+  statusProgressCurrent: '#1e3a8a',
+  statusProgressCurrentText: '#93c5fd',
 };
 
 function createTheme(mode: 'light' | 'dark', colors: ThemeColors): AppTheme {
