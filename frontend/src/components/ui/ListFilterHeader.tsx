@@ -2,7 +2,7 @@ import { SlidersHorizontal as FiltersIcon, Search as SearchIcon } from 'lucide-r
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
-import { TooltipPressable } from './TooltipPressable';
+import { ThemedButton } from './ThemedButton';
 import { tokens } from '@src/theme/tokens';
 
 interface ListFilterHeaderProps {
@@ -31,6 +31,7 @@ export function ListFilterHeader({
         style={[
           styles.searchContainer,
           {
+            height: 44,
             borderColor: colors.border,
             borderWidth: 1,
             borderRadius: radii.md,
@@ -71,25 +72,12 @@ export function ListFilterHeader({
       </View>
 
       {showFilterButton ? (
-        <TooltipPressable
-          tooltip="Filter"
+        <ThemedButton
+          variant="icon"
+          icon={<FiltersIcon size={18} color={hasActiveFilters ? colors.accent : colors.textSecondary} />}
           onPress={onFilterPress}
-          style={[
-            styles.filterButton,
-            {
-              borderRadius: radii.md,
-              borderColor: hasActiveFilters ? colors.accent : colors.border,
-              backgroundColor: hasActiveFilters ? colors.accentMuted : colors.inputBackground,
-            },
-          ]}
-          accessibilityLabel="Open filters"
-          accessibilityRole="button"
-        >
-          <FiltersIcon
-            size={18}
-            color={hasActiveFilters ? colors.accent : colors.textSecondary}
-          />
-        </TooltipPressable>
+          tooltip="Filter"
+        />
       ) : null}
     </View>
   );
@@ -116,6 +104,7 @@ const styles = StyleSheet.create({
     bottom: -1,
   },
   searchInput: {
+    flex: 1,
     width: '100%',
     paddingTop: 10,
     paddingBottom: 10,
@@ -132,12 +121,5 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  filterButton: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

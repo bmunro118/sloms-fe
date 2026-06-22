@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { PackagePlus as PackagePlusIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
@@ -38,11 +38,10 @@ type OrdersResponse = {
   data?: OrderRow[];
 };
 
-type OrderStatus = 'Received' | 'InProduction' | 'Ready' | 'Dispatched' | 'Voided' | '';
+type OrderStatus = 'Received' | 'InProduction' | 'Ready' | 'Dispatched' | '';
 
 type OrderFilters = {
   status: OrderStatus;
-  includeVoided: boolean;
   customerId: string;
 };
 
@@ -51,7 +50,6 @@ const DEFAULT_LIMIT = 100;
 
 const INITIAL_FILTERS: OrderFilters = {
   status: '',
-  includeVoided: false,
   customerId: '',
 };
 const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
@@ -60,7 +58,6 @@ const STATUS_OPTIONS: Array<{ label: string; value: OrderStatus }> = [
   { label: 'In Production', value: 'InProduction' },
   { label: 'Ready', value: 'Ready' },
   { label: 'Dispatched', value: 'Dispatched' },
-  { label: 'Voided', value: 'Voided' },
 ];
 
 export default function OrdersListScreen() {
@@ -159,7 +156,6 @@ export default function OrdersListScreen() {
     const parsedCustomerId = customerIdRaw ? Number(customerIdRaw) : undefined;
 
     return {
-      includeVoided: appliedFilters.includeVoided ? true : undefined,
       status: appliedFilters.status || undefined,
       customerId:
         Number.isFinite(parsedCustomerId) && (parsedCustomerId as number) > 0
@@ -168,11 +164,11 @@ export default function OrdersListScreen() {
       page: DEFAULT_PAGE,
       limit: DEFAULT_LIMIT,
     };
-  }, [appliedFilters.customerId, appliedFilters.includeVoided, appliedFilters.status]);
+  }, [appliedFilters.customerId, appliedFilters.status]);
 
   const hasServerFilterQuery = useMemo(() => {
-    return Boolean(listQuery.includeVoided || listQuery.status || listQuery.customerId);
-  }, [listQuery.customerId, listQuery.includeVoided, listQuery.status]);
+    return Boolean(listQuery.status || listQuery.customerId);
+  }, [listQuery.customerId, listQuery.status]);
 
   useScreenTopBar({ title: 'Orders', actions: topBarActions });
 
@@ -224,10 +220,6 @@ export default function OrdersListScreen() {
     const customerIdRaw = appliedFilters.customerId.trim();
     const parsedCustomerId = customerIdRaw ? Number(customerIdRaw) : NaN;
     const resolvedStatus = resolveOrderStatus(o);
-
-    if (!appliedFilters.includeVoided && resolvedStatus === 'Voided') {
-      return false;
-    }
 
     if (appliedFilters.status && resolvedStatus !== appliedFilters.status) {
       return false;
@@ -353,17 +345,6 @@ export default function OrdersListScreen() {
             />
           </View>
         ) : null}
-
-        {/* Include voided toggle */}
-        <View style={styles.toggleRow}>
-          <Text style={{ color: theme.colors.textPrimary }}>Include voided</Text>
-          <Switch
-            value={draftFilters.includeVoided}
-            onValueChange={(val) => setDraftFilter('includeVoided', val)}
-            trackColor={{ true: theme.colors.accent, false: theme.colors.border }}
-            thumbColor={theme.colors.surface}
-          />
-        </View>
       </FilterModal>
     </>
   );
