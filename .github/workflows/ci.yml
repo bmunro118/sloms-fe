@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main # main is covered by the CD workflow, which also runs lint/test/build
+
+# Cancel in-progress runs for the same ref when a new commit is pushed.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  build-test:
+    name: Lint, test & web export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test -- --passWithNoTests
+
+      - name: Web export (static build)
+        # Mirrors the production Dockerfile build so CI fails on a broken export.
+        env:
+          CI: "1"
+          EXPO_PUBLIC_API_MODE: web
+          # Keep page gates in sync with the Dockerfile's defaults.
+          EXPO_PUBLIC_FEATURE_DOCUMENTS_PAGE: "true"
+          EXPO_PUBLIC_FEATURE_PRICE_LIST_PAGE: "true"
+          EXPO_PUBLIC_FEATURE_VAT_RATES_PAGE: "true"
+        run: npx expo export -p web --output-dir dist

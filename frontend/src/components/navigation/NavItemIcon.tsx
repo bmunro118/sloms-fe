@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   CircleUser,
   FileText,
   LayoutDashboard,
@@ -21,6 +22,8 @@ export function NavItemIcon({ icon, color, size = 18 }: NavItemIconProps) {
   switch (icon) {
     case 'layout-dashboard':
       return <LayoutDashboard color={color} size={size} />;
+    case 'bar-chart':
+      return <BarChart3 color={color} size={size} />;
     case 'package':
       return <Package color={color} size={size} />;
     case 'users':

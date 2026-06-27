@@ -1,0 +1,25 @@
+# Expo web dev server for the SLOMS frontend.
+#
+# This serves the React Native Web build via Metro on port 8081 for local /
+# containerized development. It is NOT a production web build (for that, use
+# `npx expo export -p web` and serve the static output behind a web server).
+
+FROM node:20-slim
+
+WORKDIR /app
+
+ENV NODE_ENV=development
+# Non-interactive: stop the Expo CLI prompting for input in a container.
+ENV CI=1
+
+# Install dependencies first so this layer is cached across source changes.
+COPY package*.json ./
+RUN npm ci || npm install
+
+# Copy the rest of the app.
+COPY . .
+
+EXPOSE 8081
+
+# --host lan makes the dev server bind 0.0.0.0 so it's reachable from the host.
+CMD ["npx", "expo", "start", "--web", "--port", "8081", "--host", "lan"]

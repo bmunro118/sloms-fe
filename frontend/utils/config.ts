@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 export type ApiMode = 'local' | 'web';
 
 const LOCAL_API_URL = 'http://localhost:3000';
-const WEB_API_URL = 'https://slomsapi.wonderfulsky-1907992c.uksouth.azurecontainerapps.io';
+const WEB_API_URL = 'https://slomsapi-stage.jollydune-b8782950.uksouth.azurecontainerapps.io';
 
 export const API_MODE: ApiMode = (() => {
   const mode = (process.env.EXPO_PUBLIC_API_MODE ?? '').trim().toLowerCase();
@@ -18,7 +18,20 @@ export const API_MODE: ApiMode = (() => {
 
 // ── API base URL ──────────────────────────────────────────────────────────────
 
+// Runtime override (web only). The container serves /runtime-config.js (generated
+// from the API_BASE_URL env var at startup — see frontend/docker-entrypoint.d),
+// which sets this global before the app bundle evaluates. This lets ONE built
+// image target different backends per environment (dev vs prod) without rebaking,
+// preserving the build-once / promote model. Native builds never set it.
+function readRuntimeApiBaseUrl(): string | undefined {
+  const runtime = (globalThis as { __SLOMS_RUNTIME_CONFIG__?: { apiBaseUrl?: string } })
+    .__SLOMS_RUNTIME_CONFIG__;
+  const url = runtime?.apiBaseUrl?.trim();
+  return url ? url : undefined;
+}
+
 const RAW_API_BASE_URL: string =
+  readRuntimeApiBaseUrl() ??
   process.env.EXPO_PUBLIC_API_URL ??
   (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
   (API_MODE === 'local' ? LOCAL_API_URL : WEB_API_URL);
@@ -173,6 +186,12 @@ export const ENDPOINTS = {
     value: (key: string) => e(`/api/settings/${key}/value`),
     userSettings: e('/api/settings/user'),
     userSetting: (key: string) => e(`/api/settings/user/${key}`),
+  },
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  stats: {
+    timeseries: e('/api/stats/timeseries'),
+    builder: e('/api/stats/builder'),
   },
 
   // ── VAT Rates ──────────────────────────────────────────────────────────────

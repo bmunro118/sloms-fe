@@ -1,0 +1,12 @@
+node_modules
+.expo
+.expo-shared
+dist
+web-build
+npm-debug.log
+.git
+.gitignore
+.DS_Store
+Dockerfile*
+.env
+.env.*

@@ -1,52 +1,115 @@
 name: E2E Tests
 
+# Full-stack Playwright E2E: boots the SLOMS backend (Postgres + seeded data),
+# starts the Expo web dev server, and runs the browser suite against it.
+#
+# Gated to MANUAL (workflow_dispatch) because it has two cross-repo dependencies
+# that this repo can't satisfy on its own:
+#   1. The backend source — checked out from Sonic-Labs-Ltd/sloms-be.
+#   2. The E2E test suite — checked out from Sonic-Labs-Ltd/sonic_dev_tools into
+#      ../../sonic_dev_tools (where playwright.e2e.config.ts expects it).
+# Both are private, so cross-repo checkout needs a PAT in secrets.REPO_PAT with
+# `repo` scope. Once that secret exists and the suite is in place, this runs green;
+# you can then add `pull_request`/`push` triggers if you want it on every change.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     services:
-      sloms:
-        image: ghcr.io/org/sloms-local:latest  # Replace with actual image
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: slomsdb
         ports:
-          - 3000:3000
+          - 5432:5432
         options: >-
-          --health-cmd "curl -f http://localhost:3000/api/auth/me || exit 1"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      # Backend runtime config (test-only secrets; no live integrations).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/slomsdb
+      JWT_SECRET: test-jwt-secret
+      TOTP_ENC_KEY: test-totp-enc-key
+      # Frontend → backend wiring for the browser.
+      EXPO_PUBLIC_API_MODE: local
+      EXPO_PUBLIC_API_URL: http://localhost:3000
+
     steps:
-      - name: Checkout
+      - name: Checkout frontend (this repo)
         uses: actions/checkout@v4
+        with:
+          path: sloms-fe
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: Sonic-Labs-Ltd/sloms-be
+          token: ${{ secrets.REPO_PAT }}
+          path: sloms-be
+
+      - name: Checkout E2E test suite
+        uses: actions/checkout@v4
+        with:
+          repository: Sonic-Labs-Ltd/sonic_dev_tools
+          token: ${{ secrets.REPO_PAT }}
+          path: sonic_dev_tools
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # ── Backend: install, migrate, seed, boot ────────────────────────────────
+      - name: Install backend dependencies
+        working-directory: sloms-be/backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: sloms-be/backend
+        run: npx prisma generate --schema=./prisma/schema.prisma
+
+      - name: Apply migrations
+        working-directory: sloms-be/backend
+        run: npx prisma migrate deploy
+
+      - name: Seed database
+        working-directory: sloms-be/backend
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f prisma/seed.sql
+
+      - name: Install backend Playwright (PDF generation on boot)
+        working-directory: sloms-be/backend
+        run: npx playwright install --with-deps chromium
+
+      - name: Build & start backend
+        working-directory: sloms-be/backend
+        run: |
+          npx nest build
+          node dist/src/main.js &
+          npx wait-on http://localhost:3000/api/auth/me --timeout 120000 || \
+            curl --retry 30 --retry-delay 2 --retry-all-errors -sf http://localhost:3000/api/auth/me
+
+      # ── Frontend: run the browser suite (auto-starts Expo web on 8082) ───────
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: sloms-fe/frontend
         run: npm ci
 
       - name: Install Playwright browsers
-        working-directory: frontend
+        working-directory: sloms-fe/frontend
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        working-directory: frontend
+        working-directory: sloms-fe/frontend
         env:
-          E2E_BASE_URL: http://localhost:8081
-          EXPO_PUBLIC_API_MODE: local
-          EXPO_PUBLIC_API_URL: http://localhost:3000
           SONIC_ADMIN_USER: ${{ secrets.SONIC_ADMIN_USER }}
           SONIC_ADMIN_PASS: ${{ secrets.SONIC_ADMIN_PASS }}
           SONIC_MANAGER_USER: ${{ secrets.SONIC_MANAGER_USER }}

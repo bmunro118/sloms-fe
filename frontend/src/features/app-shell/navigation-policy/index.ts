@@ -3,6 +3,7 @@ import { featureFlags } from '@utils/features';
 
 export type AppRoutePath =
   | '/(app)/dashboard'
+  | '/(app)/stats'
   | '/(app)/orders'
   | '/(app)/customers'
   | '/(app)/users'
@@ -21,6 +22,7 @@ export interface AppShellNavItem {
 
 export type AppShellNavIcon =
   | 'layout-dashboard'
+  | 'bar-chart'
   | 'package'
   | 'users'
   | 'user-cog'
@@ -42,6 +44,14 @@ const NAV_POLICY: NavPolicyItem[] = [
     href: '/(app)/dashboard',
     icon: 'layout-dashboard',
     visibleTo: ['Admin', 'Manager', 'Operative', 'ReadOnly', 'Customer'],
+  },
+  {
+    id: 'stats',
+    label: 'Statistics',
+    href: '/(app)/stats',
+    icon: 'bar-chart',
+    visibleTo: ['Admin', 'Manager', 'ReadOnly'],
+    requiresFeature: 'statsPage',
   },
   {
     id: 'orders',

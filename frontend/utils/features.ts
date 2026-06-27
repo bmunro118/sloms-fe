@@ -22,7 +22,8 @@ export type FeatureName =
   | 'advancedCustomerSearch'
   | 'documentsPage'
   | 'priceListPage'
-  | 'vatRatesPage';
+  | 'vatRatesPage'
+  | 'statsPage';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,8 @@ function getEnvFlag(name: FeatureName): boolean | null {
       return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_PRICE_LIST_PAGE);
     case 'vatRatesPage':
       return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_VAT_RATES_PAGE);
+    case 'statsPage':
+      return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_STATS_PAGE);
     default:
       return null;
   }
@@ -91,6 +94,7 @@ export const featureFlags: Record<FeatureName, boolean> = {
   documentsPage: getEnvFlag('documentsPage') ?? false,
   priceListPage: getEnvFlag('priceListPage') ?? false,
   vatRatesPage: getEnvFlag('vatRatesPage') ?? false,
+  statsPage: getEnvFlag('statsPage') ?? false,
 };
 
 export function isFeatureEnabled(feature: FeatureName): boolean {
