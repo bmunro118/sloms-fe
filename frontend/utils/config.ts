@@ -112,6 +112,18 @@ export const ENDPOINTS = {
     login: e('/api/auth/login'),
     changePassword: e('/api/auth/change-password'),
     me: e('/api/auth/me'),
+    twoFactor: {
+      setup: e('/api/auth/2fa/setup'),
+      enable: e('/api/auth/2fa/enable'),
+      verify: e('/api/auth/verify-2fa'),
+      resend: e('/api/auth/2fa/resend'),
+      disable: e('/api/auth/2fa/disable'),
+    },
+    devices: {
+      list: e('/api/auth/devices'),
+      all: e('/api/auth/devices'),
+      byId: (id: number) => e(`/api/auth/devices/${id}`),
+    },
   },
 
   // ── Users ──────────────────────────────────────────────────────────────────

@@ -1,18 +1,32 @@
-name: E2E Tests
+name: E2E
 
-# Full-stack Playwright E2E: boots the SLOMS backend (Postgres + seeded data),
-# starts the Expo web dev server, and runs the browser suite against it.
+# End-to-end Playwright tests for the SLOMS web app. Runs every spec under
+# frontend/e2e/tests against a real, seeded backend — drop a new *.spec.ts in
+# there and it runs here automatically (currently: the 2FA enroll/verify flow).
 #
-# Gated to MANUAL (workflow_dispatch) because it has two cross-repo dependencies
-# that this repo can't satisfy on its own:
-#   1. The backend source — checked out from Sonic-Labs-Ltd/sloms-be.
-#   2. The E2E test suite — checked out from Sonic-Labs-Ltd/sonic_dev_tools into
-#      ../../sonic_dev_tools (where playwright.e2e.config.ts expects it).
-# Both are private, so cross-repo checkout needs a PAT in secrets.REPO_PAT with
-# `repo` scope. Once that secret exists and the suite is in place, this runs green;
-# you can then add `pull_request`/`push` triggers if you want it on every change.
+# Self-contained — the Playwright config, global setup, fixtures and specs all
+# live in this repo under frontend/e2e. It only needs:
+#   1. Postgres (the `postgres` service below), and
+#   2. the backend source (private repo Sonic-Labs-Ltd/sloms-be), checked out via
+#      a read-only deploy key stored in secrets.BACKEND_DEPLOY_KEY. The matching
+#      public key is registered as a read-only deploy key on sloms-be — scoped to
+#      that one repo, rather than a broad personal-access token.
+#
+# The backend is booted with TWOFA_ENFORCE=true so login exercises the real
+# enrollment / challenge flow; global-setup provisions a fresh user via the API
+# (bootstrapping admin through the seeded trusted-device token).
+#
+# Note on pull_request: secrets are available to PRs raised from branches in this
+# repo, but NOT to PRs from forks — those will fail the backend checkout. If you
+# accept fork PRs, drop the pull_request trigger and keep this manual.
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e:
@@ -40,7 +54,10 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/slomsdb
       JWT_SECRET: test-jwt-secret
       TOTP_ENC_KEY: test-totp-enc-key
-      # Frontend → backend wiring for the browser.
+      # The whole point of this suite — enforce 2FA so login routes through the
+      # enrollment / challenge flow.
+      TWOFA_ENFORCE: "true"
+      # Frontend → backend wiring for the browser (Expo web in local/bearer mode).
       EXPO_PUBLIC_API_MODE: local
       EXPO_PUBLIC_API_URL: http://localhost:3000
 
@@ -54,15 +71,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Sonic-Labs-Ltd/sloms-be
-          token: ${{ secrets.REPO_PAT }}
+          ssh-key: ${{ secrets.BACKEND_DEPLOY_KEY }}
           path: sloms-be
-
-      - name: Checkout E2E test suite
-        uses: actions/checkout@v4
-        with:
-          repository: Sonic-Labs-Ltd/sonic_dev_tools
-          token: ${{ secrets.REPO_PAT }}
-          path: sonic_dev_tools
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -95,10 +105,20 @@ jobs:
         run: |
           npx nest build
           node dist/src/main.js &
-          npx wait-on http://localhost:3000/api/auth/me --timeout 120000 || \
-            curl --retry 30 --retry-delay 2 --retry-all-errors -sf http://localhost:3000/api/auth/me
+          # Ready when the API answers an HTTP request at all (login returns 400/401
+          # for an empty body — both mean "server is up").
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+              -H 'Content-Type: application/json' -d '{}' \
+              http://localhost:3000/api/auth/login || true)
+            if [ "$code" != "000" ] && [ -n "$code" ]; then
+              echo "Backend up (HTTP $code) after ~$((i * 2))s"; exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend did not become ready in time" >&2; exit 1
 
-      # ── Frontend: run the browser suite (auto-starts Expo web on 8082) ───────
+      # ── Frontend: run the Playwright suite (auto-starts Expo web on 8081) ─────
       - name: Install frontend dependencies
         working-directory: sloms-fe/frontend
         run: npm ci
@@ -107,27 +127,16 @@ jobs:
         working-directory: sloms-fe/frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
+      - name: Run E2E
         working-directory: sloms-fe/frontend
-        env:
-          SONIC_ADMIN_USER: ${{ secrets.SONIC_ADMIN_USER }}
-          SONIC_ADMIN_PASS: ${{ secrets.SONIC_ADMIN_PASS }}
-          SONIC_MANAGER_USER: ${{ secrets.SONIC_MANAGER_USER }}
-          SONIC_MANAGER_PASS: ${{ secrets.SONIC_MANAGER_PASS }}
-          SONIC_OPERATIVE_USER: ${{ secrets.SONIC_OPERATIVE_USER }}
-          SONIC_OPERATIVE_PASS: ${{ secrets.SONIC_OPERATIVE_PASS }}
-          SONIC_READONLY_USER: ${{ secrets.SONIC_READONLY_USER }}
-          SONIC_READONLY_PASS: ${{ secrets.SONIC_READONLY_PASS }}
-          SONIC_CUSTOMER_USER: ${{ secrets.SONIC_CUSTOMER_USER }}
-          SONIC_CUSTOMER_PASS: ${{ secrets.SONIC_CUSTOMER_PASS }}
         run: npm run test:e2e
 
-      - name: Upload test reports
+      - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-reports
+          name: e2e-report
           path: |
-            sonic_dev_tools/test_suite/e2e/reports/
-            sonic_dev_tools/test_suite/e2e/test-results/
+            sloms-fe/frontend/e2e/reports/
+            sloms-fe/frontend/test-results/
           retention-days: 7

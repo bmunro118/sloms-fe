@@ -2,8 +2,10 @@ import { Platform } from 'react-native';
 import { usesCookieAuth } from '@utils/config';
 
 const ACCESS_TOKEN_KEY = 'sloms.access-token';
+const DEVICE_TOKEN_KEY = 'sloms.device-token';
 let secureStoreModulePromise: Promise<typeof import('expo-secure-store')> | null = null;
 let inMemoryAccessToken: string | null | undefined;
+let inMemoryDeviceToken: string | null | undefined;
 
 function getWebStorage(): Storage | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined') {
@@ -122,6 +124,43 @@ export async function clearAccessToken(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Trusted-device token — mobile only. Web relies on the HttpOnly `device_id`
+// cookie the backend sets automatically; native clients must persist the raw
+// token themselves and replay it via the `x-device-token` header on login so a
+// trusted device skips the 2FA challenge.
+// ---------------------------------------------------------------------------
+
+export async function persistDeviceToken(token: string | null | undefined): Promise<void> {
+  if (Platform.OS === 'web' || usesCookieAuth()) {
+    inMemoryDeviceToken = null;
+    return;
+  }
+
+  inMemoryDeviceToken = token ?? null;
+
+  const SecureStore = await getSecureStoreModule();
+  if (!token) {
+    await SecureStore.deleteItemAsync(DEVICE_TOKEN_KEY);
+    return;
+  }
+  await SecureStore.setItemAsync(DEVICE_TOKEN_KEY, token);
+}
+
+export async function getStoredDeviceToken(): Promise<string | null> {
+  if (Platform.OS === 'web' || usesCookieAuth()) {
+    return null;
+  }
+
+  if (inMemoryDeviceToken !== undefined) {
+    return inMemoryDeviceToken;
+  }
+
+  const SecureStore = await getSecureStoreModule();
+  inMemoryDeviceToken = await SecureStore.getItemAsync(DEVICE_TOKEN_KEY);
+  return inMemoryDeviceToken;
+}
+
+// ---------------------------------------------------------------------------
 // JWT decode — base64url decode the payload, no signature verification
 // ---------------------------------------------------------------------------
 
@@ -131,7 +170,10 @@ export interface JwtPayload {
   role: string;
   fullName?: string;
   linkedCustomerId?: number | null;
-  scope?: string; // 'password_change' for forced-change scoped tokens
+  // Scoped tokens are single-purpose. Absent on full-access tokens.
+  // 'password_change' — forced password change; 'twofa_enroll' — mandatory 2FA
+  // enrollment; 'twofa_pending' — post-password, pre-2FA login challenge.
+  scope?: 'password_change' | 'twofa_enroll' | 'twofa_pending' | string;
   iat?: number;
   exp?: number;
 }
