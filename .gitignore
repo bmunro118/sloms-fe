@@ -44,8 +44,5 @@ yarn-error.*
 /ios
 /android
 
-# E2E test suite moved to sonic_dev_tools/test_suite/e2e/
-# (has its own .gitignore)
-
 # Playwright artifacts from frontend test runs
 /frontend/test-results

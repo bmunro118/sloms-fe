@@ -19,6 +19,8 @@ interface ThemedButtonProps {
   hideBorder?: boolean;
   /** When true and variant="icon", fills container without circular styling. Use for icon buttons inside inputs. */
   fillMode?: boolean;
+  /** Forwarded to the underlying pressable for test/automation selectors. */
+  testID?: string;
 }
 
 /**
@@ -39,6 +41,7 @@ export function ThemedButton({
   tooltip,
   hideBorder = false,
   fillMode = false,
+  testID,
 }: ThemedButtonProps) {
   const { colors, radii } = useAppTheme();
   const [isHovered, setIsHovered] = useState(false);
@@ -115,6 +118,7 @@ export function ThemedButton({
       tooltip={tooltip ?? label ?? ''}
       onPress={onPress}
       disabled={disabled}
+      testID={testID}
       onHoverIn={() => setIsHovered(true)}
       onHoverOut={() => setIsHovered(false)}
       style={({ pressed }: { pressed: boolean }) => [

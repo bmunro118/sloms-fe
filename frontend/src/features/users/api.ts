@@ -14,6 +14,8 @@ export type UserRecord = {
   isActive?: boolean;
   isLockedOut?: boolean;
   mustChangePassword?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: 'totp' | 'email';
   linkedCustomerId?: number | null;
   createdAt?: string;
   updatedAt?: string;

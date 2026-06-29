@@ -7,17 +7,12 @@ import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { ApiError, apiRequest } from '@utils/api';
-import { usesCookieAuth } from '@utils/auth';
+import { getStoredDeviceToken, usesCookieAuth } from '@utils/auth';
 import { ENDPOINTS } from '@utils/config';
-
-interface LoginResponse {
-  accessToken?: string;
-  token?: string;
-  mustChangePassword?: boolean;
-}
+import type { LoginResponse } from '@features/auth/api';
 
 export default function LoginScreen() {
-  const { isAuthenticated, mustChangePassword, signIn } = useAuth();
+  const { isAuthenticated, mustChangePassword, signIn, beginTwoFactor } = useAuth();
   const isMountedRef = useIsMountedRef();
   const theme = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -35,9 +30,14 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     setError(null);
     try {
+      // Bearer clients replay their persisted trusted-device token so a known
+      // device can skip the 2FA challenge. Web sends the device_id cookie.
+      const deviceToken = await getStoredDeviceToken();
+
       const response = await apiRequest<LoginResponse>(ENDPOINTS.auth.login, {
         method: 'POST',
         requireAuth: false,
+        headers: deviceToken ? { 'x-device-token': deviceToken } : undefined,
         body: {
           username: username.trim().toLowerCase(),
           password,
@@ -45,10 +45,29 @@ export default function LoginScreen() {
         },
       });
 
-      await signIn({
-        accessToken: response.accessToken ?? response.token,
-        mustChangePassword: response.mustChangePassword,
-      });
+      const scopedToken = response.accessToken ?? response.token ?? null;
+      const method = response.twoFactorMethod ?? 'totp';
+      const enteredUsername = username.trim().toLowerCase();
+
+      switch (response.status) {
+        case 'enroll':
+          beginTwoFactor({ mode: 'enroll', method, token: scopedToken, username: enteredUsername });
+          return;
+        case '2fa':
+          beginTwoFactor({ mode: 'verify', method, token: scopedToken, username: enteredUsername });
+          return;
+        case 'password_change':
+          await signIn({ accessToken: scopedToken, mustChangePassword: true });
+          return;
+        case 'ok':
+        default:
+          // 'ok', or a legacy backend without a status field.
+          await signIn({
+            accessToken: scopedToken,
+            mustChangePassword: response.mustChangePassword,
+          });
+          return;
+      }
     } catch (err) {
       if (isMountedRef.current) {
         if (err instanceof ApiError && err.status === 401) {

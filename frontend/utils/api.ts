@@ -75,6 +75,10 @@ type RequestOptions = {
   headers?: Record<string, string>;
   requireAuth?: boolean;
   token?: string; // explicit token; if omitted and requireAuth=true, reads from storage
+  // When true, a 401 will NOT invoke the global unauthorized handler (which
+  // clears the session). Use for endpoints where a 401 means "wrong code"
+  // rather than "expired session" — e.g. the 2FA verify/enable/disable flows.
+  suppressUnauthorizedHandler?: boolean;
   signal?: AbortSignal;
   responseType?: 'auto' | 'json' | 'text' | 'blob';
 };
@@ -86,6 +90,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     headers = {},
     requireAuth = true,
     token: explicitToken,
+    suppressUnauthorizedHandler = false,
     signal,
     responseType = 'auto',
   } = options;
@@ -129,7 +134,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     // is no longer valid. Notify the auth layer so it can clear state and
     // redirect the user to login — do this before throwing so the screen's
     // catch block sees a normal ApiError rather than a stale-state race.
-    if (response.status === 401 && requireAuth) {
+    if (response.status === 401 && requireAuth && !suppressUnauthorizedHandler) {
       _unauthorizedHandler?.();
     }
 

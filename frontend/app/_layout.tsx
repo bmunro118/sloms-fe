@@ -23,7 +23,7 @@ import { AppThemeProvider } from '@theme/ThemeProvider';
  * same auth state change (e.g. login screen <Redirect> + AuthGuard redirect).
  */
 function AuthGuard() {
-  const { isLoading, isAuthenticated, mustChangePassword } = useAuth();
+  const { isLoading, isAuthenticated, mustChangePassword, pendingTwoFactor } = useAuth();
   const segments = useSegments();
   const pathname = usePathname();
   const router = useRouter();
@@ -33,6 +33,13 @@ function AuthGuard() {
   // when useSegments() returns a new array reference with same values.
   const segmentKey = useMemo(() => segments.join('/'), [segments]);
   const onPromptPasswordChangeRoute = pathname === '/prompt-password-change';
+  const twoFactorRoute = pendingTwoFactor
+    ? pendingTwoFactor.mode === 'enroll'
+      ? '/two-factor-enroll'
+      : '/two-factor-verify'
+    : null;
+  const onTwoFactorRoute =
+    pathname === '/two-factor-enroll' || pathname === '/two-factor-verify';
 
   useEffect(() => {
     if (isLoading) return;
@@ -41,14 +48,19 @@ function AuthGuard() {
 
     let target: string | null = null;
 
-    if (mustChangePassword) {
+    if (pendingTwoFactor && twoFactorRoute) {
+      // Mid login challenge: hold the user on the matching 2FA screen.
+      if (pathname !== twoFactorRoute) {
+        target = twoFactorRoute;
+      }
+    } else if (mustChangePassword) {
       // Forced password change: keep the user on the prompt-password-change screen.
       if (!onPromptPasswordChangeRoute) {
         target = '/prompt-password-change';
       }
     } else if (!isAuthenticated) {
-      // Signed out (and not mid password-change): only login route is allowed.
-      if (inApp || onPromptPasswordChangeRoute) {
+      // Signed out (and not mid password-change / 2FA): only login route is allowed.
+      if (inApp || onPromptPasswordChangeRoute || onTwoFactorRoute) {
         target = '/';
       }
     } else if (!inApp) {
@@ -65,7 +77,18 @@ function AuthGuard() {
     } else {
       redirectGate.current = null;
     }
-  }, [isLoading, isAuthenticated, mustChangePassword, segmentKey, onPromptPasswordChangeRoute, router]);
+  }, [
+    isLoading,
+    isAuthenticated,
+    mustChangePassword,
+    pendingTwoFactor,
+    twoFactorRoute,
+    onTwoFactorRoute,
+    segmentKey,
+    onPromptPasswordChangeRoute,
+    pathname,
+    router,
+  ]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

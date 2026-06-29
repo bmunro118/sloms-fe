@@ -9,6 +9,7 @@ import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { UserRecord, getMe } from '@src/features/users/api';
+import { TwoFactorSettingsCard } from '@features/auth/TwoFactorSettingsCard';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -43,6 +44,15 @@ export default function AccountScreen() {
       }
     })();
     return () => controller.abort();
+  }, [isMountedRef]);
+
+  const reloadProfile = useCallback(async () => {
+    try {
+      const result = await getMe();
+      if (isMountedRef.current) setProfile(result);
+    } catch {
+      // Non-critical — leave the existing profile in place.
+    }
   }, [isMountedRef]);
 
   const canSubmitPasswordChange = useMemo(() => {
@@ -194,6 +204,12 @@ export default function AccountScreen() {
           />
           {status ? <Text style={styles.status}>{status}</Text> : null}
         </View>
+
+        <TwoFactorSettingsCard
+          method={profile?.twoFactorMethod ?? 'totp'}
+          enabled={Boolean(profile?.twoFactorEnabled)}
+          onChanged={reloadProfile}
+        />
       </View>
     </ScreenContent>
   );

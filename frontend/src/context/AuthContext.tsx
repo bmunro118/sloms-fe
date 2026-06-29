@@ -9,8 +9,10 @@ import {
   getStoredAccessToken,
   getStoredAccessTokenSnapshot,
   persistAccessToken,
+  persistDeviceToken,
   usesCookieAuth,
 } from '@utils/auth';
+import type { CompleteResponse, TwoFactorMethod } from '@features/auth/api';
 import { featureFlags } from '@utils/features';
 
 export type UserRole = 'Admin' | 'Manager' | 'Operative' | 'ReadOnly' | 'Customer';
@@ -27,10 +29,25 @@ interface SignInPayload {
   mustChangePassword?: boolean;
 }
 
+/**
+ * Transient state while the login challenge is mid-flight: the user proved their
+ * password but still owes a second factor (enrollment or verification). They are
+ * NOT authenticated until the matching step completes.
+ */
+export interface PendingTwoFactor {
+  /** 'enroll' — must set up 2FA before access; 'verify' — must clear the login challenge. */
+  mode: 'enroll' | 'verify';
+  method: TwoFactorMethod;
+  /** Scoped bearer token for the step-up calls (mobile/local-dev); null for cookie auth. */
+  token: string | null;
+  username: string;
+}
+
 type AuthContextValue = {
   isLoading: boolean;
   isAuthenticated: boolean;
   mustChangePassword: boolean;
+  pendingTwoFactor: PendingTwoFactor | null;
   role: UserRole | null;
   user: AuthUser | null;
   token: string | null;
@@ -40,6 +57,9 @@ type AuthContextValue = {
   hydrateSession: () => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
   completePasswordChange: (accessToken?: string | null) => Promise<void>;
+  beginTwoFactor: (pending: PendingTwoFactor) => void;
+  completeTwoFactor: (response: CompleteResponse) => Promise<void>;
+  cancelTwoFactor: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -50,6 +70,7 @@ interface InitialAuthSnapshot {
   token: string | null;
   user: AuthUser | null;
   mustChangePassword: boolean;
+  pendingTwoFactor: PendingTwoFactor | null;
 }
 
 type AuthState = InitialAuthSnapshot;
@@ -87,6 +108,7 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
       token: null,
       user: null,
       mustChangePassword: false,
+      pendingTwoFactor: null,
     };
   }
 
@@ -99,6 +121,7 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
       token: null,
       user: null,
       mustChangePassword: false,
+      pendingTwoFactor: null,
     };
   }
 
@@ -109,6 +132,7 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
       token: null,
       user: null,
       mustChangePassword: false,
+      pendingTwoFactor: null,
     };
   }
 
@@ -118,6 +142,19 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
       token,
       user: mapPayloadUser(payload),
       mustChangePassword: true,
+      pendingTwoFactor: null,
+    };
+  }
+
+  // A persisted twofa_enroll / twofa_pending scoped token cannot be resumed on
+  // reload (the in-memory flow state is gone), so treat it as a dead session.
+  if (payload.scope === 'twofa_enroll' || payload.scope === 'twofa_pending') {
+    return {
+      isLoading: false,
+      token: null,
+      user: null,
+      mustChangePassword: false,
+      pendingTwoFactor: null,
     };
   }
 
@@ -126,6 +163,7 @@ function getInitialAuthSnapshot(): InitialAuthSnapshot {
     token,
     user: mapPayloadUser(payload),
     mustChangePassword: false,
+    pendingTwoFactor: null,
   };
 }
 
@@ -144,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token: null,
       user: null,
       mustChangePassword: false,
+      pendingTwoFactor: null,
     });
   }, []);
 
@@ -174,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token: storedToken,
           user: mapPayloadUser(payload),
           mustChangePassword: true,
+          pendingTwoFactor: null,
         });
         return;
       }
@@ -196,6 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: mapRole(me.role ?? payload?.role),
         },
         mustChangePassword: false,
+        pendingTwoFactor: null,
       });
     } catch {
       if (authSequenceRef.current !== sequenceId) return;
@@ -238,6 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token: accessToken ?? null,
           user: payload ? mapPayloadUser(payload) : null,
           mustChangePassword: true,
+          pendingTwoFactor: null,
         });
         return;
       }
@@ -250,13 +292,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthState({
         isLoading: false,
         token: accessToken ?? null,
-        user: {
-          userId: Number(payload.sub),
-          username: payload.username,
-          fullName: payload.fullName ?? payload.username,
-          role: mapRole(payload.role),
-        },
+        user: mapPayloadUser(payload),
         mustChangePassword: false,
+        pendingTwoFactor: null,
       });
     },
     [bumpAuthSequence, hydrateSession]
@@ -280,17 +318,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthState({
         isLoading: false,
         token: newAccessToken,
-        user: {
-          userId: Number(payload.sub),
-          username: payload.username,
-          fullName: payload.fullName ?? payload.username,
-          role: mapRole(payload.role),
-        },
+        user: mapPayloadUser(payload),
         mustChangePassword: false,
+        pendingTwoFactor: null,
       });
     },
     [bumpAuthSequence, hydrateSession]
   );
+
+  // ── Two-factor login challenge ──────────────────────────────────────────────
+
+  // Enters the pending-2FA state after a successful password check. The user is
+  // held on the 2FA screen (enroll or verify) until the matching step completes.
+  const beginTwoFactor = useCallback(
+    (pending: PendingTwoFactor) => {
+      bumpAuthSequence();
+      setAuthState({
+        isLoading: false,
+        token: null,
+        user: null,
+        mustChangePassword: false,
+        pendingTwoFactor: pending,
+      });
+    },
+    [bumpAuthSequence]
+  );
+
+  // Finalizes a session from a step that completed 2FA (verify or enable). The
+  // response carries a full-access token (bearer clients) or only sets the
+  // session cookie (web), in which case we hydrate from /me.
+  const completeTwoFactor = useCallback(
+    async (response: CompleteResponse) => {
+      bumpAuthSequence();
+
+      // Persist the trusted-device token so future logins skip the challenge
+      // (mobile only — web receives an HttpOnly device_id cookie instead).
+      await persistDeviceToken(response.deviceToken);
+
+      const fullToken = response.accessToken ?? response.token ?? null;
+      if (!fullToken) {
+        await hydrateSession();
+        return;
+      }
+
+      await persistAccessToken(fullToken);
+      const payload = decodeJwt(fullToken);
+      if (!payload) {
+        throw new Error('Invalid full-access token returned after 2FA.');
+      }
+
+      setAuthState({
+        isLoading: false,
+        token: fullToken,
+        user: mapPayloadUser(payload),
+        mustChangePassword: false,
+        pendingTwoFactor: null,
+      });
+    },
+    [bumpAuthSequence, hydrateSession]
+  );
+
+  // Abandons an in-flight 2FA challenge and returns to the login screen.
+  const cancelTwoFactor = useCallback(async () => {
+    bumpAuthSequence();
+    await clearAccessToken();
+    setSignedOutState();
+  }, [bumpAuthSequence, setSignedOutState]);
 
   const signOut = useCallback(async () => {
     bumpAuthSequence();
@@ -298,7 +391,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSignedOutState();
   }, [bumpAuthSequence, setSignedOutState]);
 
-  const { isLoading, token, user, mustChangePassword } = authState;
+  const { isLoading, token, user, mustChangePassword, pendingTwoFactor } = authState;
 
   const role = user?.role ?? null;
   const isStaff = role !== null && role !== 'Customer';
@@ -312,6 +405,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       isAuthenticated: user !== null && !mustChangePassword,
       mustChangePassword,
+      pendingTwoFactor,
       role,
       user,
       token,
@@ -321,11 +415,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hydrateSession,
       signIn,
       completePasswordChange,
+      beginTwoFactor,
+      completeTwoFactor,
+      cancelTwoFactor,
       signOut,
     }),
     [
       isLoading,
       mustChangePassword,
+      pendingTwoFactor,
       role,
       user,
       token,
@@ -335,6 +433,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hydrateSession,
       signIn,
       completePasswordChange,
+      beginTwoFactor,
+      completeTwoFactor,
+      cancelTwoFactor,
       signOut,
     ]
   );

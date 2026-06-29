@@ -99,6 +99,6 @@ identity (`AcrPull`) — no stored registry password.
 - Protect `main` (require PRs / passing CI) so prod only updates via an
   `integration → main` merge.
 - The `integration` branch drives dev deploys; keep it as the integration target.
-- To enable `e2e-tests.yml`: add a `REPO_PAT` secret (a PAT with `repo` scope that
-  can read `sloms-be` and `sonic_dev_tools`) and the `SONIC_*_USER/PASS` login
-  secrets. Then run it from the Actions tab, or add `pull_request`/`push` triggers.
+- `e2e.yml` runs the Playwright E2E suite (`frontend/e2e`) on PRs to `main` and on
+  demand. It boots a seeded backend with `TWOFA_ENFORCE=true` and checks out
+  `sloms-be` via the read-only `BACKEND_DEPLOY_KEY` deploy key — no PAT required.
