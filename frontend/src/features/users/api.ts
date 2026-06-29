@@ -36,7 +36,7 @@ export type CreateUserPayload = {
   username: string;
   password: string;
   fullName: string;
-  email: string;
+  email?: string;
   role: UserRole;
   linkedCustomerId?: number | null;
 };

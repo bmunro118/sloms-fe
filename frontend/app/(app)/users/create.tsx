@@ -25,13 +25,21 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
+// Customers sign in with their email (it's also their 2FA delivery address),
+// so the backend requires their username to be a valid email. Mirror that here.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[a-zA-Z0-9_.\-]+$/;
+
 function validateCard(form: CreateUserPayload): string | null {
   if (!form.username.trim()) return 'Username is required.';
   if (/\s/.test(form.username)) return 'Username must not contain spaces.';
-  if (!/^[a-zA-Z0-9_.\-]+$/.test(form.username.trim()))
+  if (form.role === 'Customer') {
+    if (!EMAIL_RE.test(form.username.trim()))
+      return 'Customer accounts must use a valid email address as the username.';
+  } else if (!USERNAME_RE.test(form.username.trim())) {
     return 'Username may only contain letters, numbers, underscores, hyphens, and dots.';
+  }
   if (!form.fullName.trim()) return 'Full name is required.';
-  if (!form.email.trim()) return 'Email is required.';
   if (!form.password.trim()) return 'Password is required.';
   if (form.password.length < 8) return 'Password must be at least 8 characters.';
   if (!/[A-Z]/.test(form.password))
@@ -154,8 +162,7 @@ export default function CreateUserScreen() {
       const isSinglePristine =
         currentCards.length === 1 &&
         !currentCards[0].form.username.trim() &&
-        !currentCards[0].form.fullName.trim() &&
-        !currentCards[0].form.email.trim();
+        !currentCards[0].form.fullName.trim();
 
       if (isSinglePristine) {
         return newCards;
@@ -266,14 +273,15 @@ export default function CreateUserScreen() {
       setSaveProgress(`Creating user ${i + 1} of ${cards.length}…`);
 
       try {
-        const userPayload = {
-          username: card.form.username.trim().toLowerCase(),
+        const username = card.form.username.trim().toLowerCase();
+        const userPayload: CreateUserPayload = {
+          username,
           fullName: card.form.fullName.trim(),
-          email: card.form.email.trim(),
           role: card.form.role,
           password: card.form.password,
+          // Customers sign in with their email, so their username is their email.
           ...(card.form.role === 'Customer'
-            ? { linkedCustomerId: card.form.linkedCustomerId }
+            ? { email: username, linkedCustomerId: card.form.linkedCustomerId }
             : {}),
         };
         console.log(

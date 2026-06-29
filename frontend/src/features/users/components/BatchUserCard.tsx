@@ -41,6 +41,8 @@ export function BatchUserCard({
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
 
+  const isCustomer = state.form.role === 'Customer';
+
   const handleUsernameChange = useCallback(
     (text: string) => {
       onValidationErrorChange(null);
@@ -113,10 +115,17 @@ export function BatchUserCard({
         <ThemedInput
           value={state.form.username}
           onChangeText={handleUsernameChange}
-          placeholder="e.g. jsmith"
+          placeholder={isCustomer ? 'e.g. jsmith@example.com' : 'e.g. jsmith'}
+          keyboardType={isCustomer ? 'email-address' : 'default'}
           autoCapitalize="none"
           autoCorrect={false}
         />
+        {isCustomer ? (
+          <Text style={styles.fieldHint}>
+            Customers sign in with their email address — enter a valid email as the
+            username.
+          </Text>
+        ) : null}
       </View>
 
       {/* 2. Full Name */}
@@ -129,20 +138,7 @@ export function BatchUserCard({
         />
       </View>
 
-      {/* 3. Email */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Email *</Text>
-        <ThemedInput
-          value={state.form.email}
-          onChangeText={(text) => handleFieldChange('email', text)}
-          placeholder="e.g. jsmith@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
-
-      {/* 4. Password */}
+      {/* 3. Password */}
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Password *</Text>
         <ThemedInput
@@ -181,7 +177,7 @@ export function BatchUserCard({
         />
       </View>
 
-      {/* 5. Role */}
+      {/* 4. Role */}
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Role *</Text>
         <View style={styles.roleRow}>
@@ -198,7 +194,7 @@ export function BatchUserCard({
         </View>
       </View>
 
-      {/* 6. Linked Customer Account (Customer role only) */}
+      {/* 5. Linked Customer Account (Customer role only) */}
       {state.form.role === 'Customer' ? (
         <LinkedCustomerField
           isEditing
