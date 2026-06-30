@@ -379,17 +379,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Abandons an in-flight 2FA challenge and returns to the login screen.
+  // Web sessions live in an HttpOnly cookie that JS can't clear, so ask the
+  // server to expire it. No-op for token clients (they just drop their token).
+  // Failure is non-fatal — the caller clears local state regardless.
+  const serverLogout = useCallback(async () => {
+    if (!usesCookieAuth()) return;
+    try {
+      await apiRequest(ENDPOINTS.auth.logout, { method: 'POST', requireAuth: false });
+    } catch {
+      // Ignore — local sign-out still proceeds.
+    }
+  }, []);
+
   const cancelTwoFactor = useCallback(async () => {
     bumpAuthSequence();
+    await serverLogout();
     await clearAccessToken();
     setSignedOutState();
-  }, [bumpAuthSequence, setSignedOutState]);
+  }, [bumpAuthSequence, serverLogout, setSignedOutState]);
 
   const signOut = useCallback(async () => {
     bumpAuthSequence();
+    await serverLogout();
     await clearAccessToken();
     setSignedOutState();
-  }, [bumpAuthSequence, setSignedOutState]);
+  }, [bumpAuthSequence, serverLogout, setSignedOutState]);
 
   const { isLoading, token, user, mustChangePassword, pendingTwoFactor } = authState;
 

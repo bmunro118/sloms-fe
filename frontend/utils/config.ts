@@ -110,6 +110,7 @@ export const ENDPOINTS = {
   // ── Auth ───────────────────────────────────────────────────────────────────
   auth: {
     login: e('/api/auth/login'),
+    logout: e('/api/auth/logout'),
     changePassword: e('/api/auth/change-password'),
     me: e('/api/auth/me'),
     twoFactor: {
