@@ -28,8 +28,11 @@ ENV EXPO_PUBLIC_API_MODE=${EXPO_PUBLIC_API_MODE}
 ARG EXPO_PUBLIC_FEATURE_DOCUMENTS_PAGE=true
 ARG EXPO_PUBLIC_FEATURE_PRICE_LIST_PAGE=true
 ARG EXPO_PUBLIC_FEATURE_VAT_RATES_PAGE=true
-# Statistics page: defaults OFF so it ships dark to prod until promoted.
-# The stage deploy passes EXPO_PUBLIC_FEATURE_STATS_PAGE=true to enable it there.
+# Statistics page: defaults OFF, but the stage deploy builds with =true and that
+# value is inlined at export time (see above). Prod CD promotes the byte-identical
+# stage :sha with no rebuild, so promoting a stage build also turns the Statistics
+# page ON in prod — it is NOT gated off prod. To keep it stage-only this flag must
+# become runtime config instead of an EXPO_PUBLIC_* build arg.
 ARG EXPO_PUBLIC_FEATURE_STATS_PAGE=false
 ENV EXPO_PUBLIC_FEATURE_DOCUMENTS_PAGE=${EXPO_PUBLIC_FEATURE_DOCUMENTS_PAGE} \
     EXPO_PUBLIC_FEATURE_PRICE_LIST_PAGE=${EXPO_PUBLIC_FEATURE_PRICE_LIST_PAGE} \
