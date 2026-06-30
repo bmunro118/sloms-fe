@@ -24,11 +24,9 @@ export default function CreateOrderScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { isStaff, canMutate } = useAuth();
-  const { showConfirm, showDanger } = useAppModal();
+  const { showConfirm, showDanger, showSuccess } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  const [orderNumber, setOrderNumber] = useState('');
-  const [orderBatch, setOrderBatch] = useState('');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [customerRef, setCustomerRef] = useState('');
   const [orderContact, setOrderContact] = useState('');
@@ -114,28 +112,24 @@ export default function CreateOrderScreen() {
     return () => controller.abort();
   }, [customerAccount]);
 
+  const isDirty = useMemo(
+    () =>
+      customerAccount !== null ||
+      customerRef !== '' ||
+      orderContact !== '' ||
+      priceBand !== '' ||
+      receivedOn !== '' ||
+      deliveryAddress !== null,
+    [customerAccount, customerRef, orderContact, priceBand, receivedOn, deliveryAddress],
+  );
+
+  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
+
   const performCreate = useCallback(async () => {
     if (!canMutate) {
       const msg = 'Your role does not allow creating orders.';
       setError(msg);
       showDanger('Permission denied', msg);
-      return;
-    }
-
-    const parsedOrderNumber = Number(orderNumber);
-    if (!Number.isFinite(parsedOrderNumber) || parsedOrderNumber <= 0) {
-      const msg = 'Order number must be a valid positive number.';
-      setError(msg);
-      showDanger('Required field', msg);
-      return;
-    }
-
-    const trimmedOrderBatch = orderBatch.trim();
-    const parsedOrderBatch = trimmedOrderBatch.length > 0 ? Number(trimmedOrderBatch) : undefined;
-    if (trimmedOrderBatch.length > 0 && (!Number.isFinite(parsedOrderBatch) || parsedOrderBatch <= 0)) {
-      const msg = 'Order batch must be a valid positive number.';
-      setError(msg);
-      showDanger('Required field', msg);
       return;
     }
 
@@ -156,14 +150,12 @@ export default function CreateOrderScreen() {
 
     setIsSaving(true);
     setError(null);
-    console.log('[OrderCreate] Submitting order — orderNumber:', parsedOrderNumber, 'customerAccount:', customerAccount);
+    console.log('[OrderCreate] Submitting order — customerAccount:', customerAccount);
     try {
       const trimmedPriceBand = priceBand.trim();
       const trimmedCustomerRef = customerRef.trim();
       const trimmedOrderContact = orderContact.trim();
       const payload = {
-        orderNumber: parsedOrderNumber,
-        orderBatch: parsedOrderBatch,
         customerAccount,
         customerRef: trimmedCustomerRef || undefined,
         orderContact: trimmedOrderContact || undefined,
@@ -176,6 +168,12 @@ export default function CreateOrderScreen() {
       const result = await createOrder(payload);
       console.log('[OrderCreate] Order created successfully:', result);
       skipNextGuard();
+      showSuccess(
+        'Order created',
+        typeof result?.orderNumber === 'number'
+          ? `Order ${result.orderNumber} was created successfully.`
+          : 'The order was created successfully.',
+      );
       router.replace('/(app)/orders');
     } catch (err) {
       console.error('[OrderCreate] API error:', err);
@@ -187,7 +185,7 @@ export default function CreateOrderScreen() {
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderBatch, orderContact, orderNumber, priceBand, receivedOn, router, showDanger, skipNextGuard]);
+  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderContact, priceBand, receivedOn, router, showDanger, showSuccess, skipNextGuard]);
 
   const handleCreate = useCallback(async () => {
     if (isSaving) {
@@ -203,7 +201,7 @@ export default function CreateOrderScreen() {
 
     const confirmed = await showConfirm({
       title: 'Create new order?',
-        message: `A new order will be created for ${customerLabel} with order number ${orderNumber}.`,
+      message: `A new order will be created for ${customerLabel}. An order number will be assigned automatically.`,
       confirmLabel: 'Create',
       cancelLabel: 'Cancel',
     });
@@ -213,22 +211,7 @@ export default function CreateOrderScreen() {
     }
 
     await performCreate();
-  }, [isSaving, showConfirm, customerAccount, customers, orderNumber, performCreate]);
-
-  const isDirty = useMemo(
-    () =>
-      orderNumber !== '' ||
-      customerAccount !== null ||
-      orderBatch !== '' ||
-      customerRef !== '' ||
-      orderContact !== '' ||
-      priceBand !== '' ||
-      receivedOn !== '' ||
-      deliveryAddress !== null,
-    [orderNumber, customerAccount, orderBatch, customerRef, orderContact, priceBand, receivedOn, deliveryAddress],
-  );
-
-  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
+  }, [isSaving, showConfirm, customerAccount, customers, performCreate]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -255,8 +238,6 @@ export default function CreateOrderScreen() {
         label: 'Reset form',
         onPress: () => {
           void guardAction(() => {
-            setOrderNumber('');
-            setOrderBatch('');
             setCustomerAccount(null);
             setCustomerRef('');
             setOrderContact('');
@@ -284,14 +265,6 @@ export default function CreateOrderScreen() {
 
   return (
     <ScreenContent gap={10}>
-      <ThemedInput
-        keyboardType="number-pad"
-        placeholder="Order number"
-        style={styles.input}
-        value={orderNumber}
-        onChangeText={setOrderNumber}
-        editable={!isSaving}
-      />
       {isLoadingCustomers ? (
         <LoadingSpinner size="small" message="Loading customers..." />
       ) : (
@@ -305,14 +278,6 @@ export default function CreateOrderScreen() {
           style={styles.input}
         />
       )}
-      <ThemedInput
-        keyboardType="number-pad"
-        placeholder="Order batch (optional)"
-        style={styles.input}
-        value={orderBatch}
-        onChangeText={setOrderBatch}
-        editable={!isSaving}
-      />
       <ThemedInput
         placeholder="Customer reference (optional)"
         style={styles.input}

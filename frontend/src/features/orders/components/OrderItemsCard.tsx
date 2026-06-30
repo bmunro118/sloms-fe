@@ -7,7 +7,6 @@ import {
   Pencil as EditIcon,
   Plus as AddIcon,
   Save as SaveIcon,
-  Search as SearchIcon,
   Square as MarkCheckoutIcon,
 } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -78,7 +77,6 @@ export function OrderItemsCard({
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [itemError, setItemError] = useState<string | null>(null);
   const [isMutatingItems, setIsMutatingItems] = useState(false);
-  const [newItemSerialNumber, setNewItemSerialNumber] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
   const [editingItemSerial, setEditingItemSerial] = useState<string | null>(null);
   const [itemFormData, setItemFormData] = useState<OrderItemEditValues>(toItemEditForm(null));
@@ -111,11 +109,9 @@ export function OrderItemsCard({
   // ── Add item ────────────────────────────────────────────────────────────────
   const handleAddItem = useCallback(async () => {
     if (!canMutate || isMutatingItems) return;
-    const serialNumber = newItemSerialNumber.trim();
-    if (!serialNumber) { setItemError('Serial number is required to add an item.'); return; }
     const confirmed = await showConfirm({
       title: 'Add item to order?',
-      message: `Item ${serialNumber} will be added to order ${orderNumber}/${orderBatch}.`,
+      message: `A new item will be added to order ${orderNumber}/${orderBatch}. A serial number will be assigned automatically.`,
       confirmLabel: 'Add item',
       cancelLabel: 'Cancel',
     });
@@ -123,11 +119,17 @@ export function OrderItemsCard({
     setIsMutatingItems(true);
     setItemError(null);
     try {
-      await addOrderItem(orderNumber, orderBatch, { serialNumber, description: newItemDescription.trim() || undefined });
-      setNewItemSerialNumber('');
+      const created = await addOrderItem<OrderItemCardData>(orderNumber, orderBatch, {
+        description: newItemDescription.trim() || undefined,
+      });
       setNewItemDescription('');
       await loadItems();
-      showSuccess('Item added', `Item ${serialNumber} was added to this order.`);
+      showSuccess(
+        'Item added',
+        created?.serialNumber
+          ? `Item ${created.serialNumber} was added to this order.`
+          : 'A new item was added to this order.',
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add item.';
       setItemError(message);
@@ -135,7 +137,7 @@ export function OrderItemsCard({
     } finally {
       if (isMountedRef.current) setIsMutatingItems(false);
     }
-  }, [canMutate, isMountedRef, isMutatingItems, loadItems, newItemDescription, newItemSerialNumber, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, newItemDescription, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
 
   // ── Edit item ───────────────────────────────────────────────────────────────
   const handleBeginEditItem = useCallback((item: OrderItemCardData) => {
@@ -302,28 +304,11 @@ export function OrderItemsCard({
         <View style={styles.addSection}>
           <Text style={styles.sectionLabel}>Add New Item</Text>
           <ThemedInput
-            placeholder="Serial number"
-            value={newItemSerialNumber}
-            onChangeText={setNewItemSerialNumber}
-            editable={!isMutatingItems}
-            onSubmitEditing={() => { void handleAddItem(); }}
-            rightAccessory={
-              <ThemedButton
-                variant="icon"
-                icon={<SearchIcon size={18} color={isMutatingItems ? theme.colors.textMuted : theme.colors.navTextStrong} />}
-                onPress={() => { void handleAddItem(); }}
-                disabled={isMutatingItems}
-                tooltip="Look up serial number"
-                hideBorder
-                fillMode
-              />
-            }
-          />
-          <ThemedInput
             placeholder="Description (optional)"
             value={newItemDescription}
             onChangeText={setNewItemDescription}
             editable={!isMutatingItems}
+            onSubmitEditing={() => { void handleAddItem(); }}
           />
           <ThemedButton
             variant="outline"

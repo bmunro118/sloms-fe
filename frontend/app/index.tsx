@@ -114,6 +114,7 @@ export default function LoginScreen() {
         style={styles.formInput}
         value={password}
         onChangeText={setPassword}
+        onSubmitEditing={handleLogin}
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}

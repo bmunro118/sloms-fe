@@ -7,6 +7,4 @@ export { OrderTrackingSummaryCard } from './OrderTrackingSummaryCard';
 export { OrderSystemNotificationsCard } from './OrderSystemNotificationsCard';
 export { OrderUpdatesCard } from './OrderUpdatesCard';
 export { SerialLookupCard } from './SerialLookupCard';
-// Deprecated — replaced by unified OrderItemsCard:
-export { OrderItemsSection } from './OrderItemsSection';
 export { OrderItemsSnapshotCard } from './OrderItemsSnapshotCard';

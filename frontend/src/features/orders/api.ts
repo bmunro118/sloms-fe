@@ -31,7 +31,8 @@ export type OrderSummary = {
 };
 
 export type CreateOrderPayload = {
-  orderNumber: number;
+  /** Omit to let the server auto-generate the next order number. */
+  orderNumber?: number;
   orderBatch?: number;
   customerAccount: number;
   customerRef?: string;
@@ -62,7 +63,8 @@ export type OrderItemsListResponse<TItem = OrderItem> = {
 };
 
 export type CreateOrderItemPayload = {
-  serialNumber: string;
+  /** Omit — the server assigns the serial number on creation. */
+  serialNumber?: string;
   [key: string]: unknown;
 };
 

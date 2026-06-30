@@ -49,8 +49,10 @@ jobs:
           context: frontend
           file: frontend/Dockerfile
           push: true
-          # Enable the Statistics page on stage only (prod keeps the Dockerfile
-          # default of false until it is explicitly promoted).
+          # Enable the Statistics page for this build. NOTE: EXPO_PUBLIC_* vars are
+          # inlined at export time, and prod CD promotes this exact :sha artifact
+          # with no rebuild — so this flag travels into prod too and the page is NOT
+          # gated off prod. Gating it stage-only needs a runtime flag, not a build arg.
           build-args: |
             EXPO_PUBLIC_FEATURE_STATS_PAGE=true
           # :sha is the immutable artifact that gets promoted to prod later.
