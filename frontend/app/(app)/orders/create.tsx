@@ -17,29 +17,44 @@ import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { createOrder } from '@src/features/orders/api';
+import { createOrder, addOrderItem } from '@src/features/orders/api';
+import {
+  ItemsCard,
+  AddItemCard,
+  PendingItemCard,
+  type PendingItem,
+} from '@src/features/orders/components/ItemsCard';
+import { usePendingItems } from '@src/features/orders/hooks/usePendingItems';
 import { Address, CustomerRecord, listAddresses, listCustomers } from '@src/features/customers/api';
+import { PriceListItem, listPriceListItems } from '@src/features/price-list/api';
+import { getCurrentVatRate } from '@src/features/vat-rates/api';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { isStaff, canMutate } = useAuth();
-  const { showConfirm, showDanger, showSuccess } = useAppModal();
+  const { showConfirm, showDanger, showWarning } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
+  const [orderBatch, setOrderBatch] = useState('');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [customerRef, setCustomerRef] = useState('');
   const [orderContact, setOrderContact] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState<number | null>(null);
   const [receivedOn, setReceivedOn] = useState('');
   const [priceBand, setPriceBand] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
+  const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
+  const [priceList, setPriceList] = useState<PriceListItem[]>([]);
+  const [vatRate, setVatRate] = useState<number>(20);
+  const [isLoadingPriceList, setIsLoadingPriceList] = useState(false);
 
+  // Fetch customers
   useEffect(() => {
     const controller = new AbortController();
     setIsLoadingCustomers(true);
@@ -52,6 +67,28 @@ export default function CreateOrderScreen() {
       .catch(() => {})
       .finally(() => {
         if (!controller.signal.aborted) setIsLoadingCustomers(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  // Fetch price list and VAT rate
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsLoadingPriceList(true);
+    Promise.all([
+      listPriceListItems(undefined, { signal: controller.signal }),
+      getCurrentVatRate({ signal: controller.signal }),
+    ])
+      .then(([plResponse, vrResponse]) => {
+        if (!controller.signal.aborted) {
+          const plData = Array.isArray(plResponse) ? plResponse : plResponse.data ?? [];
+          setPriceList(plData);
+          setVatRate(vrResponse.rate ?? 20);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingPriceList(false);
       });
     return () => controller.abort();
   }, []);
@@ -76,6 +113,23 @@ export default function CreateOrderScreen() {
       };
     });
   }, [deliveryAddresses]);
+
+  // Pending items: using usePendingItems hook
+
+  const isDirty = useMemo(
+    () =>
+      customerAccount !== null ||
+      orderBatch !== '' ||
+      customerRef !== '' ||
+      orderContact !== '' ||
+      priceBand !== '' ||
+      receivedOn !== '' ||
+      deliveryAddress !== null ||
+      pendingItems.length > 0,
+    [customerAccount, orderBatch, customerRef, orderContact, priceBand, receivedOn, deliveryAddress, pendingItems.length],
+  );
+
+  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
 
   useEffect(() => {
     if (customerAccount === null) {
@@ -112,19 +166,6 @@ export default function CreateOrderScreen() {
     return () => controller.abort();
   }, [customerAccount]);
 
-  const isDirty = useMemo(
-    () =>
-      customerAccount !== null ||
-      customerRef !== '' ||
-      orderContact !== '' ||
-      priceBand !== '' ||
-      receivedOn !== '' ||
-      deliveryAddress !== null,
-    [customerAccount, customerRef, orderContact, priceBand, receivedOn, deliveryAddress],
-  );
-
-  const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
-
   const performCreate = useCallback(async () => {
     if (!canMutate) {
       const msg = 'Your role does not allow creating orders.';
@@ -140,6 +181,22 @@ export default function CreateOrderScreen() {
       return;
     }
 
+    if (pendingItems.length === 0) {
+      const msg = 'Please add at least one line item.';
+      setError(msg);
+      showDanger('Required field', msg);
+      return;
+    }
+
+    const trimmedOrderBatch = orderBatch.trim();
+    const parsedOrderBatch = trimmedOrderBatch.length > 0 ? Number(trimmedOrderBatch) : undefined;
+    if (trimmedOrderBatch.length > 0 && parsedOrderBatch !== undefined && (!Number.isFinite(parsedOrderBatch) || parsedOrderBatch <= 0)) {
+      const msg = 'Order batch must be a valid positive number.';
+      setError(msg);
+      showDanger('Required field', msg);
+      return;
+    }
+
     const trimmedReceivedOn = receivedOn.trim();
     if (trimmedReceivedOn.length > 0 && Number.isNaN(Date.parse(trimmedReceivedOn))) {
       const msg = 'Received on must be a valid ISO date/time value.';
@@ -148,6 +205,7 @@ export default function CreateOrderScreen() {
       return;
     }
 
+    setIsCreatingOrder(true);
     setIsSaving(true);
     setError(null);
     console.log('[OrderCreate] Submitting order — customerAccount:', customerAccount);
@@ -156,6 +214,7 @@ export default function CreateOrderScreen() {
       const trimmedCustomerRef = customerRef.trim();
       const trimmedOrderContact = orderContact.trim();
       const payload = {
+        orderBatch: parsedOrderBatch,
         customerAccount,
         customerRef: trimmedCustomerRef || undefined,
         orderContact: trimmedOrderContact || undefined,
@@ -167,14 +226,39 @@ export default function CreateOrderScreen() {
 
       const result = await createOrder(payload);
       console.log('[OrderCreate] Order created successfully:', result);
+
+      // Submit pending items sequentially
+      const createdOrderNumber = result.orderNumber;
+      const createdOrderBatch: number = result.orderBatch ?? parsedOrderBatch ?? 1;
+      const failedItems: string[] = [];
+
+      if (pendingItems.length > 0) {
+        for (const item of pendingItems) {
+          try {
+            await addOrderItem(createdOrderNumber, createdOrderBatch, {
+              serialNumber: item.itemId,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice ?? 0,
+              vatRate: item.vatRate ?? vatRate,
+            } as Parameters<typeof addOrderItem>[2]);
+          } catch (itemErr) {
+            console.warn('[OrderCreate] Failed to add item:', item.itemId, itemErr);
+            failedItems.push(item.description || item.itemId);
+          }
+        }
+      }
+
+      // Show warning if any items failed
+      if (failedItems.length > 0 && isMountedRef.current) {
+        showWarning(
+          'Order created - some items not added',
+          `Order ${createdOrderNumber}/${createdOrderBatch} was created, but the following items could not be added: ${failedItems.join(', ')}. You can add them manually on the order detail screen.`
+        );
+      }
+
       skipNextGuard();
-      showSuccess(
-        'Order created',
-        typeof result?.orderNumber === 'number'
-          ? `Order ${result.orderNumber} was created successfully.`
-          : 'The order was created successfully.',
-      );
-      router.replace('/(app)/orders');
+      router.replace(`/(app)/orders/${createdOrderNumber}/${createdOrderBatch}` as never);
     } catch (err) {
       console.error('[OrderCreate] API error:', err);
       if (isMountedRef.current) {
@@ -182,13 +266,31 @@ export default function CreateOrderScreen() {
       }
     } finally {
       if (isMountedRef.current) {
+        setIsCreatingOrder(false);
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderContact, priceBand, receivedOn, router, showDanger, showSuccess, skipNextGuard]);
+  }, [
+    canMutate,
+    customerAccount,
+    customerRef,
+    deliveryAddress,
+    isMountedRef,
+    orderBatch,
+    orderContact,
+    pendingItems,
+    priceBand,
+    receivedOn,
+    router,
+    setIsSaving,
+    showDanger,
+    showWarning,
+    skipNextGuard,
+    vatRate,
+  ]);
 
   const handleCreate = useCallback(async () => {
-    if (isSaving) {
+    if (isCreatingOrder || isSaving) {
       return;
     }
 
@@ -201,7 +303,7 @@ export default function CreateOrderScreen() {
 
     const confirmed = await showConfirm({
       title: 'Create new order?',
-      message: `A new order will be created for ${customerLabel}. An order number will be assigned automatically.`,
+      message: `A new order will be created for ${customerLabel} with order batch ${orderBatch}${pendingItems.length > 0 ? ` and ${pendingItems.length} line item(s)` : ''}.`,
       confirmLabel: 'Create',
       cancelLabel: 'Cancel',
     });
@@ -211,7 +313,7 @@ export default function CreateOrderScreen() {
     }
 
     await performCreate();
-  }, [isSaving, showConfirm, customerAccount, customers, performCreate]);
+  }, [isCreatingOrder, isSaving, showConfirm, customerAccount, customers, orderBatch, pendingItems.length, performCreate]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -226,11 +328,11 @@ export default function CreateOrderScreen() {
     return [
       buildIconTopBarAction({
         id: 'submit-create-order',
-        label: isSaving ? 'Creating order...' : 'Create order',
-        accessibilityLabel: isSaving ? 'Creating order' : undefined,
+        label: isCreatingOrder ? 'Creating order...' : 'Create order',
+        accessibilityLabel: isCreatingOrder ? 'Creating order' : undefined,
         onPress: handleCreate,
         icon: CreateIcon,
-        disabled: isSaving,
+        disabled: isCreatingOrder || isSaving || pendingItems.length === 0,
         primary: true,
       }),
       buildIconTopBarAction({
@@ -238,6 +340,7 @@ export default function CreateOrderScreen() {
         label: 'Reset form',
         onPress: () => {
           void guardAction(() => {
+            setOrderBatch('');
             setCustomerAccount(null);
             setCustomerRef('');
             setOrderContact('');
@@ -245,17 +348,18 @@ export default function CreateOrderScreen() {
             setReceivedOn('');
             setDeliveryAddresses([]);
             setPriceBand('');
+            handleResetPendingItems();
             setError(null);
           });
         },
         icon: ResetIcon,
-        disabled: isSaving,
+        disabled: isCreatingOrder || isSaving,
       }),
       buildBackTopBarAction({
         onPress: () => void guardAction(() => router.back()),
       }),
     ];
-  }, [handleCreate, isSaving, guardAction, router]);
+  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, router, pendingItems.length]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
@@ -278,6 +382,14 @@ export default function CreateOrderScreen() {
           style={styles.input}
         />
       )}
+      <ThemedInput
+        keyboardType="number-pad"
+        placeholder="Order batch (optional)"
+        style={styles.input}
+        value={orderBatch}
+        onChangeText={setOrderBatch}
+        editable={!isSaving}
+      />
       <ThemedInput
         placeholder="Customer reference (optional)"
         style={styles.input}
@@ -320,6 +432,34 @@ export default function CreateOrderScreen() {
         editable={!isSaving}
       />
 
+      {/* Line Items Grid */}
+      <ItemsCard
+        mode="edit"
+        title="Line Items"
+        isLoading={isLoadingPriceList && priceList.length === 0}
+        emptyMessage="No line items added yet"
+        addItemCard={
+          <AddItemCard
+            priceList={priceList}
+            vatRate={vatRate}
+            priceBand={priceBand}
+            isLoadingPriceList={isLoadingPriceList}
+            isAddingItem={isSaving}
+            onAddItem={handleAddPendingItem}
+          />
+        }
+      >
+        {pendingItems.map((item) => (
+          <PendingItemCard
+            key={item.id}
+            item={item}
+            isAddingItem={isSaving}
+            onUpdateItem={handleUpdatePendingItem}
+            onRemoveItem={handleRemovePendingItem}
+          />
+        ))}
+      </ItemsCard>
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </ScreenContent>
   );
@@ -333,3 +473,4 @@ function createStyles(theme: AppTheme) {
     loader: { alignSelf: 'flex-start', marginTop: 4 },
   });
 }
+

@@ -455,7 +455,7 @@ export default function OrderDetailScreen() {
             selectedStatusFilter={selectedStatusFilter}
             onFilterChange={(value) => { setSelectedStatusFilter(value); setIsFilterOpen(false); }}
             isFilterOpen={isFilterOpen}
-            onToggleFilter={() => setIsFilterOpen((v) => !v)}
+            onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
             expandedUpdateId={expandedUpdateId}
             onToggleExpand={(id) => setExpandedUpdateId(id)}
             selectedFilterLabel={selectedFilterLabel}
@@ -467,6 +467,7 @@ export default function OrderDetailScreen() {
             orderBatch={orderBatch}
             canMutate={canMutate}
             refreshSignal={itemsRefreshSignal}
+            priceBand={order?.priceBand ?? ''}
           />
 
           {/* Serial Number Lookup */}
@@ -490,11 +491,8 @@ function createStyles(theme: AppTheme) {
     ...common,
     scrollContent: { gap: 10, paddingBottom: 8 },
     card: { ...common.card, gap: 8 },
-    serialCard: { ...common.card, gap: 8 },
     serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
     serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
     field: { marginTop: theme.spacing.sm },
-    fieldLabel: common.fieldLabel,
-    fieldValue: common.fieldValue,
   });
 }
