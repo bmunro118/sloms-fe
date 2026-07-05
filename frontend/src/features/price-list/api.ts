@@ -29,7 +29,14 @@ export type ItemListPricesResponse = {
 export type PriceListType = {
   id: number;
   name: string;
-  description?: string;
+  displayName: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  void: boolean;
+  voidDateStamp: Date | null;
+  voidedBy: string | null;
+  createdAt: Date;
+  createdBy: string | null;
 };
 
 export type PriceListTypesResponse = {
