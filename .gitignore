@@ -46,3 +46,4 @@ yarn-error.*
 
 # Playwright artifacts from frontend test runs
 /frontend/test-results
+AGENTS.md
