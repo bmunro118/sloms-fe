@@ -14,6 +14,7 @@ import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
+import { usePriceBands } from '@features/price-list/hooks/usePriceBands';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -53,6 +54,17 @@ export default function CreateOrderScreen() {
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
   const [vatRate, setVatRate] = useState<number>(20);
   const [isLoadingPriceList, setIsLoadingPriceList] = useState(false);
+  const { priceBands, isLoading: isLoadingPriceBands, error: priceBandsError } = usePriceBands();
+
+  // Auto-populate price band when customer changes
+  useEffect(() => {
+    if (customerAccount !== null) {
+      const band = customers.find((c) => c.customerId === customerAccount)?.band;
+      if (band) setPriceBand(band);
+    } else {
+      setPriceBand('');
+    }
+  }, [customerAccount, customers]);
 
   // Fetch customers
   useEffect(() => {
@@ -424,13 +436,21 @@ export default function CreateOrderScreen() {
         onChangeText={setReceivedOn}
         editable={!isSaving}
       />
-      <ThemedInput
-        placeholder="Price band (optional)"
-        style={styles.input}
-        value={priceBand}
-        onChangeText={setPriceBand}
-        editable={!isSaving}
-      />
+      {isLoadingPriceBands ? (
+        <LoadingSpinner size="small" message="Loading price bands..." />
+      ) : priceBandsError ? (
+        null
+      ) : (
+        <ThemedSelect<string>
+          value={priceBand ?? null}
+          options={priceBands}
+          onChange={(value) => setPriceBand(value ?? '')}
+          placeholder="Select Price Band"
+          nullLabel="None"
+          disabled={isSaving || isLoadingPriceBands}
+          style={styles.input}
+        />
+      )}
 
       {/* Line Items Grid */}
       <ItemsCard
