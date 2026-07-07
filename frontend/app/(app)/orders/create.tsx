@@ -169,7 +169,6 @@ export default function CreateOrderScreen() {
               modelCode: item.itemId,
               description: item.description,
               price: item.unitPrice ?? 0,
-              vatRate: item.vatRate ?? vatRate ?? undefined,
               patientInitial: item.patientInitial,
               patientSurname: item.patientSurname,
               side: item.side,

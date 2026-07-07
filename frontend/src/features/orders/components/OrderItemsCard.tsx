@@ -117,7 +117,6 @@ export function OrderItemsCard({
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        vatRate: item.vatRate ?? vatRate,
       });
       await loadItems();
       showSuccess(
