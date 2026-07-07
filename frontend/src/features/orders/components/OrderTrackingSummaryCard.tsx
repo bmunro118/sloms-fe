@@ -104,6 +104,29 @@ export function OrderTrackingSummaryCard({
           </View>
         }
       />
+      <FieldPair
+        compact={isCompact}
+        left={
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Dispatched</Text>
+            <Text style={styles.fieldValue}>
+              {order.dispatchedOn
+                ? formatTrackingDate(
+                    order.dispatchedOn instanceof Date
+                      ? order.dispatchedOn.toISOString()
+                      : order.dispatchedOn
+                  )
+                : 'Not yet'}
+            </Text>
+          </View>
+        }
+        right={
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Void</Text>
+            <Text style={styles.fieldValue}>{order.void ? 'Voided' : 'Active'}</Text>
+          </View>
+        }
+      />
 
       {/* Timestamp and counts */}
       <Text style={styles.cardMeta}>Last changed: {formatTrackingDate(lastUpdateTimestamp)}</Text>
