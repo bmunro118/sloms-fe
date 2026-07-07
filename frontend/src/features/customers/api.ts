@@ -59,7 +59,7 @@ export type CreateCustomerPayload = {
 export type UpdateCustomerPayload = Partial<Omit<CustomerRecord, 'customerId' | 'isSuspended'>>;
 
 export type Address = {
-  id: number;
+  addressId: number;
   siteCompanyName?: string;
   delBuildingName?: string;
   delAddressLn1?: string;

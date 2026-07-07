@@ -8,6 +8,14 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { OrderDetails, OrderEditForm, resolveOrderStatus } from '../types';
 
+const getAddressLabel = (
+  addressId: number | null | undefined,
+  options: SelectOption<number>[] | undefined
+): string => {
+  if (addressId == null || options == null) return 'N/A';
+  return options.find((option) => option.value === addressId)?.label ?? 'N/A';
+};
+
 interface OrderDetailCardProps {
   order: OrderDetails | null;
   isEditing: boolean;
@@ -109,7 +117,7 @@ export function OrderDetailCard({
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Delivery Address</Text>
-            <Text style={styles.fieldValue}>{order.deliveryAddress ?? 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{getAddressLabel(order.deliveryAddress, deliveryAddressOptions)}</Text>
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Price Band</Text>

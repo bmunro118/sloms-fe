@@ -116,7 +116,7 @@ export default function OrderDetailScreen() {
       const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
       const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
       const defaultBadge = address.defaultAddress ? ' (Default)' : '';
-      return { value: address.id, label: `${line}${city}${defaultBadge}` };
+      return { value: address.addressId, label: `${line}${city}${defaultBadge}` };
     }), [deliveryAddresses]);
   // Data loading
   const reload = useCallback(async (signal?: AbortSignal) => {
@@ -434,6 +434,7 @@ export default function OrderDetailScreen() {
               cardActions={orderCardActions}
               customerName={customerName}
               customerAccountNumber={customerAccountNumber}
+              deliveryAddressOptions={deliveryAddressOptions}
             />
           )}
 

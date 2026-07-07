@@ -3,13 +3,22 @@ import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { OrderStatusBadge } from '@components/ui/OrderStatusBadge';
 import { FieldPair } from '@components/ui/FieldPair';
+import { SelectOption } from '@components/ui/ThemedSelect';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { useAuth } from '@context/AuthContext';
+import { TopBarAction } from '@context/ScreenTitleContext';
 import { OrderDetails, resolveOrderStatus } from '../types';
 import { OrderTrackingPayload, formatTrackingDate } from '../tracking-types';
-import { TopBarAction } from '@context/ScreenTitleContext';
+
+const getAddressLabel = (
+  addressId: number | null | undefined,
+  options: SelectOption<number>[] | undefined
+): string => {
+  if (addressId == null || options == null) return 'N/A';
+  return options.find((option) => option.value === addressId)?.label ?? 'N/A';
+};
 
 interface OrderTrackingSummaryCardProps {
   order: OrderDetails | null;
@@ -25,6 +34,8 @@ interface OrderTrackingSummaryCardProps {
   customerName?: string | null;
   /** Resolved customer account number (from useOrderCustomer hook) */
   customerAccountNumber?: string | null;
+  /** Delivery address options used to resolve the address ID to a label */
+  deliveryAddressOptions?: SelectOption<number>[];
 }
 
 export function OrderTrackingSummaryCard({
@@ -38,6 +49,7 @@ export function OrderTrackingSummaryCard({
   cardActions,
   customerName,
   customerAccountNumber,
+  deliveryAddressOptions,
 }: OrderTrackingSummaryCardProps) {
   const { canMutate } = useAuth();
   const { width } = useWindowDimensions();
@@ -94,7 +106,7 @@ export function OrderTrackingSummaryCard({
         left={
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Delivery Address</Text>
-            <Text style={styles.fieldValue}>{order.deliveryAddress ?? 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{getAddressLabel(order.deliveryAddress, deliveryAddressOptions)}</Text>
           </View>
         }
         right={

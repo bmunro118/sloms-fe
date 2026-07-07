@@ -141,6 +141,7 @@ export function AddItemCard({
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [newItemUnitPrice, setNewItemUnitPrice] = useState('');
   const [newItemError, setNewItemError] = useState<string | null>(null);
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
   // Build select options from price list
   const priceListOptions = useMemo<SelectOption<string>[]>(() => {
@@ -157,24 +158,45 @@ export function AddItemCard({
 
   // Auto-fill description and unit price when item is selected
   useEffect(() => {
+    if (!newItemId) return;
+
     const item = selectedPriceListItemForId;
+
+    // Always auto-fill description from local price list if available
     if (item) {
       setNewItemDescription(item.description ?? '');
-      setNewItemUnitPrice(item.price ? String(item.price) : '');
-    } else if (newItemId && priceBand) {
-      const fetchPrice = async () => {
-        try {
-          const result = await getItemListByName(newItemId, priceBand);
+    }
+
+    if (priceBand) {
+      // Fetch band-specific price regardless of whether the item is in the local list
+      setIsFetchingPrice(true);
+      const controller = new AbortController();
+      getItemListByName(newItemId, priceBand)
+        .then((result) => {
+          if (controller.signal.aborted) return;
           if (result?.unitPrice != null) {
             setNewItemUnitPrice(String(result.unitPrice));
           } else if (result?.price != null) {
             setNewItemUnitPrice(String(result.price));
+          } else if (item?.price != null) {
+            setNewItemUnitPrice(String(item.price));
           }
-        } catch (err) {
-          console.error('[AddItemCard] Failed to fetch price:', err);
-        }
-      };
-      void fetchPrice();
+        })
+        .catch((err) => {
+          if (controller.signal.aborted) return;
+          if (__DEV__) console.error('[AddItemCard] Failed to fetch band price:', err);
+          // Fall back to generic price from local list
+          if (item?.price != null) {
+            setNewItemUnitPrice(String(item.price));
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsFetchingPrice(false);
+        });
+      return () => { controller.abort(); };
+    } else if (item) {
+      // No band set — use generic price from local list
+      setNewItemUnitPrice(item.price != null ? String(item.price) : '');
     }
   }, [newItemId, priceBand, selectedPriceListItemForId]);
 
@@ -299,23 +321,30 @@ export function AddItemCard({
 
         <View style={styles.formRow}>
           <View style={[styles.formField, styles.formFieldHalf]}>
+            <Text style={styles.fieldLabel}>Unit Price *</Text>
+            {isFetchingPrice ? (
+              <View style={[styles.input, styles.inputDisabled]}>
+                <LoadingIcon size={18} color={theme.colors.textMuted} />
+                <Text style={styles.inputDisabledText}>Fetching price...</Text>
+              </View>
+            ) : (
+              <ThemedInput
+                placeholder="0.00"
+                style={styles.input}
+                value={newItemUnitPrice}
+                onChangeText={setNewItemUnitPrice}
+                keyboardType="numeric"
+                editable={!isAddingItem}
+              />
+            )}
+          </View>
+          <View style={[styles.formField, styles.formFieldHalf]}>
             <Text style={styles.fieldLabel}>Quantity *</Text>
             <ThemedInput
               placeholder="0"
               style={styles.input}
               value={newItemQuantity}
               onChangeText={setNewItemQuantity}
-              keyboardType="numeric"
-              editable={!isAddingItem}
-            />
-          </View>
-          <View style={[styles.formField, styles.formFieldHalf]}>
-            <Text style={styles.fieldLabel}>Unit Price *</Text>
-            <ThemedInput
-              placeholder="0.00"
-              style={styles.input}
-              value={newItemUnitPrice}
-              onChangeText={setNewItemUnitPrice}
               keyboardType="numeric"
               editable={!isAddingItem}
             />

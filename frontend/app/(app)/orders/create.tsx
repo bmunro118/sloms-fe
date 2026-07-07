@@ -115,7 +115,7 @@ export default function CreateOrderScreen() {
       const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
       const defaultBadge = address.defaultAddress ? ' (Default)' : '';
       return {
-        value: address.id,
+        value: address.addressId,
         label: `${line}${city}${defaultBadge}`,
       };
     });
@@ -152,11 +152,11 @@ export default function CreateOrderScreen() {
         const nextAddresses = Array.isArray(response.data) ? response.data : [];
         setDeliveryAddresses(nextAddresses);
         setDeliveryAddress((current) => {
-          if (nextAddresses.some((address) => address.id === current)) {
+          if (nextAddresses.some((address) => address.addressId === current)) {
             return current;
           }
           const defaultAddress = nextAddresses.find((address) => address.defaultAddress);
-          return defaultAddress?.id ?? null;
+          return defaultAddress?.addressId ?? null;
         });
       })
       .catch((err) => {

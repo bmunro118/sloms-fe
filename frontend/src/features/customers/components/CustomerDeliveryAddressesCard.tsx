@@ -76,7 +76,7 @@ export function CustomerDeliveryAddressesCard(props: Props) {
   const effectiveAddresses: Address[] = useMemo(() => {
     if (isCreateMode && pendingAddresses) {
       return pendingAddresses.map((addr, idx) => ({
-        id: -(idx + 1),
+        addressId: -(idx + 1),
         ...addr,
       }));
     }
@@ -114,14 +114,14 @@ export function CustomerDeliveryAddressesCard(props: Props) {
   // ── Edit ──────────────────────────────────────────────────────────────────────
 
   const startEdit = useCallback((address: Address) => {
-    setEditingId(address.id);
+    setEditingId(address.addressId);
     setEditForm({ ...address });
-    setExpandedId(address.id);
+    setExpandedId(address.addressId);
   }, []);
 
   const { guardAction: guardCancelEdit } = useUnsavedChangesGuard({
     isDirty: editingId !== null && JSON.stringify(editForm) !== JSON.stringify(
-      effectiveAddresses.find((a) => a.id === editingId) ?? {}
+      effectiveAddresses.find((a) => a.addressId === editingId) ?? {}
     ),
   });
 
@@ -135,7 +135,7 @@ export function CustomerDeliveryAddressesCard(props: Props) {
   const handleSaveEdit = useCallback(async () => {
     if (!editingId || isSaving) return;
     if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
-      const idx = effectiveAddresses.findIndex((a) => a.id === editingId);
+      const idx = effectiveAddresses.findIndex((a) => a.addressId === editingId);
       if (idx === -1) return;
       const updated = [...pendingAddresses];
       updated[idx] = { ...updated[idx], ...editForm };
@@ -162,11 +162,11 @@ export function CustomerDeliveryAddressesCard(props: Props) {
 
   const handleDelete = useCallback(async (address: Address) => {
     if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
-      const idx = pendingAddresses.findIndex((_, i) => -(i + 1) === address.id);
+      const idx = pendingAddresses.findIndex((_, i) => -(i + 1) === address.addressId);
       if (idx === -1) return;
       onPendingAddressesChange(pendingAddresses.filter((_, i) => i !== idx));
-      if (expandedId === address.id) setExpandedId(null);
-      if (editingId === address.id) { setEditingId(null); setEditForm({}); }
+      if (expandedId === address.addressId) setExpandedId(null);
+      if (editingId === address.addressId) { setEditingId(null); setEditForm({}); }
       return;
     }
     const confirmed = await showConfirm({
@@ -177,10 +177,10 @@ export function CustomerDeliveryAddressesCard(props: Props) {
     });
     if (!confirmed) return;
     try {
-      await deleteAddress(customerId!, address.id);
+      await deleteAddress(customerId!, address.addressId);
       showSuccess('Address deleted');
-      if (expandedId === address.id) setExpandedId(null);
-      if (editingId === address.id) { setEditingId(null); setEditForm({}); }
+      if (expandedId === address.addressId) setExpandedId(null);
+      if (editingId === address.addressId) { setEditingId(null); setEditForm({}); }
       await reload();
     } catch (err) {
       showDanger('Delete failed', err instanceof Error ? err.message : 'Could not delete address.');
@@ -193,7 +193,7 @@ export function CustomerDeliveryAddressesCard(props: Props) {
     if (isCreateMode && pendingAddresses && onPendingAddressesChange) {
       const updated = pendingAddresses.map((addr, i) => ({
         ...addr,
-        defaultAddress: -(i + 1) === address.id,
+        defaultAddress: -(i + 1) === address.addressId,
       }));
       onPendingAddressesChange(updated);
       return;
@@ -205,7 +205,7 @@ export function CustomerDeliveryAddressesCard(props: Props) {
     });
     if (!confirmed) return;
     try {
-      await setDefaultAddress(customerId!, address.id);
+      await setDefaultAddress(customerId!, address.addressId);
       showSuccess('Default address updated');
       await reload();
     } catch (err) {
@@ -263,13 +263,13 @@ export function CustomerDeliveryAddressesCard(props: Props) {
       ) : null}
 
       {effectiveAddresses.map((address, idx) => {
-        const isExpanded = expandedId === address.id;
-        const isEditing = editingId === address.id;
+        const isExpanded = expandedId === address.addressId;
+        const isEditing = editingId === address.addressId;
         const isLast = idx === effectiveAddresses.length - 1;
         const label = address.siteCompanyName || address.delAddressLn1 || `Address ${idx + 1}`;
 
         return (
-          <View key={address.id} style={[styles.addressBlock, isLast && !showAddForm && styles.addressBlockLast]}>
+          <View key={address.addressId} style={[styles.addressBlock, isLast && !showAddForm && styles.addressBlockLast]}>
             {/* Header row: label + expand toggle */}
             <View style={styles.addressHeader}>
               <Text style={styles.addressTitle}>
@@ -280,7 +280,7 @@ export function CustomerDeliveryAddressesCard(props: Props) {
                 label={isExpanded ? 'Collapse' : 'View'}
                 variant="secondary"
                 onPress={() => {
-                  setExpandedId(isExpanded ? null : address.id);
+                  setExpandedId(isExpanded ? null : address.addressId);
                   if (isEditing && isExpanded) cancelEdit();
                 }}
                 style={styles.rowBtn}
