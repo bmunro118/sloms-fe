@@ -168,9 +168,9 @@ export default function VatRatesScreen() {
     });
     if (!confirmed) return;
 
-    setClosingId(rate.id);
+    setClosingId(rate.vatRateId);
     try {
-      await closeVatRate(rate.id, { validTo: today });
+      await closeVatRate(rate.vatRateId, { validTo: today });
       showSuccess('VAT rate closed', `The ${rate.rate}% rate has been closed.`);
       setRefreshTick((t) => t + 1);
     } catch (err) {
@@ -231,7 +231,7 @@ export default function VatRatesScreen() {
               rate={currentRate}
               isCurrent
               isAdmin={isAdmin}
-              isClosing={closingId === currentRate.id}
+              isClosing={closingId === currentRate.vatRateId}
               onClose={() => handleClose(currentRate)}
             />
           ) : (
@@ -307,11 +307,11 @@ export default function VatRatesScreen() {
           ) : (
             rates.map((rate) => (
               <VatRateRow
-                key={rate.id}
+                key={rate.vatRateId}
                 rate={rate}
-                isCurrent={currentRate?.id === rate.id}
+                isCurrent={currentRate?.vatRateId === rate.vatRateId}
                 isAdmin={isAdmin}
-                isClosing={closingId === rate.id}
+                isClosing={closingId === rate.vatRateId}
                 onClose={() => handleClose(rate)}
               />
             ))

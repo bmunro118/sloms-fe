@@ -21,7 +21,7 @@ const DEFAULT_VAT_RATE = 20;
 
 export interface AddItemCardProps {
   priceList: PriceListItem[];
-  vatRate?: number;
+  vatRate?: number | null;
   priceBand: string;
   isLoadingPriceList: boolean;
   isAddingItem: boolean;
@@ -125,7 +125,7 @@ function createStyles(theme: AppTheme) {
 
 export function AddItemCard({
   priceList,
-  vatRate = DEFAULT_VAT_RATE,
+  vatRate,
   priceBand,
   isLoadingPriceList,
   isAddingItem,
@@ -133,6 +133,7 @@ export function AddItemCard({
 }: AddItemCardProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
+  const effectiveVatRate = vatRate ?? DEFAULT_VAT_RATE;
 
   // Local state for new item form
   const [newItemId, setNewItemId] = useState('');
@@ -233,6 +234,7 @@ export function AddItemCard({
       quantity: qty,
       unitPrice: price,
       total,
+      vatRate: effectiveVatRate,
     };
 
     onAddItem(newItem);
@@ -247,7 +249,7 @@ export function AddItemCard({
     if (Platform.OS !== 'web') {
       Keyboard.dismiss();
     }
-  }, [newItemId, newItemDescription, newItemQuantity, newItemUnitPrice, validateNewItem, onAddItem]);
+  }, [newItemId, newItemDescription, newItemQuantity, newItemUnitPrice, validateNewItem, onAddItem, effectiveVatRate]);
 
   return (
     <ThemedCard style={styles.card}>

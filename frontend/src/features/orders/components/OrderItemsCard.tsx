@@ -19,7 +19,7 @@ import { isItemCheckedOut, toItemEditForm } from '../types';
 import { OrderItemCard, OrderItemCardData, OrderItemEditValues } from './OrderItemCard';
 import { ItemsCard, DisplayItemCard, AddItemCard, type PendingItem } from './ItemsCard';
 import { PriceListItem, listPriceListItems } from '@src/features/price-list/api';
-import { getCurrentVatRate } from '@src/features/vat-rates/api';
+import { getCurrentVatRate, parseVatRate } from '@src/features/vat-rates/api';
 
 interface OrderItemsCardProps {
   orderNumber: number;
@@ -86,7 +86,7 @@ export function OrderItemsCard({
         if (!controller.signal.aborted) {
           const plData = Array.isArray(plResponse) ? plResponse : plResponse.data ?? [];
           setPriceList(plData);
-          setVatRate(vrResponse.rate ?? 20);
+          setVatRate(parseVatRate(vrResponse.rate) ?? 20);
         }
       })
       .catch(() => {})

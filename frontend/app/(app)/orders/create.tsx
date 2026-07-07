@@ -1,7 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
 import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
@@ -26,9 +26,9 @@ import {
   type PendingItem,
 } from '@src/features/orders/components/ItemsCard';
 import { usePendingItems } from '@src/features/orders/hooks/usePendingItems';
+import { useCurrentVatRate } from '@src/features/orders/hooks/useCurrentVatRate';
 import { Address, CustomerRecord, listAddresses, listCustomers } from '@src/features/customers/api';
 import { PriceListItem, listPriceListItems } from '@src/features/price-list/api';
-import { getCurrentVatRate } from '@src/features/vat-rates/api';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -51,8 +51,8 @@ export default function CreateOrderScreen() {
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
   const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
+  const { vatRate } = useCurrentVatRate();
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
-  const [vatRate, setVatRate] = useState<number>(20);
   const [isLoadingPriceList, setIsLoadingPriceList] = useState(false);
   const { priceBands, isLoading: isLoadingPriceBands, error: priceBandsError } = usePriceBands();
 
@@ -83,22 +83,17 @@ export default function CreateOrderScreen() {
     return () => controller.abort();
   }, []);
 
-  // Fetch price list and VAT rate
+  // Fetch price list
   useEffect(() => {
     const controller = new AbortController();
     setIsLoadingPriceList(true);
-    Promise.all([
-      listPriceListItems(undefined, { signal: controller.signal }),
-      getCurrentVatRate({ signal: controller.signal }),
-    ])
-      .then(([plResponse, vrResponse]) => {
+    listPriceListItems(undefined, { signal: controller.signal })
+      .then((plResponse) => {
         if (!controller.signal.aborted) {
           const plData = Array.isArray(plResponse) ? plResponse : plResponse.data ?? [];
           setPriceList(plData);
-          setVatRate(vrResponse.rate ?? 20);
         }
       })
-      .catch(() => {})
       .finally(() => {
         if (!controller.signal.aborted) setIsLoadingPriceList(false);
       });
@@ -252,7 +247,7 @@ export default function CreateOrderScreen() {
               description: item.description,
               quantity: item.quantity,
               unitPrice: item.unitPrice ?? 0,
-              vatRate: item.vatRate ?? vatRate,
+              vatRate: item.vatRate ?? vatRate ?? undefined,
             } as Parameters<typeof addOrderItem>[2]);
           } catch (itemErr) {
             console.warn('[OrderCreate] Failed to add item:', item.itemId, itemErr);
@@ -452,6 +447,11 @@ export default function CreateOrderScreen() {
         />
       )}
 
+      <View style={styles.vatRow}>
+        <Text style={styles.vatLabel}>VAT</Text>
+        <Text style={styles.vatValue}>{vatRate === undefined ? '...' : vatRate === null ? 'UNAVAILABLE' : `${vatRate}%`}</Text>
+      </View>
+
       {/* Line Items Grid */}
       <ItemsCard
         mode="edit"
@@ -491,6 +491,22 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     ...common,
     loader: { alignSelf: 'flex-start', marginTop: 4 },
+    vatRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    vatLabel: {
+      fontSize: 15,
+      fontWeight: '600' as const,
+      color: theme.colors.textSecondary,
+    },
+    vatValue: {
+      fontSize: 15,
+      color: theme.colors.textPrimary,
+    },
   });
 }
 

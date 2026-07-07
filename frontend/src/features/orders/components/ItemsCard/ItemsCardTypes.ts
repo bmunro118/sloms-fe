@@ -18,16 +18,6 @@ export type PendingItem = {
   error?: string;
 };
 
-// Props for AddItemCard component
-export type AddItemCardProps = {
-  priceList: PriceListItem[];
-  vatRate?: number;
-  priceBand: string;
-  isLoadingPriceList: boolean;
-  isAddingItem: boolean;
-  onAddItem: (item: PendingItem) => void;
-};
-
 // Props for PendingItemCard component (for pending items in edit mode)
 export type PendingItemCardProps = {
   item: PendingItem;
