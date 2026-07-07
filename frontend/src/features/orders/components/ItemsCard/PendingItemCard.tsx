@@ -1,12 +1,15 @@
-import { useCallback } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Trash2 as DeleteIcon } from 'lucide-react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { useAppTheme } from '@theme/ThemeProvider';
-import { useThemedStyles } from '@theme/useThemedStyles';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
+import { useThemedStyles } from '@theme/useThemedStyles';
 import { PendingItem } from './ItemsCardTypes';
+import { ItemEditForm, OrderItemEditValues } from './ItemEditForm';
 
 // ── Props ───────────────────────────────────────────────────────────────────────────
 
@@ -27,28 +30,18 @@ function createStyles(theme: AppTheme) {
     card: {
       marginBottom: theme.spacing.sm,
     },
-    gridRow: {
+    field: {
+      marginTop: theme.spacing.md,
+    },
+    fieldLabel: common.fieldLabel,
+    row: {
       flexDirection: 'row',
-      paddingVertical: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      alignItems: 'center',
+      gap: theme.spacing.md,
     },
-    gridCell: {
+    rowField: {
       flex: 1,
-      paddingHorizontal: theme.spacing.sm,
     },
-    gridCellItem: {
-      flex: 2,
-    },
-    gridCellTotal: {
-      alignItems: 'flex-end',
-    },
-    gridCellAction: {
-      width: 44,
-      alignItems: 'center',
-    },
-    gridInput: {
+    quantityInput: {
       borderWidth: 1,
       borderColor: theme.colors.border,
       borderRadius: theme.radii.md,
@@ -56,38 +49,20 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.textPrimary,
       paddingHorizontal: theme.spacing.sm,
       paddingVertical: 8,
-      textAlign: 'right',
+      textAlign: 'center',
       minWidth: 80,
     },
-    quantityInput: {
-      textAlign: 'center',
-    },
-    priceInput: {
-      textAlign: 'right',
-    },
-    itemIdText: {
-      fontWeight: '600',
-      color: theme.colors.textPrimary,
-      fontSize: 14,
-    },
-    itemDescriptionText: {
-      fontSize: 12,
-      color: theme.colors.textMuted,
-      marginTop: 2,
-    },
-    itemErrorText: {
-      fontSize: 12,
-      color: theme.colors.danger,
-      marginTop: 2,
+    totalContainer: {
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radii.md,
+      backgroundColor: theme.colors.inputBackground,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: 8,
     },
     totalText: {
       fontWeight: '600',
       color: theme.colors.textPrimary,
-    },
-    deleteButton: {
-      padding: theme.spacing.xs,
-      borderRadius: theme.radii.md,
-      opacity: 0.7,
     },
   });
 }
@@ -103,77 +78,99 @@ export function PendingItemCard({
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
 
-  // Format currency
+  const editValues = useMemo<OrderItemEditValues>(
+    () => ({
+      description: item.description ?? '',
+      patientInitial: item.patientInitial ?? '',
+      patientSurname: item.patientSurname ?? '',
+      side: item.side ?? '',
+      price: item.unitPrice != null ? String(item.unitPrice) : '',
+    }),
+    [item.description, item.patientInitial, item.patientSurname, item.side, item.unitPrice]
+  );
+
   const formatCurrency = useCallback((value: number): string => {
     return `£${value.toFixed(2)}`;
   }, []);
 
-  // Handle updating an existing item
-  const handleUpdateItem = useCallback((field: keyof PendingItem, value: string | number) => {
-    const updates: Partial<PendingItem> = {};
+  const handleEditValueChange = useCallback(
+    (field: keyof OrderItemEditValues, value: string) => {
+      const updates: Partial<PendingItem> = {};
 
-    if (field === 'quantity') {
-      const qty = typeof value === 'number' ? value : parseFloat(String(value));
+      if (field === 'price') {
+        const price = value.trim() ? parseFloat(value) : 0;
+        if (!Number.isNaN(price) && price >= 0) {
+          updates.unitPrice = price;
+          updates.total = item.quantity * price;
+        }
+      } else if (field === 'description') {
+        updates.description = value;
+      } else if (field === 'patientInitial') {
+        updates.patientInitial = value;
+      } else if (field === 'patientSurname') {
+        updates.patientSurname = value;
+      } else if (field === 'side') {
+        updates.side = value;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        onUpdateItem(item.id, updates);
+      }
+    },
+    [item.id, item.quantity, onUpdateItem]
+  );
+
+  const handleQuantityChange = useCallback(
+    (text: string) => {
+      const qty = text.trim() ? parseFloat(text) : 0;
       if (!Number.isNaN(qty) && qty >= 0) {
-        updates.quantity = qty;
-        updates.total = qty * item.unitPrice;
+        onUpdateItem(item.id, { quantity: qty, total: qty * item.unitPrice });
       }
-    } else if (field === 'unitPrice') {
-      const price = typeof value === 'number' ? value : parseFloat(String(value));
-      if (!Number.isNaN(price) && price >= 0) {
-        updates.unitPrice = price;
-        updates.total = item.quantity * price;
-      }
-    } else if (field === 'description') {
-      updates.description = String(value);
-    } else if (field === 'itemId') {
-      updates.itemId = String(value);
-    }
+    },
+    [item.id, item.unitPrice, onUpdateItem]
+  );
 
-    if (Object.keys(updates).length > 0) {
-      onUpdateItem(item.id, updates);
-    }
-  }, [item, onUpdateItem]);
+  const actions: TopBarAction[] = useMemo(
+    () => [
+      buildIconTopBarAction({
+        id: `remove-pending-item-${item.id}`,
+        label: 'Remove item',
+        onPress: () => onRemoveItem(item.id),
+        icon: DeleteIcon,
+        disabled: isAddingItem,
+      }),
+    ],
+    [isAddingItem, item.id, onRemoveItem]
+  );
 
   return (
-    <ThemedCard style={styles.card}>
-      <View style={styles.gridRow}>
-        <View style={[styles.gridCell, styles.gridCellItem]}>
-          <Text style={styles.itemIdText}>{item.itemId}</Text>
-          {item.description ? <Text style={styles.itemDescriptionText}>{item.description}</Text> : null}
-          {item.error ? <Text style={styles.itemErrorText}>{item.error}</Text> : null}
-        </View>
-        <View style={styles.gridCell}>
+    <ThemedCard title={`Item ${item.itemId}`} actions={actions} style={styles.card}>
+      <ItemEditForm values={editValues} isBusy={isAddingItem} onChange={handleEditValueChange} />
+
+      <View style={styles.row}>
+        <View style={[styles.field, styles.rowField]}>
+          <Text style={styles.fieldLabel}>Quantity</Text>
           <TextInput
-            style={[styles.gridInput, styles.quantityInput]}
+            style={styles.quantityInput}
             value={String(item.quantity)}
-            onChangeText={(text) => handleUpdateItem('quantity', text)}
+            onChangeText={handleQuantityChange}
             keyboardType="numeric"
             editable={!isAddingItem}
           />
         </View>
-        <View style={styles.gridCell}>
-          <TextInput
-            style={[styles.gridInput, styles.priceInput]}
-            value={String(item.unitPrice)}
-            onChangeText={(text) => handleUpdateItem('unitPrice', text)}
-            keyboardType="numeric"
-            editable={!isAddingItem}
-          />
-        </View>
-        <View style={[styles.gridCell, styles.gridCellTotal]}>
-          <Text style={styles.totalText}>{formatCurrency(item.total)}</Text>
-        </View>
-        <View style={[styles.gridCell, styles.gridCellAction]}>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => onRemoveItem(item.id)}
-            disabled={isAddingItem}
-          >
-            <DeleteIcon size={18} color={theme.colors.danger} />
-          </TouchableOpacity>
+        <View style={[styles.field, styles.rowField]}>
+          <Text style={styles.fieldLabel}>Total</Text>
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>{formatCurrency(item.total)}</Text>
+          </View>
         </View>
       </View>
+
+      {item.error ? (
+        <View style={styles.field}>
+          <Text style={{ color: theme.colors.danger }}>{item.error}</Text>
+        </View>
+      ) : null}
     </ThemedCard>
   );
 }

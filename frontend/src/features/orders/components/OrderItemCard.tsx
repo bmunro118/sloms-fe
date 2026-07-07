@@ -9,12 +9,14 @@ import {
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
-import { ThemedInput } from '@components/ui/ThemedInput';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { ItemEditForm, OrderItemEditValues } from './ItemsCard/ItemEditForm';
+
+export type { OrderItemEditValues } from './ItemsCard/ItemEditForm';
 
 export interface OrderItemCardData {
   serialNumber: string;
@@ -28,14 +30,6 @@ export interface OrderItemCardData {
   checkoutDateStamp?: string;
   [key: string]: unknown;
 }
-
-export type OrderItemEditValues = {
-  description: string;
-  patientInitial: string;
-  patientSurname: string;
-  side: string;
-  price: string;
-};
 
 interface OrderItemCardProps {
   item: OrderItemCardData;
@@ -145,56 +139,11 @@ export function OrderItemCard({
 
       {isEditing ? (
         <>
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Description</Text>
-            <ThemedInput
-              placeholder="Description"
-              value={resolvedEditValues.description}
-              onChangeText={(text) => onEditValueChange?.('description', text)}
-              editable={!isBusy}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Patient Initial</Text>
-            <ThemedInput
-              placeholder="Patient initial"
-              value={resolvedEditValues.patientInitial}
-              onChangeText={(text) => onEditValueChange?.('patientInitial', text)}
-              editable={!isBusy}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Patient Surname</Text>
-            <ThemedInput
-              placeholder="Patient surname"
-              value={resolvedEditValues.patientSurname}
-              onChangeText={(text) => onEditValueChange?.('patientSurname', text)}
-              editable={!isBusy}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Side</Text>
-            <ThemedInput
-              placeholder="L or R"
-              value={resolvedEditValues.side}
-              onChangeText={(text) => onEditValueChange?.('side', text)}
-              editable={!isBusy}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Price</Text>
-            <ThemedInput
-              placeholder="Price"
-              keyboardType="decimal-pad"
-              value={resolvedEditValues.price}
-              onChangeText={(text) => onEditValueChange?.('price', text)}
-              editable={!isBusy}
-            />
-          </View>
+          <ItemEditForm
+            values={resolvedEditValues}
+            isBusy={isBusy}
+            onChange={(field, value) => onEditValueChange?.(field, value)}
+          />
 
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Checkout</Text>

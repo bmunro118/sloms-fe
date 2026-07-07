@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
-import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
+import { ThemedSelect } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
@@ -19,6 +19,7 @@ import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createOrder, addOrderItem } from '@src/features/orders/api';
+import { ApiError } from '@utils/api';
 import {
   ItemsCard,
   AddItemCard,
@@ -27,8 +28,7 @@ import {
 } from '@src/features/orders/components/ItemsCard';
 import { usePendingItems } from '@src/features/orders/hooks/usePendingItems';
 import { useCurrentVatRate } from '@src/features/orders/hooks/useCurrentVatRate';
-import { Address, CustomerRecord, listAddresses, listCustomers } from '@src/features/customers/api';
-import { PriceListItem, listPriceListItems } from '@src/features/price-list/api';
+import { useCreateOrderData } from '@src/features/orders/hooks/useCreateOrderData';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -37,7 +37,6 @@ export default function CreateOrderScreen() {
   const { showConfirm, showDanger, showWarning } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  const [orderBatch, setOrderBatch] = useState('');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [customerRef, setCustomerRef] = useState('');
   const [orderContact, setOrderContact] = useState('');
@@ -46,132 +45,59 @@ export default function CreateOrderScreen() {
   const [priceBand, setPriceBand] = useState('');
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
-  const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
-  const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
   const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
   const { vatRate } = useCurrentVatRate();
-  const [priceList, setPriceList] = useState<PriceListItem[]>([]);
-  const [isLoadingPriceList, setIsLoadingPriceList] = useState(false);
+  const {
+    customerOptions,
+    isLoadingCustomers,
+    deliveryAddresses,
+    deliveryAddressOptions,
+    isLoadingDeliveryAddresses,
+    priceList,
+    isLoadingPriceList,
+    selectedCustomer,
+  } = useCreateOrderData(customerAccount);
   const { priceBands, isLoading: isLoadingPriceBands, error: priceBandsError } = usePriceBands();
 
   // Auto-populate price band when customer changes
   useEffect(() => {
     if (customerAccount !== null) {
-      const band = customers.find((c) => c.customerId === customerAccount)?.band;
+      const band = selectedCustomer?.band;
       if (band) setPriceBand(band);
     } else {
       setPriceBand('');
     }
-  }, [customerAccount, customers]);
-
-  // Fetch customers
-  useEffect(() => {
-    const controller = new AbortController();
-    setIsLoadingCustomers(true);
-    listCustomers({ limit: 100 }, { signal: controller.signal })
-      .then((res) => {
-        if (!controller.signal.aborted) {
-          setCustomers(res.data ?? []);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingCustomers(false);
-      });
-    return () => controller.abort();
-  }, []);
-
-  // Fetch price list
-  useEffect(() => {
-    const controller = new AbortController();
-    setIsLoadingPriceList(true);
-    listPriceListItems(undefined, { signal: controller.signal })
-      .then((plResponse) => {
-        if (!controller.signal.aborted) {
-          const plData = Array.isArray(plResponse) ? plResponse : plResponse.data ?? [];
-          setPriceList(plData);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingPriceList(false);
-      });
-    return () => controller.abort();
-  }, []);
-
-  const customerOptions = useMemo<SelectOption<number>[]>(
-    () =>
-      customers.map((c) => ({
-        value: c.customerId,
-        label: c.accountNumber ? `${c.accountNumber} — ${c.companyName}` : c.companyName,
-      })),
-    [customers]
-  );
-
-  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() => {
-    return deliveryAddresses.map((address, index) => {
-      const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
-      const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
-      const defaultBadge = address.defaultAddress ? ' (Default)' : '';
-      return {
-        value: address.addressId,
-        label: `${line}${city}${defaultBadge}`,
-      };
-    });
-  }, [deliveryAddresses]);
+  }, [customerAccount, selectedCustomer]);
 
   // Pending items: using usePendingItems hook
 
   const isDirty = useMemo(
     () =>
       customerAccount !== null ||
-      orderBatch !== '' ||
       customerRef !== '' ||
       orderContact !== '' ||
       priceBand !== '' ||
       receivedOn !== '' ||
       deliveryAddress !== null ||
       pendingItems.length > 0,
-    [customerAccount, orderBatch, customerRef, orderContact, priceBand, receivedOn, deliveryAddress, pendingItems.length],
+    [customerAccount, customerRef, orderContact, priceBand, receivedOn, deliveryAddress, pendingItems.length],
   );
 
   const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
-
+  // Set default delivery address when the customer address list loads
   useEffect(() => {
     if (customerAccount === null) {
-      setDeliveryAddresses([]);
       setDeliveryAddress(null);
       return;
     }
-    const controller = new AbortController();
-    setIsLoadingDeliveryAddresses(true);
-    listAddresses(customerAccount, { signal: controller.signal })
-      .then((response) => {
-        if (controller.signal.aborted) return;
-        const nextAddresses = Array.isArray(response.data) ? response.data : [];
-        setDeliveryAddresses(nextAddresses);
-        setDeliveryAddress((current) => {
-          if (nextAddresses.some((address) => address.addressId === current)) {
-            return current;
-          }
-          const defaultAddress = nextAddresses.find((address) => address.defaultAddress);
-          return defaultAddress?.addressId ?? null;
-        });
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          console.error('[OrderCreate] Failed to load customer addresses:', err);
-          setDeliveryAddresses([]);
-          setDeliveryAddress(null);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingDeliveryAddresses(false);
-      });
-
-    return () => controller.abort();
-  }, [customerAccount]);
+    setDeliveryAddress((current) => {
+      if (deliveryAddresses.some((address) => address.addressId === current)) {
+        return current;
+      }
+      const defaultAddress = deliveryAddresses.find((address) => address.defaultAddress);
+      return defaultAddress?.addressId ?? null;
+    });
+  }, [customerAccount, deliveryAddresses]);
 
   const performCreate = useCallback(async () => {
     if (!canMutate) {
@@ -195,12 +121,10 @@ export default function CreateOrderScreen() {
       return;
     }
 
-    const trimmedOrderBatch = orderBatch.trim();
-    const parsedOrderBatch = trimmedOrderBatch.length > 0 ? Number(trimmedOrderBatch) : undefined;
-    if (trimmedOrderBatch.length > 0 && parsedOrderBatch !== undefined && (!Number.isFinite(parsedOrderBatch) || parsedOrderBatch <= 0)) {
-      const msg = 'Order batch must be a valid positive number.';
+    if (vatRate === null) {
+      const msg = 'No active VAT rate is configured. Please set up a VAT rate before creating orders.';
       setError(msg);
-      showDanger('Required field', msg);
+      showDanger('VAT rate unavailable', msg);
       return;
     }
 
@@ -221,7 +145,6 @@ export default function CreateOrderScreen() {
       const trimmedCustomerRef = customerRef.trim();
       const trimmedOrderContact = orderContact.trim();
       const payload = {
-        orderBatch: parsedOrderBatch,
         customerAccount,
         customerRef: trimmedCustomerRef || undefined,
         orderContact: trimmedOrderContact || undefined,
@@ -229,25 +152,27 @@ export default function CreateOrderScreen() {
         receivedOn: trimmedReceivedOn || undefined,
         priceBand: trimmedPriceBand || undefined,
       };
-      console.log('[OrderCreate] Payload:', payload);
+      console.log('[OrderCreate] Payload JSON:', JSON.stringify(payload));
 
       const result = await createOrder(payload);
       console.log('[OrderCreate] Order created successfully:', result);
 
       // Submit pending items sequentially
       const createdOrderNumber = result.orderNumber;
-      const createdOrderBatch: number = result.orderBatch ?? parsedOrderBatch ?? 1;
+      const createdOrderBatch: number = result.orderBatch ?? 1;
       const failedItems: string[] = [];
 
       if (pendingItems.length > 0) {
         for (const item of pendingItems) {
           try {
             await addOrderItem(createdOrderNumber, createdOrderBatch, {
-              serialNumber: item.itemId,
+              modelCode: item.itemId,
               description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice ?? 0,
+              price: item.unitPrice ?? 0,
               vatRate: item.vatRate ?? vatRate ?? undefined,
+              patientInitial: item.patientInitial,
+              patientSurname: item.patientSurname,
+              side: item.side,
             } as Parameters<typeof addOrderItem>[2]);
           } catch (itemErr) {
             console.warn('[OrderCreate] Failed to add item:', item.itemId, itemErr);
@@ -269,7 +194,8 @@ export default function CreateOrderScreen() {
     } catch (err) {
       console.error('[OrderCreate] API error:', err);
       if (isMountedRef.current) {
-        showDanger('Create Order Failed', err instanceof Error ? err.message : 'Failed to create order. Please try again.');
+        const detail = err instanceof ApiError && err.code ? err.code : err instanceof Error ? err.message : 'Failed to create order. Please try again.';
+        showDanger('Create Order Failed', detail);
       }
     } finally {
       if (isMountedRef.current) {
@@ -283,7 +209,6 @@ export default function CreateOrderScreen() {
     customerRef,
     deliveryAddress,
     isMountedRef,
-    orderBatch,
     orderContact,
     pendingItems,
     priceBand,
@@ -296,12 +221,12 @@ export default function CreateOrderScreen() {
     vatRate,
   ]);
 
+
   const handleCreate = useCallback(async () => {
     if (isCreatingOrder || isSaving) {
       return;
     }
 
-    const selectedCustomer = customers.find((c) => c.customerId === customerAccount);
     const customerLabel = selectedCustomer
       ? selectedCustomer.accountNumber
         ? `${selectedCustomer.accountNumber} — ${selectedCustomer.companyName}`
@@ -310,7 +235,7 @@ export default function CreateOrderScreen() {
 
     const confirmed = await showConfirm({
       title: 'Create new order?',
-      message: `A new order will be created for ${customerLabel} with order batch ${orderBatch}${pendingItems.length > 0 ? ` and ${pendingItems.length} line item(s)` : ''}.`,
+      message: `A new order will be created for ${customerLabel}${pendingItems.length > 0 ? ` with ${pendingItems.length} line item(s)` : ''}.`,
       confirmLabel: 'Create',
       cancelLabel: 'Cancel',
     });
@@ -320,7 +245,7 @@ export default function CreateOrderScreen() {
     }
 
     await performCreate();
-  }, [isCreatingOrder, isSaving, showConfirm, customerAccount, customers, orderBatch, pendingItems.length, performCreate]);
+  }, [isCreatingOrder, isSaving, showConfirm, customerAccount, selectedCustomer, pendingItems.length, performCreate]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -347,13 +272,11 @@ export default function CreateOrderScreen() {
         label: 'Reset form',
         onPress: () => {
           void guardAction(() => {
-            setOrderBatch('');
             setCustomerAccount(null);
             setCustomerRef('');
             setOrderContact('');
             setDeliveryAddress(null);
             setReceivedOn('');
-            setDeliveryAddresses([]);
             setPriceBand('');
             handleResetPendingItems();
             setError(null);
@@ -389,14 +312,6 @@ export default function CreateOrderScreen() {
           style={styles.input}
         />
       )}
-      <ThemedInput
-        keyboardType="number-pad"
-        placeholder="Order batch (optional)"
-        style={styles.input}
-        value={orderBatch}
-        onChangeText={setOrderBatch}
-        editable={!isSaving}
-      />
       <ThemedInput
         placeholder="Customer reference (optional)"
         style={styles.input}

@@ -138,6 +138,9 @@ export function AddItemCard({
   // Local state for new item form
   const [newItemId, setNewItemId] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemPatientInitial, setNewItemPatientInitial] = useState('');
+  const [newItemPatientSurname, setNewItemPatientSurname] = useState('');
+  const [newItemSide, setNewItemSide] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [newItemUnitPrice, setNewItemUnitPrice] = useState('');
   const [newItemError, setNewItemError] = useState<string | null>(null);
@@ -256,6 +259,9 @@ export function AddItemCard({
       quantity: qty,
       unitPrice: price,
       total,
+      patientInitial: newItemPatientInitial.trim(),
+      patientSurname: newItemPatientSurname.trim(),
+      side: newItemSide.trim(),
       vatRate: effectiveVatRate,
     };
 
@@ -264,6 +270,9 @@ export function AddItemCard({
     // Reset form
     setNewItemId('');
     setNewItemDescription('');
+    setNewItemPatientInitial('');
+    setNewItemPatientSurname('');
+    setNewItemSide('');
     setNewItemQuantity('');
     setNewItemUnitPrice('');
 
@@ -271,7 +280,18 @@ export function AddItemCard({
     if (Platform.OS !== 'web') {
       Keyboard.dismiss();
     }
-  }, [newItemId, newItemDescription, newItemQuantity, newItemUnitPrice, validateNewItem, onAddItem, effectiveVatRate]);
+  }, [
+    newItemId,
+    newItemDescription,
+    newItemPatientInitial,
+    newItemPatientSurname,
+    newItemSide,
+    newItemQuantity,
+    newItemUnitPrice,
+    validateNewItem,
+    onAddItem,
+    effectiveVatRate,
+  ]);
 
   return (
     <ThemedCard style={styles.card}>
@@ -321,6 +341,39 @@ export function AddItemCard({
 
         <View style={styles.formRow}>
           <View style={[styles.formField, styles.formFieldHalf]}>
+            <Text style={styles.fieldLabel}>Patient Initial</Text>
+            <ThemedInput
+              placeholder="Patient initial"
+              style={styles.input}
+              value={newItemPatientInitial}
+              onChangeText={setNewItemPatientInitial}
+              editable={!isAddingItem}
+            />
+          </View>
+          <View style={[styles.formField, styles.formFieldHalf]}>
+            <Text style={styles.fieldLabel}>Patient Surname</Text>
+            <ThemedInput
+              placeholder="Patient surname"
+              style={styles.input}
+              value={newItemPatientSurname}
+              onChangeText={setNewItemPatientSurname}
+              editable={!isAddingItem}
+            />
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formField, styles.formFieldHalf]}>
+            <Text style={styles.fieldLabel}>Side</Text>
+            <ThemedInput
+              placeholder="L or R"
+              style={styles.input}
+              value={newItemSide}
+              onChangeText={setNewItemSide}
+              editable={!isAddingItem}
+            />
+          </View>
+          <View style={[styles.formField, styles.formFieldHalf]}>
             <Text style={styles.fieldLabel}>Unit Price *</Text>
             {isFetchingPrice ? (
               <View style={[styles.input, styles.inputDisabled]}>
@@ -338,7 +391,10 @@ export function AddItemCard({
               />
             )}
           </View>
-          <View style={[styles.formField, styles.formFieldHalf]}>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={styles.formField}>
             <Text style={styles.fieldLabel}>Quantity *</Text>
             <ThemedInput
               placeholder="0"

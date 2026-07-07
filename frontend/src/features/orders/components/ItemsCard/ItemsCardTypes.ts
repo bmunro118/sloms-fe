@@ -14,6 +14,9 @@ export type PendingItem = {
   quantity: number;
   unitPrice: number;
   total: number;
+  patientInitial?: string;
+  patientSurname?: string;
+  side?: string;
   vatRate?: number;
   error?: string;
 };
