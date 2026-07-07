@@ -17,7 +17,7 @@ import { ThemedCard } from '@components/ui/ThemedCard';
 import { SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { Address, listAddresses } from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
@@ -365,7 +365,7 @@ export default function OrderDetailScreen() {
   }, [canMutate, handleCancelOrderEdit, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, order]);
   // TopBar actions
   const topBarActions = useMemo<TopBarAction[]>(() => {
-    const backAction = buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()), label: 'Back to orders' });
+    const backAction = buildBackTopBarAction({ onPress: () => void guardAction(goBackWithBrowserFallback), label: 'Back to orders' });
     const actions: TopBarAction[] = [];
     // Dispatch action
     if (canMutate && order) {
@@ -385,7 +385,7 @@ export default function OrderDetailScreen() {
       backAction,
     );
     return actions;
-  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, order, router]);
+  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, order]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 

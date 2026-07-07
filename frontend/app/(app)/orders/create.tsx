@@ -9,7 +9,7 @@ import { ThemedInput } from '@components/ui/ThemedInput';
 import { ThemedSelect } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -285,10 +285,10 @@ export default function CreateOrderScreen() {
         disabled: isCreatingOrder || isSaving,
       }),
       buildBackTopBarAction({
-        onPress: () => void guardAction(() => router.back()),
+        onPress: () => void guardAction(goBackWithBrowserFallback),
       }),
     ];
-  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, router, pendingItems.length]);
+  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 

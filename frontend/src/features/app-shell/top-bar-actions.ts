@@ -1,4 +1,6 @@
 ﻿import React from 'react';
+import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { ArrowBigLeft as BackIcon, LucideIcon, X as CloseIcon } from 'lucide-react-native';
 import { TopBarAction } from '@context/ScreenTitleContext';
 
@@ -73,6 +75,16 @@ export function buildCloseTopBarAction({
     }),
     isClose: true,
   };
+}
+
+export function goBackWithBrowserFallback(): void {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+  if (router.canGoBack()) {
+    router.back();
+  }
 }
 
 export function buildBackTopBarAction({

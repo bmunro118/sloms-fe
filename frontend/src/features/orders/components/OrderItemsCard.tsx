@@ -17,7 +17,7 @@ import {
 } from '../api';
 import { isItemCheckedOut, toItemEditForm } from '../types';
 import { OrderItemCard, OrderItemCardData, OrderItemEditValues } from './OrderItemCard';
-import { ItemsCard, DisplayItemCard, AddItemCard, type PendingItem } from './ItemsCard';
+import { ItemsCard, AddItemCard, type PendingItem } from './ItemsCard';
 import { PriceListItem, listPriceListItems } from '@src/features/price-list/api';
 import { getCurrentVatRate, parseVatRate } from '@src/features/vat-rates/api';
 
@@ -290,27 +290,23 @@ export function OrderItemsCard({
       ) : null}
     >
       {itemError ? <Text style={{ color: theme.colors.danger, marginBottom: theme.spacing.sm }}>{itemError}</Text> : null}
-      {items.map((item) =>
-        isEditingSection ? (
-          <OrderItemCard
-            key={item.serialNumber}
-            item={item}
-            canMutate={canMutate}
-            isBusy={isMutatingItems}
-            isCheckedOut={isItemCheckedOut(item)}
-            isEditing={editingItemSerial === item.serialNumber}
-            editValues={itemFormData}
-            onEdit={handleBeginEditItem}
-            onEditValueChange={handleEditValueChange}
-            onSaveEdit={handleSaveItemEdit}
-            onCancelEdit={handleCancelItemEdit}
-            onToggleCheckout={handleToggleCheckout}
-            onVoid={handleVoidItem}
-          />
-        ) : (
-          <DisplayItemCard key={item.serialNumber} item={item} />
-        )
-      )}
+      {items.map((item) => (
+        <OrderItemCard
+          key={item.serialNumber}
+          item={item}
+          canMutate={canMutate}
+          isBusy={isMutatingItems}
+          isCheckedOut={isItemCheckedOut(item)}
+          isEditing={editingItemSerial === item.serialNumber}
+          editValues={itemFormData}
+          onEdit={handleBeginEditItem}
+          onEditValueChange={handleEditValueChange}
+          onSaveEdit={handleSaveItemEdit}
+          onCancelEdit={handleCancelItemEdit}
+          onToggleCheckout={handleToggleCheckout}
+          onVoid={handleVoidItem}
+        />
+      ))}
     </ItemsCard>
   );
 }

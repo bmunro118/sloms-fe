@@ -1,6 +1,8 @@
 import {
-  Ban as VoidIcon,
+  Ban,
+  CheckCircle2,
   CheckSquare2 as CheckedOutIcon,
+  Clock3,
   PencilOff as CancelEditIcon,
   Pencil as EditIcon,
   Save as SaveIcon,
@@ -55,6 +57,12 @@ function formatPatient(item: OrderItemCardData): string {
   }
 
   return [initial, surname].filter(Boolean).join(' ');
+}
+
+function deriveItemStatus(item: OrderItemCardData, isCheckedOut: boolean): 'Active' | 'CheckedOut' | 'Voided' {
+  if (item.void) return 'Voided';
+  if (isCheckedOut) return 'CheckedOut';
+  return 'Active';
 }
 
 export function OrderItemCard({
@@ -117,7 +125,7 @@ export function OrderItemCard({
         id: `void-order-item-${item.serialNumber}`,
         label: 'Void item',
         onPress: () => onVoid(item),
-        icon: VoidIcon,
+        icon: Ban,
         disabled: isBusy,
       }),
       buildIconTopBarAction({
@@ -130,11 +138,45 @@ export function OrderItemCard({
     ];
   }, [canMutate, isBusy, isCheckedOut, isEditing, item, onCancelEdit, onEdit, onSaveEdit, onToggleCheckout, onVoid]);
 
+  const derivedStatus = deriveItemStatus(item, isCheckedOut);
+
+  const statusBadgeStyle = useMemo(() => ({
+    Active: styles.badgeActive,
+    CheckedOut: styles.badgeComplete,
+    Voided: styles.badgeVoided,
+  }), [styles]);
+
+  const statusTextStyle = useMemo(() => ({
+    Active: styles.badgeTextActive,
+    CheckedOut: styles.badgeTextComplete,
+    Voided: styles.badgeTextVoided,
+  }), [styles]);
+
+  const statusLabel = useMemo(() => ({
+    Active: 'Active',
+    CheckedOut: 'Checked out',
+    Voided: 'Voided',
+  }), []);
+
+  const statusIcon = useMemo(() => {
+    switch (derivedStatus) {
+      case 'CheckedOut': return CheckCircle2;
+      case 'Voided': return Ban;
+      default: return Clock3;
+    }
+  }, [derivedStatus]);
+
+  const StatusIcon = statusIcon;
+
   return (
     <ThemedCard title={`Item ${item.serialNumber}`} actions={actions} style={styles.card}>
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>Status</Text>
-        <Text style={styles.fieldValue}>{item.void ? 'Voided' : isCheckedOut ? 'Checked out' : 'Active'}</Text>
+      <View style={styles.itemHeader}>
+        <View style={[styles.statusBadge, statusBadgeStyle[derivedStatus]]}>
+          <StatusIcon size={14} color={statusTextStyle[derivedStatus].color} />
+          <Text style={[styles.statusText, statusTextStyle[derivedStatus]]}>
+            {statusLabel[derivedStatus]}
+          </Text>
+        </View>
       </View>
 
       {isEditing ? (
@@ -165,6 +207,10 @@ export function OrderItemCard({
             <Text style={styles.fieldValue}>{typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A'}</Text>
           </View>
           <View style={styles.field}>
+            <Text style={styles.fieldLabel}>Price</Text>
+            <Text style={styles.fieldValue}>{typeof item.price === 'number' ? `£${item.price.toFixed(2)}` : 'N/A'}</Text>
+          </View>
+          <View style={styles.field}>
             <Text style={styles.fieldLabel}>Checkout</Text>
             <Text style={styles.fieldValue}>{isCheckedOut ? 'Checked out' : 'Not checked out'}</Text>
           </View>
@@ -182,5 +228,45 @@ function createStyles(theme: AppTheme) {
     field: { marginTop: theme.spacing.md },
     fieldLabel: common.fieldLabel,
     fieldValue: common.fieldValue,
+    itemHeader: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginBottom: theme.spacing.sm,
+    },
+    statusBadge: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: theme.radii.sm,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    statusText: {
+      fontWeight: '700' as const,
+      fontSize: 12,
+    },
+    badgeActive: {
+      backgroundColor: theme.colors.statusReceived,
+      borderColor: theme.colors.border,
+    },
+    badgeComplete: {
+      backgroundColor: theme.colors.statusComplete,
+      borderColor: theme.colors.accent,
+    },
+    badgeVoided: {
+      backgroundColor: theme.colors.dangerSurface,
+      borderColor: theme.colors.danger,
+    },
+    badgeTextActive: {
+      color: theme.colors.statusReceivedText,
+    },
+    badgeTextComplete: {
+      color: theme.colors.statusCompleteText,
+    },
+    badgeTextVoided: {
+      color: theme.colors.danger,
+    },
   };
 }

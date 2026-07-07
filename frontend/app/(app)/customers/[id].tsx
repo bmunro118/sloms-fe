@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, RefreshControl, Platform } from 'react-native';
@@ -7,7 +7,7 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { getCustomer, updateCustomer, suspendCustomer, reinstateCustomer, CustomerRecord, UpdateCustomerPayload } from '@src/features/customers/api';
 import { CustomerInfoCard } from '@src/features/customers/components/CustomerInfoCard';
 import { CustomerContactCard } from '@src/features/customers/components/CustomerContactCard';
@@ -22,7 +22,6 @@ import { useThemedStyles } from '@theme/useThemedStyles';
 export default function CustomerDetailScreen() {
   const { isStaff, canMutate } = useAuth();
   const { showConfirm, showSuccess, showDanger } = useAppModal();
-  const router = useRouter();
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
@@ -203,7 +202,7 @@ export default function CustomerDetailScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({
-      onPress: () => void guardAction(() => router.back()),
+      onPress: () => void guardAction(goBackWithBrowserFallback),
       label: 'Back to customers',
     });
 
@@ -251,7 +250,7 @@ export default function CustomerDetailScreen() {
       }),
       backAction,
     ];
-  }, [canMutate, customer, guardAction, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
+  }, [canMutate, customer, guardAction, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving]);
 
   useScreenTopBar({ title: 'Customer Detail', actions: topBarActions });
 

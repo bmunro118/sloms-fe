@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { CreateUserPayload, createUser } from '@src/features/users/api';
 import { BatchUserCard } from '@src/features/users/components/BatchUserCard';
 import { BatchUserSetupCard } from '@src/features/users/components/BatchUserSetupCard';
@@ -361,7 +361,7 @@ export default function CreateUserScreen() {
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const actions: TopBarAction[] = [
       buildBackTopBarAction({
-        onPress: () => void guardAction(() => router.back()),
+        onPress: () => void guardAction(goBackWithBrowserFallback),
       }),
     ];
 
@@ -400,7 +400,6 @@ export default function CreateUserScreen() {
     return actions;
   }, [
     guardAction,
-    router,
     selectedIds,
     handleDeleteSelected,
     handleSelectAll,
