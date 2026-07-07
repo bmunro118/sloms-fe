@@ -21,7 +21,6 @@ export interface OrderItemCardData {
   description?: string;
   patientInitial?: string;
   patientSurname?: string;
-  orientation?: string;
   side?: string;
   price?: number | string;
   void?: boolean;
@@ -214,7 +213,7 @@ export function OrderItemCard({
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Side</Text>
-            <Text style={styles.fieldValue}>{typeof item.orientation === 'string' && item.orientation.trim() ? item.orientation : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}</Text>
+            <Text style={styles.fieldValue}>{typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A'}</Text>
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Checkout</Text>

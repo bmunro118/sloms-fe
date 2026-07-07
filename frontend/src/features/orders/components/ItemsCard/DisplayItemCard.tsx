@@ -156,9 +156,7 @@ export function DisplayItemCard({ item }: DisplayItemCardProps) {
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Side</Text>
         <Text style={styles.fieldValue}>
-          {typeof item.orientation === 'string' && item.orientation.trim()
-            ? item.orientation
-            : (typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A')}
+          {typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A'}
         </Text>
       </View>
 

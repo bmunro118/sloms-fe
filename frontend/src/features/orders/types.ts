@@ -81,7 +81,7 @@ export function toItemEditForm(item: OrderItemCardData | null): OrderItemEditVal
     description: typeof item?.description === 'string' ? item.description : '',
     patientInitial: typeof item?.patientInitial === 'string' ? item.patientInitial : '',
     patientSurname: typeof item?.patientSurname === 'string' ? item.patientSurname : '',
-    side: typeof item?.orientation === 'string' ? item.orientation : (typeof item?.side === 'string' ? item.side : ''),
+    side: typeof item?.side === 'string' ? item.side : '',
     price: typeof item?.price === 'number' ? String(item.price) : '',
   };
 }
