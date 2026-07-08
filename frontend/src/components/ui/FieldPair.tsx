@@ -20,12 +20,25 @@ interface FieldPairProps {
 export function FieldPair({ compact, left, right }: FieldPairProps) {
   const styles = useThemedStyles(createStyles);
 
+  const hasLeft = left != null;
+  const hasRight = right != null;
+
+  if (!hasLeft && !hasRight) return null;
+
   if (compact) {
     return (
       <>
         {left}
         {right}
       </>
+    );
+  }
+
+  if (!hasLeft || !hasRight) {
+    return (
+      <View style={styles.row}>
+        {hasLeft ? left : right}
+      </View>
     );
   }
 

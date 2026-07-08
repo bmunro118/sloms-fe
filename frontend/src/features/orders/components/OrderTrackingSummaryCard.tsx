@@ -128,7 +128,7 @@ export function OrderTrackingSummaryCard({
                       ? order.dispatchedOn.toISOString()
                       : order.dispatchedOn
                   )
-                : 'Not yet'}
+                : 'Pending'}
             </Text>
           </View>
         }

@@ -23,10 +23,10 @@ export function AddressDetail({ address, styles, compact = false }: Props) {
           ) : null
         }
         right={
-          address.delAddressLn1 ? (
+          address.delAddressLn2 ? (
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Address Line 1</Text>
-              <Text style={styles.fieldValue}>{address.delAddressLn1}</Text>
+              <Text style={styles.fieldLabel}>Address Line 2</Text>
+              <Text style={styles.fieldValue}>{address.delAddressLn2}</Text>
             </View>
           ) : null
         }
@@ -34,10 +34,10 @@ export function AddressDetail({ address, styles, compact = false }: Props) {
       <FieldPair
         compact={compact}
         left={
-          address.delAddressLn2 ? (
+          address.delAddressLn1 ? (
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Address Line 2</Text>
-              <Text style={styles.fieldValue}>{address.delAddressLn2}</Text>
+              <Text style={styles.fieldLabel}>Address Line 1</Text>
+              <Text style={styles.fieldValue}>{address.delAddressLn1}</Text>
             </View>
           ) : null
         }
