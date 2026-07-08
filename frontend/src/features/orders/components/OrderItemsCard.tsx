@@ -1,11 +1,11 @@
 import { PencilOff as CancelEditIcon, Pencil as EditIcon } from 'lucide-react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text } from 'react-native';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
-import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
+import { normaliseForDirtyCheck, useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { useAppTheme } from '@theme/ThemeProvider';
 import {
   addOrderItem,
@@ -47,6 +47,7 @@ export function OrderItemsCard({
   const [isEditingSection, setIsEditingSection] = useState(false);
   const [editingItemSerial, setEditingItemSerial] = useState<string | null>(null);
   const [itemFormData, setItemFormData] = useState<OrderItemEditValues>(toItemEditForm(null));
+  const originalItemFormDataRef = useRef<OrderItemEditValues>(toItemEditForm(null));
   const [priceList, setPriceList] = useState<PriceListItem[]>([]);
   const [vatRate, setVatRate] = useState<number>(20);
   const [isLoadingPriceList, setIsLoadingPriceList] = useState(false);
@@ -96,8 +97,13 @@ export function OrderItemsCard({
     return () => controller.abort();
   }, []);
 
+  const isItemFormDirty = editingItemSerial !== null && (
+    JSON.stringify(normaliseForDirtyCheck(itemFormData)) !==
+    JSON.stringify(normaliseForDirtyCheck(originalItemFormDataRef.current))
+  );
+
   const { guardAction: guardCancelItem } = useUnsavedChangesGuard({
-    isDirty: editingItemSerial !== null,
+    isDirty: isItemFormDirty,
   });
 
   const handleAddItem = useCallback(async (item: PendingItem) => {
@@ -135,8 +141,10 @@ export function OrderItemsCard({
   }, [canMutate, isMountedRef, isMutatingItems, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess, vatRate]);
 
   const handleBeginEditItem = useCallback((item: OrderItemCardData) => {
+    const initial = toItemEditForm(item);
+    originalItemFormDataRef.current = initial;
     setEditingItemSerial(item.serialNumber);
-    setItemFormData(toItemEditForm(item));
+    setItemFormData(initial);
   }, []);
 
   const handleCancelItemEdit = useCallback(() => {

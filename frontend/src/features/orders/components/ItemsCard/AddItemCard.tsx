@@ -143,8 +143,8 @@ export function AddItemCard({
   const [newItemSide, setNewItemSide] = useState<string | null>(null);
 
   const sideOptions = useMemo<SelectOption<string>[]>(() => [
-    { value: 'Left', label: 'Left' },
-    { value: 'Right', label: 'Right' },
+    { value: 'L', label: 'Left' },
+    { value: 'R', label: 'Right' },
   ], []);
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [newItemUnitPrice, setNewItemUnitPrice] = useState('');

@@ -22,8 +22,8 @@ interface ItemEditFormProps {
 }
 
 const sideOptions: SelectOption<string>[] = [
-  { value: 'Left', label: 'Left' },
-  { value: 'Right', label: 'Right' },
+  { value: 'L', label: 'Left' },
+  { value: 'R', label: 'Right' },
 ];
 
 export function ItemEditForm({ values, isBusy = false, onChange }: ItemEditFormProps) {
