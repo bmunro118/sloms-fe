@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -19,6 +20,11 @@ interface ItemEditFormProps {
   isBusy?: boolean;
   onChange: (field: ItemEditFormField, value: string) => void;
 }
+
+const sideOptions: SelectOption<string>[] = [
+  { value: 'Left', label: 'Left' },
+  { value: 'Right', label: 'Right' },
+];
 
 export function ItemEditForm({ values, isBusy = false, onChange }: ItemEditFormProps) {
   const styles = useThemedStyles(createStyles);
@@ -57,11 +63,13 @@ export function ItemEditForm({ values, isBusy = false, onChange }: ItemEditFormP
 
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Side</Text>
-        <ThemedInput
-          placeholder="L or R"
-          value={values.side}
-          onChangeText={(text) => onChange('side', text)}
-          editable={!isBusy}
+        <ThemedSelect<string>
+          value={values.side || null}
+          options={sideOptions}
+          onChange={(value) => onChange('side', value ?? '')}
+          placeholder="Select side"
+          nullLabel="No side"
+          disabled={isBusy}
         />
       </View>
 

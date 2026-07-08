@@ -140,7 +140,12 @@ export function AddItemCard({
   const [newItemDescription, setNewItemDescription] = useState('');
   const [newItemPatientInitial, setNewItemPatientInitial] = useState('');
   const [newItemPatientSurname, setNewItemPatientSurname] = useState('');
-  const [newItemSide, setNewItemSide] = useState('');
+  const [newItemSide, setNewItemSide] = useState<string | null>(null);
+
+  const sideOptions = useMemo<SelectOption<string>[]>(() => [
+    { value: 'Left', label: 'Left' },
+    { value: 'Right', label: 'Right' },
+  ], []);
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [newItemUnitPrice, setNewItemUnitPrice] = useState('');
   const [newItemError, setNewItemError] = useState<string | null>(null);
@@ -261,7 +266,7 @@ export function AddItemCard({
       total,
       patientInitial: newItemPatientInitial.trim(),
       patientSurname: newItemPatientSurname.trim(),
-      side: newItemSide.trim(),
+      side: newItemSide ?? '',
       vatRate: effectiveVatRate,
     };
 
@@ -272,7 +277,7 @@ export function AddItemCard({
     setNewItemDescription('');
     setNewItemPatientInitial('');
     setNewItemPatientSurname('');
-    setNewItemSide('');
+    setNewItemSide(null);
     setNewItemQuantity('');
     setNewItemUnitPrice('');
 
@@ -365,12 +370,14 @@ export function AddItemCard({
         <View style={styles.formRow}>
           <View style={[styles.formField, styles.formFieldHalf]}>
             <Text style={styles.fieldLabel}>Side</Text>
-            <ThemedInput
-              placeholder="L or R"
-              style={styles.input}
+            <ThemedSelect<string>
               value={newItemSide}
-              onChangeText={setNewItemSide}
-              editable={!isAddingItem}
+              options={sideOptions}
+              onChange={(value) => setNewItemSide(value)}
+              placeholder="Select side"
+              nullLabel="No side"
+              style={styles.input}
+              disabled={isAddingItem}
             />
           </View>
           <View style={[styles.formField, styles.formFieldHalf]}>
