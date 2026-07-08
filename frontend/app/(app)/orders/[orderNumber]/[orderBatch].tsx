@@ -31,8 +31,6 @@ import {
   dispatchOrder,
   getOrder,
   getOrderBreakdownPdf,
-  getOrderItemBySerial,
-  OrderItem,
   updateOrder,
   voidOrder,
 } from '@src/features/orders/api';
@@ -50,7 +48,6 @@ import { OrderProgressTimeline } from '@src/features/orders/components/OrderProg
 import { OrderTrackingSummaryCard } from '@src/features/orders/components/OrderTrackingSummaryCard';
 import { OrderSystemNotificationsCard } from '@src/features/orders/components/OrderSystemNotificationsCard';
 import { OrderUpdatesCard } from '@src/features/orders/components/OrderUpdatesCard';
-import { SerialLookupCard } from '@src/features/orders/components/SerialLookupCard';
 import { useOrderCustomer } from '@src/features/orders/hooks/useOrderCustomer';
 import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 
@@ -104,11 +101,6 @@ export default function OrderDetailScreen() {
     loadTracking,
   } = useOrderTracking(orderNumber, orderBatch);
   const { customerName, customerAccountNumber } = useOrderCustomer(order?.customerAccount);
-  // Serial number lookup state
-  const [serialInput, setSerialInput] = useState('');
-  const [isSerialSearching, setIsSerialSearching] = useState(false);
-  const [serialResult, setSerialResult] = useState<OrderItem | null>(null);
-  const [serialError, setSerialError] = useState<string | null>(null);
 
   useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
   const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() =>
@@ -315,22 +307,6 @@ export default function OrderDetailScreen() {
     }
   }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
 
-  // Serial lookup
-  const handleSerialLookup = useCallback(async () => {
-    const serial = serialInput.trim();
-    if (!serial) return;
-    setIsSerialSearching(true);
-    setSerialResult(null);
-    setSerialError(null);
-    try {
-      const result = await getOrderItemBySerial<OrderItem>(serial);
-      setSerialResult(result);
-    } catch (err) {
-      setSerialError(err instanceof Error ? err.message : 'Item not found.');
-    } finally {
-      setIsSerialSearching(false);
-    }
-  }, [serialInput]);
   // Route-driven actions
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit || !order) return;
@@ -471,15 +447,6 @@ export default function OrderDetailScreen() {
             priceBand={order?.priceBand ?? ''}
           />
 
-          {/* Serial Number Lookup */}
-          <SerialLookupCard
-            serialInput={serialInput}
-            onSerialInputChange={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
-            onSearch={() => { void handleSerialLookup(); }}
-            isSearching={isSerialSearching}
-            serialResult={serialResult}
-            serialError={serialError}
-          />
         </ScrollView>
       ) : null}
     </ScreenContent>
@@ -492,8 +459,5 @@ function createStyles(theme: AppTheme) {
     ...common,
     scrollContent: { gap: 10, paddingBottom: 8 },
     card: { ...common.card, gap: 8 },
-    serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
-    serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
-    field: { marginTop: theme.spacing.sm },
   });
 }

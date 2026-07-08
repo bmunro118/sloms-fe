@@ -1,5 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { X as CloseIcon } from 'lucide-react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { ThemedButton } from './ThemedButton';
@@ -35,7 +35,11 @@ export function FilterModal({
       animationType={isWeb ? 'fade' : 'slide'}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        enabled={!isWeb}
+      >
         <Pressable style={styles.backdrop} onPress={onClose} />
 
         <View
@@ -101,7 +105,7 @@ export function FilterModal({
             />
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -93,33 +93,42 @@ export function OrderUpdatesCard({
       {updates.length === 0 ? (
         <Text style={styles.muted}>No updates match this filter.</Text>
       ) : (
-        updates.map((entry, index) => {
+        updates.map((entry) => {
+          const hasDetail = Boolean(entry.message || entry.note);
           const isExpanded = expandedUpdateId === entry.id;
 
           return (
             <View key={entry.id} style={styles.updateRow}>
-              <Pressable
-                onPress={() => {
-                  onToggleExpand(isExpanded ? null : entry.id);
-                }}
-                style={({ pressed }) => [styles.updateHeader, pressed ? styles.updateHeaderPressed : null]}
-                accessibilityRole="button"
-                accessibilityLabel={`Toggle details for ${entry.statusLabel} update`}
-              >
-                <View style={styles.updateHeaderMain}>
-                  <OrderStatusBadge status={entry.status} size="sm" />
-                  <Text style={styles.updateTimestamp}>{entry.timestampLabel}</Text>
+              {hasDetail ? (
+                <Pressable
+                  onPress={() => {
+                    onToggleExpand(isExpanded ? null : entry.id);
+                  }}
+                  style={({ pressed }) => [styles.updateHeader, pressed ? styles.updateHeaderPressed : null]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Toggle details for ${entry.statusLabel} update`}
+                >
+                  <View style={styles.updateHeaderMain}>
+                    <OrderStatusBadge status={entry.status} size="sm" />
+                    <Text style={styles.updateTimestamp}>{entry.timestampLabel}</Text>
+                  </View>
+                  {isExpanded ? (
+                    <ChevronUp size={14} color={styles.cardMeta.color} />
+                  ) : (
+                    <ChevronDown size={14} color={styles.cardMeta.color} />
+                  )}
+                </Pressable>
+              ) : (
+                <View style={styles.updateHeader}>
+                  <View style={styles.updateHeaderMain}>
+                    <OrderStatusBadge status={entry.status} size="sm" />
+                    <Text style={styles.updateTimestamp}>{entry.timestampLabel}</Text>
+                  </View>
                 </View>
-                {isExpanded ? (
-                  <ChevronUp size={14} color={styles.cardMeta.color} />
-                ) : (
-                  <ChevronDown size={14} color={styles.cardMeta.color} />
-                )}
-              </Pressable>
+              )}
 
-              {isExpanded ? (
+              {hasDetail && isExpanded ? (
                 <View style={styles.updateBody}>
-                  <Text style={styles.cardMeta}>Event #{updates.length - index}</Text>
                   {entry.message ? <Text style={styles.cardItem}>{entry.message}</Text> : null}
                   {entry.note ? (
                     <View style={styles.updateNoteRow}>
@@ -127,10 +136,6 @@ export function OrderUpdatesCard({
                       <Text style={styles.fieldValue}>{entry.note}</Text>
                     </View>
                   ) : null}
-                  <View style={styles.updateNoteRow}>
-                    <Text style={styles.fieldLabel}>Raw Status</Text>
-                    <Text style={styles.fieldValue}>{entry.status}</Text>
-                  </View>
                 </View>
               ) : null}
             </View>
