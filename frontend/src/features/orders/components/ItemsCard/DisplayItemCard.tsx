@@ -10,6 +10,12 @@ import { isItemCheckedOut } from '@src/features/orders/types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────────
 
+function formatSide(side: unknown): string {
+  if (side === 'L') return 'Left';
+  if (side === 'R') return 'Right';
+  return typeof side === 'string' && side.trim() ? side : 'N/A';
+}
+
 function formatPatient(item: OrderItemCardData): string {
   const initial = typeof item.patientInitial === 'string' ? item.patientInitial.trim() : '';
   const surname = typeof item.patientSurname === 'string' ? item.patientSurname.trim() : '';
@@ -156,7 +162,7 @@ export function DisplayItemCard({ item }: DisplayItemCardProps) {
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>Side</Text>
         <Text style={styles.fieldValue}>
-          {typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A'}
+          {formatSide(item.side)}
         </Text>
       </View>
 

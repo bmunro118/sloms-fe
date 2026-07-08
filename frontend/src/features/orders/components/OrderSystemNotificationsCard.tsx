@@ -1,6 +1,7 @@
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react-native';
+import { AlertCircle, CheckCircle2 } from 'lucide-react-native';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { ThemedCard } from '@components/ui/ThemedCard';
+import { CollapsibleCard } from '@components/ui/CollapsibleCard';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -18,15 +19,24 @@ export function OrderSystemNotificationsCard({
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
 
+  const warnings = detectedProblems?.filter((p) => p.level === 'warn') ?? [];
+  const oks = detectedProblems?.filter((p) => p.level === 'ok') ?? [];
+  const hasWarnings = warnings.length > 0;
+
+  const [expanded, setExpanded] = useState(hasWarnings);
+
   if (!isStaff) return null;
   if (!detectedProblems || detectedProblems.length === 0) return null;
 
-  const warnings = detectedProblems.filter((p) => p.level === 'warn');
-  const oks = detectedProblems.filter((p) => p.level === 'ok');
-  const hasWarnings = warnings.length > 0;
-
   return (
-    <ThemedCard style={styles.card} title="System Notifications">
+    <CollapsibleCard
+      title="System Notifications"
+      expanded={expanded}
+      onToggleExpanded={() => setExpanded((prev) => !prev)}
+      tooltip={expanded ? 'Collapse notifications' : 'Expand notifications'}
+      style={styles.card}
+    >
+      <View style={styles.content}>
       {/* Summary Row */}
       <View style={styles.summaryRow}>
         {hasWarnings ? (
@@ -67,13 +77,15 @@ export function OrderSystemNotificationsCard({
             </View>
           ))}
       </View>
-    </ThemedCard>
+      </View>
+    </CollapsibleCard>
   );
 }
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    card: { gap: tokens.spacing.md },
+    card: { marginBottom: 0 },
+    content: { gap: tokens.spacing.md },
     summaryRow: {
       flexDirection: 'row',
       alignItems: 'center',

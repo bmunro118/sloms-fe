@@ -428,6 +428,7 @@ export default function OrderDetailScreen() {
             expandedUpdateId={expandedUpdateId}
             onToggleExpand={(id) => setExpandedUpdateId(id)}
             selectedFilterLabel={selectedFilterLabel}
+            currentStatus={trackingStatus}
           />
 
           {/* CARD 5: Unified Items — tracking-style status badges + full management */}

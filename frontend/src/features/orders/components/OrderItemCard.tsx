@@ -48,6 +48,12 @@ interface OrderItemCardProps {
   onVoid: (item: OrderItemCardData) => void;
 }
 
+function formatSide(side: unknown): string {
+  if (side === 'L') return 'Left';
+  if (side === 'R') return 'Right';
+  return typeof side === 'string' && side.trim() ? side : 'N/A';
+}
+
 function formatPatient(item: OrderItemCardData): string {
   const initial = typeof item.patientInitial === 'string' ? item.patientInitial.trim() : '';
   const surname = typeof item.patientSurname === 'string' ? item.patientSurname.trim() : '';
@@ -204,7 +210,7 @@ export function OrderItemCard({
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Side</Text>
-            <Text style={styles.fieldValue}>{typeof item.side === 'string' && item.side.trim() ? item.side : 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{formatSide(item.side)}</Text>
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Price</Text>

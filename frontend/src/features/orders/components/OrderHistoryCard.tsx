@@ -18,6 +18,7 @@ interface OrderHistoryCardProps {
   expandedUpdateId: string | null;
   onToggleExpand: (id: string | null) => void;
   selectedFilterLabel: string;
+  currentStatus?: string;
 }
 
 export function OrderHistoryCard({
@@ -30,6 +31,7 @@ export function OrderHistoryCard({
   expandedUpdateId,
   onToggleExpand,
   selectedFilterLabel,
+  currentStatus,
 }: OrderHistoryCardProps) {
   const styles = useThemedStyles(createStyles);
 
@@ -105,6 +107,7 @@ export function OrderHistoryCard({
                     expandedUpdateId={expandedUpdateId}
                     onToggleExpand={onToggleExpand}
                     styles={styles}
+                    currentStatus={currentStatus}
                   />
                 ) : entry.kind === 'note' ? (
                   <NoteEntry entry={entry} styles={styles} />
@@ -136,14 +139,20 @@ function StatusEntry({
   expandedUpdateId,
   onToggleExpand,
   styles,
+  currentStatus,
 }: {
   entry: Extract<TimelineEntry, { kind: 'status' }>;
   expandedUpdateId: string | null;
   onToggleExpand: (id: string | null) => void;
   styles: StylesType;
+  currentStatus?: string;
 }) {
   const hasDetail = Boolean(entry.message || entry.note);
   const isExpanded = expandedUpdateId === entry.id;
+  const badgeState =
+    currentStatus && entry.status === currentStatus && entry.status !== 'Dispatched'
+      ? 'current'
+      : 'complete';
 
   return (
     <View style={styles.entryRow}>
@@ -155,7 +164,7 @@ function StatusEntry({
           accessibilityLabel={`Toggle details for ${entry.statusLabel} update`}
         >
           <View style={styles.entryHeaderMain}>
-            <OrderStatusBadge status={entry.status} size="sm" context="status" />
+            <OrderStatusBadge status={entry.status} size="sm" context="status" state={badgeState} />
             <Text style={styles.entryTimestamp}>{entry.timestampLabel}</Text>
           </View>
           {isExpanded ? (
@@ -167,7 +176,7 @@ function StatusEntry({
       ) : (
         <View style={styles.entryHeader}>
           <View style={styles.entryHeaderMain}>
-            <OrderStatusBadge status={entry.status} size="sm" context="status" />
+            <OrderStatusBadge status={entry.status} size="sm" context="status" state={badgeState} />
             <Text style={styles.entryTimestamp}>{entry.timestampLabel}</Text>
           </View>
         </View>

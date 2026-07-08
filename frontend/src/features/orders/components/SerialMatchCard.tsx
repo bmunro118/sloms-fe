@@ -88,7 +88,7 @@ export function SerialMatchCard({ item }: SerialMatchCardProps) {
           {item.side ? (
             <View style={styles.fieldBlock}>
               <Text style={styles.fieldLabel}>Side</Text>
-              <Text style={styles.fieldValue}>{item.side as string}</Text>
+              <Text style={styles.fieldValue}>{item.side === 'L' ? 'Left' : item.side === 'R' ? 'Right' : item.side as string}</Text>
             </View>
           ) : null}
         </View>

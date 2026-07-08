@@ -15,22 +15,38 @@ export function OrderStatusBadge({ status, size = 'md', state = 'default', conte
   const styles = useThemedStyles(createStyles);
   const StatusIcon = getStatusIcon(status);
 
-  // In 'progress' context, colour is driven by step state, not status name
+  // In 'progress' context, colour is driven by step state, not status name.
+  // In 'status' context, an explicit state ('complete' = green, 'current' = blue) overrides
+  // the per-status semantic colours so the Order History timeline can simply show
+  // completed steps in green and the active step in blue.
+  const statusContainerStyle =
+    state === 'complete'    ? styles.complete :
+    state === 'current'     ? styles.statusCurrent :
+    state === 'upcoming'    ? styles.upcoming :
+    status === 'Received'    ? styles.received :
+    status === 'InProduction' ? styles.inProgress :
+    status === 'Ready'        ? styles.ready :
+    status === 'Dispatched'   ? styles.complete :
+    styles.fallback;
+
+  const statusTextStyle =
+    state === 'complete'    ? styles.textComplete :
+    state === 'current'     ? styles.textStatusCurrent :
+    state === 'upcoming'    ? styles.textUpcoming :
+    status === 'Received'    ? styles.textReceived :
+    status === 'InProduction' ? styles.textInProgress :
+    status === 'Ready'        ? styles.textReady :
+    status === 'Dispatched'   ? styles.textComplete :
+    styles.textFallback;
+
   const containerStyle = [
     styles.badge,
     size === 'sm' ? styles.badgeSm : styles.badgeMd,
     context === 'progress'
       ? (state === 'complete' ? styles.progressComplete :
          state === 'current'  ? styles.progressCurrent  :
-         styles.upcoming)   // 'upcoming' and 'default' both render muted
-      : (status === 'Received'    ? styles.received    :
-         status === 'InProduction' ? styles.inProgress  :
-         status === 'Ready'        ? styles.ready       :
-         status === 'Dispatched'   ? styles.complete    :
-         styles.fallback),
-    // State overrides only apply in 'status' context (border highlights)
-    context === 'status' && state === 'current'  ? styles.current  : null,
-    context === 'status' && state === 'upcoming' ? styles.upcoming : null,
+         styles.upcoming)
+      : statusContainerStyle,
     style,
   ];
 
@@ -40,24 +56,14 @@ export function OrderStatusBadge({ status, size = 'md', state = 'default', conte
       ? (state === 'complete' ? styles.textProgressComplete :
          state === 'current'  ? styles.textProgressCurrent  :
          styles.textUpcoming)
-      : (status === 'Received'    ? styles.textReceived    :
-         status === 'InProduction' ? styles.textInProgress  :
-         status === 'Ready'        ? styles.textReady       :
-         status === 'Dispatched'   ? styles.textComplete    :
-         styles.textFallback),
-    context === 'status' && state === 'upcoming' ? styles.textUpcoming : null,
+      : statusTextStyle,
   ];
 
-  const iconColor =
-    context === 'progress'
-      ? (state === 'complete' ? styles.textProgressComplete.color :
-         state === 'current'  ? styles.textProgressCurrent.color  :
-         styles.textUpcoming.color)
-      : (status === 'Received'    ? styles.textReceived.color    :
-         status === 'InProduction' ? styles.textInProgress.color  :
-         status === 'Ready'        ? styles.textReady.color       :
-         status === 'Dispatched'   ? styles.textComplete.color    :
-         styles.textFallback.color);
+  const iconColor = context === 'progress'
+    ? (state === 'complete' ? styles.textProgressComplete.color :
+       state === 'current'  ? styles.textProgressCurrent.color  :
+       styles.textUpcoming.color)
+    : statusTextStyle.color;
 
   return (
     <View style={containerStyle}>
@@ -103,6 +109,10 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.statusComplete,
       borderColor: theme.colors.accent,
     },
+    statusCurrent: {
+      backgroundColor: theme.colors.statusInProgress,
+      borderColor: theme.colors.accent,
+    },
     ready: {
       backgroundColor: theme.colors.statusReady,
       borderColor: theme.colors.accent,
@@ -115,10 +125,6 @@ function createStyles(theme: AppTheme) {
     progressCurrent: {
       backgroundColor: theme.colors.statusProgressCurrent,
       borderColor: theme.colors.accent,
-    },
-    // State overrides
-    current: {
-      borderColor: theme.colors.borderStrong,
     },
     upcoming: {
       borderColor: theme.colors.border,
@@ -141,6 +147,9 @@ function createStyles(theme: AppTheme) {
     },
     textComplete: {
       color: theme.colors.statusCompleteText,
+    },
+    textStatusCurrent: {
+      color: theme.colors.statusInProgressText,
     },
     textReady: {
       color: theme.colors.statusReadyText,
