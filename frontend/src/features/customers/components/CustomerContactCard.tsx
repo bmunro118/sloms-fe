@@ -19,8 +19,10 @@ type Props = {
   formData: Partial<CustomerDetails>;
   onFormChange: (data: Partial<CustomerDetails>) => void;
   canMutate: boolean;
+  canOnboard?: boolean;
   onSuspend?: () => void;
   onReinstate?: () => void;
+  onOnboard?: () => void;
 };
 
 export function CustomerContactCard({
@@ -30,8 +32,10 @@ export function CustomerContactCard({
   formData,
   onFormChange,
   canMutate,
+  canOnboard,
   onSuspend,
   onReinstate,
+  onOnboard,
 }: Props) {
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
@@ -205,6 +209,15 @@ export function CustomerContactCard({
             </View>
           </View>
           <View style={styles.actionsStack}>
+            {canOnboard && !customer?.isSuspended ? (
+              <View style={styles.actionButton}>
+                <ThemedButton
+                  label="Onboard to Portal"
+                  onPress={onOnboard ?? (() => {})}
+                  style={{ minWidth: 160 }}
+                />
+              </View>
+            ) : null}
             {customer?.isSuspended ? (
               <ThemedButton
                 label="Reinstate Customer"

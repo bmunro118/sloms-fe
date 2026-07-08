@@ -58,6 +58,26 @@ export type CreateCustomerPayload = {
 
 export type UpdateCustomerPayload = Partial<Omit<CustomerRecord, 'customerId' | 'isSuspended'>>;
 
+export type OnboardCustomerPayload = {
+  email?: string;
+  fullName?: string;
+};
+
+export type OnboardCustomerResponse = {
+  customerId: number;
+  loginEmail: string;
+  user: {
+    userId: number;
+    username: string;
+    email?: string;
+    fullName?: string;
+    role: string;
+    isActive?: boolean;
+    mustChangePassword?: boolean;
+    linkedCustomerId?: number | null;
+  };
+};
+
 export type Address = {
   addressId: number;
   siteCompanyName?: string;
@@ -165,6 +185,17 @@ export function reinstateCustomer(id: number): Promise<CustomerRecord> {
   return apiRequest<CustomerRecord>(ENDPOINTS.customers.reinstate(id), {
     method: 'PATCH',
     requireAuth: true,
+  });
+}
+
+export function onboardCustomer(
+  id: number,
+  payload: OnboardCustomerPayload
+): Promise<OnboardCustomerResponse> {
+  return apiRequest<OnboardCustomerResponse>(ENDPOINTS.customers.onboard(id), {
+    method: 'POST',
+    requireAuth: true,
+    body: payload,
   });
 }
 

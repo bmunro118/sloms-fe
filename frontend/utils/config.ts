@@ -146,6 +146,7 @@ export const ENDPOINTS = {
     byId: (id: number) => e(`/api/customers/${id}`),
     suspend: (id: number) => e(`/api/customers/${id}/suspend`),
     reinstate: (id: number) => e(`/api/customers/${id}/reinstate`),
+    onboard: (id: number) => e(`/api/customers/${id}/onboard`),
     addresses: (customerId: number) => e(`/api/customers/${customerId}/addresses`),
     addressById: (customerId: number, addressId: number) =>
       e(`/api/customers/${customerId}/addresses/${addressId}`),

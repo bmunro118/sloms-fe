@@ -8,7 +8,8 @@ import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
-import { getCustomer, updateCustomer, suspendCustomer, reinstateCustomer, CustomerRecord, UpdateCustomerPayload } from '@src/features/customers/api';
+import { getCustomer, updateCustomer, suspendCustomer, reinstateCustomer, onboardCustomer, CustomerRecord, UpdateCustomerPayload, OnboardCustomerPayload } from '@src/features/customers/api';
+import { OnboardCustomerModal } from '@src/features/customers/components/OnboardCustomerModal';
 import { CustomerInfoCard } from '@src/features/customers/components/CustomerInfoCard';
 import { CustomerContactCard } from '@src/features/customers/components/CustomerContactCard';
 import { CustomerDeliveryAddressesCard } from '@src/features/customers/components/CustomerDeliveryAddressesCard';
@@ -20,7 +21,7 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
 export default function CustomerDetailScreen() {
-  const { isStaff, canMutate } = useAuth();
+  const { isStaff, canMutate, role } = useAuth();
   const { showConfirm, showSuccess, showDanger } = useAppModal();
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
@@ -44,6 +45,7 @@ export default function CustomerDetailScreen() {
   const [formData, setFormData] = useState<Partial<CustomerRecord>>({});
   const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [isOnboardingModalVisible, setIsOnboardingModalVisible] = useState(false);
 
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit) return;
@@ -183,6 +185,17 @@ export default function CustomerDetailScreen() {
     }
   }, [customer, customerId, showConfirm, showSuccess, showDanger]);
 
+  const handleOnboard = useCallback(async (payload: OnboardCustomerPayload) => {
+    if (!customer || !Number.isFinite(customerId)) return;
+    try {
+      const result = await onboardCustomer(customerId, payload);
+      setIsOnboardingModalVisible(false);
+      showSuccess('Customer onboarded', `Welcome email sent to ${result.loginEmail}.`);
+    } catch (err) {
+      showDanger('Onboarding failed', err instanceof Error ? err.message : 'Could not onboard customer.');
+    }
+  }, [customer, customerId, showSuccess, showDanger]);
+
   const handleReinstate = useCallback(async () => {
     if (!customer || !Number.isFinite(customerId)) return;
     const confirmed = await showConfirm({
@@ -284,8 +297,10 @@ export default function CustomerDetailScreen() {
             formData={formData}
             onFormChange={setFormData}
             canMutate={canMutate}
+            canOnboard={canMutate && (role === 'Admin' || role === 'Manager')}
             onSuspend={handleSuspend}
             onReinstate={handleReinstate}
+            onOnboard={() => setIsOnboardingModalVisible(true)}
           />
           <CustomerDeliveryAddressesCard
             mode={isEditing ? 'edit' : 'view'}
@@ -293,6 +308,14 @@ export default function CustomerDetailScreen() {
             canMutate={canMutate}
           />
         </ScrollView>
+      ) : null}
+      {customer ? (
+        <OnboardCustomerModal
+          visible={isOnboardingModalVisible}
+          customer={customer}
+          onConfirm={handleOnboard}
+          onClose={() => setIsOnboardingModalVisible(false)}
+        />
       ) : null}
     </ScreenContent>
   );
