@@ -13,7 +13,6 @@ import {
 } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
-import { ThemedCard } from '@components/ui/ThemedCard';
 import { SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
@@ -44,10 +43,9 @@ import {
 } from '@src/features/orders/types';
 import { OrderDetailCard } from '@src/features/orders/components/OrderDetailCard';
 import { OrderItemsCard } from '@src/features/orders/components/OrderItemsCard';
-import { OrderProgressTimeline } from '@src/features/orders/components/OrderProgressTimeline';
+import { OrderHistoryCard } from '@src/features/orders/components/OrderHistoryCard';
 import { OrderTrackingSummaryCard } from '@src/features/orders/components/OrderTrackingSummaryCard';
 import { OrderSystemNotificationsCard } from '@src/features/orders/components/OrderSystemNotificationsCard';
-import { OrderUpdatesCard } from '@src/features/orders/components/OrderUpdatesCard';
 import { useOrderCustomer } from '@src/features/orders/hooks/useOrderCustomer';
 import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 
@@ -87,10 +85,9 @@ export default function OrderDetailScreen() {
     trackingItems,
     currentStatus: trackingStatus,
     lastUpdateTimestamp,
-    journeySteps,
     detectedProblems,
     updateFilterOptions,
-    filteredUpdates,
+    filteredTimelineEntries,
     selectedStatusFilter,
     setSelectedStatusFilter,
     expandedUpdateId,
@@ -420,14 +417,9 @@ export default function OrderDetailScreen() {
             isStaff={isStaff}
           />
 
-          {/* CARD 3: Order Progress (timeline rail from tracking) */}
-          <ThemedCard style={styles.card} title="Order Progress">
-            <OrderProgressTimeline steps={journeySteps} />
-          </ThemedCard>
-
-          {/* CARD 4: Updates (filterable status timeline from tracking) */}
-          <OrderUpdatesCard
-            updates={filteredUpdates}
+          {/* CARD 3: Order History (unified vertical timeline — history + pending steps) */}
+          <OrderHistoryCard
+            entries={filteredTimelineEntries}
             updateFilterOptions={updateFilterOptions}
             selectedStatusFilter={selectedStatusFilter}
             onFilterChange={(value) => { setSelectedStatusFilter(value); setIsFilterOpen(false); }}

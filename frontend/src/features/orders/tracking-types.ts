@@ -50,6 +50,34 @@ export type TimelineUpdate = {
   message?: string;
 };
 
+export type TimelineEntryStatus = {
+  kind: 'status';
+  id: string;
+  status: string;
+  statusLabel: string;
+  timestamp: string;
+  timestampLabel: string;
+  note?: string;
+  message?: string;
+};
+
+export type TimelineEntryNote = {
+  kind: 'note';
+  id: string;
+  timestamp: string;
+  timestampLabel: string;
+  message: string;
+};
+
+export type TimelineEntryPending = {
+  kind: 'pending';
+  id: string;
+  status: string;
+  statusLabel: string;
+};
+
+export type TimelineEntry = TimelineEntryStatus | TimelineEntryNote | TimelineEntryPending;
+
 export type FilterOption = {
   label: string;
   value: string;

@@ -5,6 +5,7 @@ import {
   ORDER_STEPS,
   OrderTrackingPayload,
   StepState,
+  TimelineEntry,
   TimelineUpdate,
   TrackingItem,
   formatStatusLabel,
@@ -12,6 +13,8 @@ import {
   normalizeTrackingTimestamp,
 } from './tracking-types';
 import { getOrderTracking } from './api';
+
+const KNOWN_STATUSES = new Set(ORDER_STEPS as readonly string[]);
 
 export interface OrderTrackingState {
   tracking: OrderTrackingPayload | null;
@@ -25,6 +28,8 @@ export interface OrderTrackingState {
   detectedProblems: Array<{ id: string; level: 'ok' | 'warn'; message: string }>;
   updateFilterOptions: FilterOption[];
   filteredUpdates: TimelineUpdate[];
+  timelineEntries: TimelineEntry[];
+  filteredTimelineEntries: TimelineEntry[];
   selectedStatusFilter: string;
   setSelectedStatusFilter: (value: string) => void;
   expandedUpdateId: string | null;
@@ -231,6 +236,61 @@ export function useOrderTracking(
   const selectedFilterLabel =
     updateFilterOptions.find((option) => option.value === selectedStatusFilter)?.label ?? 'All updates';
 
+  const timelineEntries = useMemo<TimelineEntry[]>(() => {
+    const effectiveStatus = currentStatus !== 'Unknown' ? currentStatus : updates[0]?.status;
+    const currentStepIndex = ORDER_STEPS.findIndex((step) => step === effectiveStatus);
+
+    // Real history entries — ascending order (oldest first)
+    const historyEntries: TimelineEntry[] = [...updates].reverse().map((update) => {
+      const isKnownStatus = KNOWN_STATUSES.has(update.status);
+      const hasMessage = Boolean(update.message || update.note);
+
+      if (!isKnownStatus && hasMessage) {
+        return {
+          kind: 'note' as const,
+          id: update.id,
+          timestamp: update.timestamp ?? '',
+          timestampLabel: update.timestampLabel,
+          message: update.message ?? update.note ?? '',
+        };
+      }
+
+      return {
+        kind: 'status' as const,
+        id: update.id,
+        status: update.status,
+        statusLabel: update.statusLabel,
+        timestamp: update.timestamp ?? '',
+        timestampLabel: update.timestampLabel,
+        note: update.note,
+        message: update.message,
+      };
+    });
+
+    // Pending future steps not yet reached
+    const pendingEntries: TimelineEntry[] = ORDER_STEPS
+      .filter((step, index) => index > currentStepIndex)
+      .map((step) => ({
+        kind: 'pending' as const,
+        id: `pending-${step}`,
+        status: step,
+        statusLabel: formatStatusLabel(step),
+      }));
+
+    return [...historyEntries, ...pendingEntries];
+  }, [updates, currentStatus]);
+
+  const filteredTimelineEntries = useMemo<TimelineEntry[]>(() => {
+    if (selectedStatusFilter === 'all') {
+      return timelineEntries;
+    }
+
+    return timelineEntries.filter(
+      (entry) => entry.kind === 'pending' || entry.kind === 'note' ||
+        (entry.kind === 'status' && entry.status === selectedStatusFilter)
+    );
+  }, [timelineEntries, selectedStatusFilter]);
+
   return {
     tracking,
     isLoadingTracking,
@@ -243,6 +303,8 @@ export function useOrderTracking(
     detectedProblems,
     updateFilterOptions,
     filteredUpdates,
+    timelineEntries,
+    filteredTimelineEntries,
     selectedStatusFilter,
     setSelectedStatusFilter,
     expandedUpdateId,
