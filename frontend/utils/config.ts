@@ -8,7 +8,8 @@ import { Platform } from 'react-native';
 
 export type ApiMode = 'local' | 'web';
 
-const LOCAL_API_URL = 'http://localhost:3000';
+const LOCAL_API_URL =
+  Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 const WEB_API_URL = 'https://slomsapi-stage.jollydune-b8782950.uksouth.azurecontainerapps.io';
 
 export const API_MODE: ApiMode = (() => {
@@ -49,7 +50,7 @@ function assertValidApiBaseUrl(url: string): string {
 
   const protocol = parsedUrl.protocol.toLowerCase();
   const host = parsedUrl.hostname.toLowerCase();
-  const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '10.0.2.2';
 
   if (protocol === 'https:') {
     return parsedUrl.origin;
@@ -146,6 +147,7 @@ export const ENDPOINTS = {
     byId: (id: number) => e(`/api/customers/${id}`),
     suspend: (id: number) => e(`/api/customers/${id}/suspend`),
     reinstate: (id: number) => e(`/api/customers/${id}/reinstate`),
+    onboard: (id: number) => e(`/api/customers/${id}/onboard`),
     addresses: (customerId: number) => e(`/api/customers/${customerId}/addresses`),
     addressById: (customerId: number, addressId: number) =>
       e(`/api/customers/${customerId}/addresses/${addressId}`),

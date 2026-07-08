@@ -13,11 +13,10 @@ import {
 } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
-import { ThemedCard } from '@components/ui/ThemedCard';
 import { SelectOption } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { Address, listAddresses } from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
@@ -31,8 +30,6 @@ import {
   dispatchOrder,
   getOrder,
   getOrderBreakdownPdf,
-  getOrderItemBySerial,
-  OrderItem,
   updateOrder,
   voidOrder,
 } from '@src/features/orders/api';
@@ -46,11 +43,9 @@ import {
 } from '@src/features/orders/types';
 import { OrderDetailCard } from '@src/features/orders/components/OrderDetailCard';
 import { OrderItemsCard } from '@src/features/orders/components/OrderItemsCard';
-import { OrderProgressTimeline } from '@src/features/orders/components/OrderProgressTimeline';
+import { OrderHistoryCard } from '@src/features/orders/components/OrderHistoryCard';
 import { OrderTrackingSummaryCard } from '@src/features/orders/components/OrderTrackingSummaryCard';
 import { OrderSystemNotificationsCard } from '@src/features/orders/components/OrderSystemNotificationsCard';
-import { OrderUpdatesCard } from '@src/features/orders/components/OrderUpdatesCard';
-import { SerialLookupCard } from '@src/features/orders/components/SerialLookupCard';
 import { useOrderCustomer } from '@src/features/orders/hooks/useOrderCustomer';
 import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 
@@ -90,10 +85,9 @@ export default function OrderDetailScreen() {
     trackingItems,
     currentStatus: trackingStatus,
     lastUpdateTimestamp,
-    journeySteps,
     detectedProblems,
     updateFilterOptions,
-    filteredUpdates,
+    filteredTimelineEntries,
     selectedStatusFilter,
     setSelectedStatusFilter,
     expandedUpdateId,
@@ -104,11 +98,6 @@ export default function OrderDetailScreen() {
     loadTracking,
   } = useOrderTracking(orderNumber, orderBatch);
   const { customerName, customerAccountNumber } = useOrderCustomer(order?.customerAccount);
-  // Serial number lookup state
-  const [serialInput, setSerialInput] = useState('');
-  const [isSerialSearching, setIsSerialSearching] = useState(false);
-  const [serialResult, setSerialResult] = useState<OrderItem | null>(null);
-  const [serialError, setSerialError] = useState<string | null>(null);
 
   useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
   const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() =>
@@ -116,7 +105,7 @@ export default function OrderDetailScreen() {
       const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
       const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
       const defaultBadge = address.defaultAddress ? ' (Default)' : '';
-      return { value: address.id, label: `${line}${city}${defaultBadge}` };
+      return { value: address.addressId, label: `${line}${city}${defaultBadge}` };
     }), [deliveryAddresses]);
   // Data loading
   const reload = useCallback(async (signal?: AbortSignal) => {
@@ -315,22 +304,6 @@ export default function OrderDetailScreen() {
     }
   }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
 
-  // Serial lookup
-  const handleSerialLookup = useCallback(async () => {
-    const serial = serialInput.trim();
-    if (!serial) return;
-    setIsSerialSearching(true);
-    setSerialResult(null);
-    setSerialError(null);
-    try {
-      const result = await getOrderItemBySerial<OrderItem>(serial);
-      setSerialResult(result);
-    } catch (err) {
-      setSerialError(err instanceof Error ? err.message : 'Item not found.');
-    } finally {
-      setIsSerialSearching(false);
-    }
-  }, [serialInput]);
   // Route-driven actions
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit || !order) return;
@@ -365,7 +338,7 @@ export default function OrderDetailScreen() {
   }, [canMutate, handleCancelOrderEdit, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, order]);
   // TopBar actions
   const topBarActions = useMemo<TopBarAction[]>(() => {
-    const backAction = buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()), label: 'Back to orders' });
+    const backAction = buildBackTopBarAction({ onPress: () => void guardAction(goBackWithBrowserFallback), label: 'Back to orders' });
     const actions: TopBarAction[] = [];
     // Dispatch action
     if (canMutate && order) {
@@ -385,7 +358,7 @@ export default function OrderDetailScreen() {
       backAction,
     );
     return actions;
-  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, order, router]);
+  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, order]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
@@ -434,6 +407,7 @@ export default function OrderDetailScreen() {
               cardActions={orderCardActions}
               customerName={customerName}
               customerAccountNumber={customerAccountNumber}
+              deliveryAddressOptions={deliveryAddressOptions}
             />
           )}
 
@@ -443,22 +417,18 @@ export default function OrderDetailScreen() {
             isStaff={isStaff}
           />
 
-          {/* CARD 3: Order Progress (timeline rail from tracking) */}
-          <ThemedCard style={styles.card} title="Order Progress">
-            <OrderProgressTimeline steps={journeySteps} />
-          </ThemedCard>
-
-          {/* CARD 4: Updates (filterable status timeline from tracking) */}
-          <OrderUpdatesCard
-            updates={filteredUpdates}
+          {/* CARD 3: Order History (unified vertical timeline — history + pending steps) */}
+          <OrderHistoryCard
+            entries={filteredTimelineEntries}
             updateFilterOptions={updateFilterOptions}
             selectedStatusFilter={selectedStatusFilter}
             onFilterChange={(value) => { setSelectedStatusFilter(value); setIsFilterOpen(false); }}
             isFilterOpen={isFilterOpen}
-            onToggleFilter={() => setIsFilterOpen((v) => !v)}
+            onToggleFilter={() => setIsFilterOpen(!isFilterOpen)}
             expandedUpdateId={expandedUpdateId}
             onToggleExpand={(id) => setExpandedUpdateId(id)}
             selectedFilterLabel={selectedFilterLabel}
+            currentStatus={trackingStatus}
           />
 
           {/* CARD 5: Unified Items — tracking-style status badges + full management */}
@@ -467,17 +437,9 @@ export default function OrderDetailScreen() {
             orderBatch={orderBatch}
             canMutate={canMutate}
             refreshSignal={itemsRefreshSignal}
+            priceBand={order?.priceBand ?? ''}
           />
 
-          {/* Serial Number Lookup */}
-          <SerialLookupCard
-            serialInput={serialInput}
-            onSerialInputChange={(v) => { setSerialInput(v); setSerialResult(null); setSerialError(null); }}
-            onSearch={() => { void handleSerialLookup(); }}
-            isSearching={isSerialSearching}
-            serialResult={serialResult}
-            serialError={serialError}
-          />
         </ScrollView>
       ) : null}
     </ScreenContent>
@@ -490,11 +452,5 @@ function createStyles(theme: AppTheme) {
     ...common,
     scrollContent: { gap: 10, paddingBottom: 8 },
     card: { ...common.card, gap: 8 },
-    serialCard: { ...common.card, gap: 8 },
-    serialResult: { borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 8, gap: 4 },
-    serialResultTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
-    field: { marginTop: theme.spacing.sm },
-    fieldLabel: common.fieldLabel,
-    fieldValue: common.fieldValue,
   });
 }

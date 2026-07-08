@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
@@ -85,66 +85,87 @@ export default function LoginScreen() {
     }
   };
 
+  const isNative = Platform.OS !== 'web';
+
   return (
-    <View style={styles.container}>
-      <Image
-        source={require('@assets/images/branding/Sonic-Labs-logo.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <Text style={styles.subtitle}>PORTAL</Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      enabled={isNative}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Image
+          source={require('@assets/images/branding/Sonic-Labs-logo.png')}
+          style={[styles.logo, isNative && styles.logoNative]}
+          resizeMode="contain"
+        />
+        <Text style={styles.subtitle}>PORTAL</Text>
 
-      <ThemedInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder="Username"
-        accessibilityLabel="Username"
-        testID="login-username"
-        style={styles.formInput}
-        value={username}
-        onChangeText={setUsername}
-      />
-      <ThemedInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        secureTextEntry
-        placeholder="Password"
-        accessibilityLabel="Password"
-        testID="login-password"
-        style={styles.formInput}
-        value={password}
-        onChangeText={setPassword}
-        onSubmitEditing={handleLogin}
-      />
+        <ThemedInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="Username"
+          accessibilityLabel="Username"
+          testID="login-username"
+          style={styles.formInput}
+          value={username}
+          onChangeText={setUsername}
+        />
+        <ThemedInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+          placeholder="Password"
+          accessibilityLabel="Password"
+          testID="login-password"
+          style={styles.formInput}
+          value={password}
+          onChangeText={setPassword}
+          onSubmitEditing={handleLogin}
+        />
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <ThemedButton
-        variant="outline"
-        label={isSubmitting ? 'Signing in…' : 'Sign in'}
-        onPress={handleLogin}
-        disabled={isSubmitting}
-        style={styles.signInButton}
-        tooltip={isSubmitting ? 'Signing in…' : 'Sign in'}
-        testID="login-button"
-      />
-    </View>
+        <ThemedButton
+          variant="outline"
+          label={isSubmitting ? 'Signing in…' : 'Sign in'}
+          onPress={handleLogin}
+          disabled={isSubmitting}
+          style={styles.signInButton}
+          tooltip={isSubmitting ? 'Signing in…' : 'Sign in'}
+          testID="login-button"
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    container: {
+    flex: {
       flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      flexGrow: 1,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.background,
       paddingHorizontal: 24,
+      paddingVertical: 32,
     },
     logo: {
       width: 200,
       height: 120,
       marginBottom: -27,
+    },
+    logoNative: {
+      width: 160,
+      height: 96,
     },
     subtitle: {
       fontSize: 16,

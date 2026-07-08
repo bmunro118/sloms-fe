@@ -1,30 +1,40 @@
 import { Redirect, useRouter } from 'expo-router';
 import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedInput } from '@components/ui/ThemedInput';
-import { ThemedSelect, SelectOption } from '@components/ui/ThemedSelect';
+import { ThemedSelect } from '@components/ui/ThemedSelect';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
+import { usePriceBands } from '@features/price-list/hooks/usePriceBands';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { createOrder } from '@src/features/orders/api';
-import { Address, CustomerRecord, listAddresses, listCustomers } from '@src/features/customers/api';
+import { createOrder, addOrderItem } from '@src/features/orders/api';
+import { ApiError } from '@utils/api';
+import {
+  ItemsCard,
+  AddItemCard,
+  PendingItemCard,
+  type PendingItem,
+} from '@src/features/orders/components/ItemsCard';
+import { usePendingItems } from '@src/features/orders/hooks/usePendingItems';
+import { useCurrentVatRate } from '@src/features/orders/hooks/useCurrentVatRate';
+import { useCreateOrderData } from '@src/features/orders/hooks/useCreateOrderData';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { isStaff, canMutate } = useAuth();
-  const { showConfirm, showDanger, showSuccess } = useAppModal();
+  const { showConfirm, showDanger, showWarning } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
@@ -33,84 +43,33 @@ export default function CreateOrderScreen() {
   const [deliveryAddress, setDeliveryAddress] = useState<number | null>(null);
   const [receivedOn, setReceivedOn] = useState('');
   const [priceBand, setPriceBand] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
-  const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
-  const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
+  const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
+  const { vatRate } = useCurrentVatRate();
+  const {
+    customerOptions,
+    isLoadingCustomers,
+    deliveryAddresses,
+    deliveryAddressOptions,
+    isLoadingDeliveryAddresses,
+    priceList,
+    isLoadingPriceList,
+    selectedCustomer,
+  } = useCreateOrderData(customerAccount);
+  const { priceBands, isLoading: isLoadingPriceBands, error: priceBandsError } = usePriceBands();
 
+  // Auto-populate price band when customer changes
   useEffect(() => {
-    const controller = new AbortController();
-    setIsLoadingCustomers(true);
-    listCustomers({ limit: 100 }, { signal: controller.signal })
-      .then((res) => {
-        if (!controller.signal.aborted) {
-          setCustomers(res.data ?? []);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingCustomers(false);
-      });
-    return () => controller.abort();
-  }, []);
-
-  const customerOptions = useMemo<SelectOption<number>[]>(
-    () =>
-      customers.map((c) => ({
-        value: c.customerId,
-        label: c.accountNumber ? `${c.accountNumber} — ${c.companyName}` : c.companyName,
-      })),
-    [customers]
-  );
-
-  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() => {
-    return deliveryAddresses.map((address, index) => {
-      const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
-      const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
-      const defaultBadge = address.defaultAddress ? ' (Default)' : '';
-      return {
-        value: address.id,
-        label: `${line}${city}${defaultBadge}`,
-      };
-    });
-  }, [deliveryAddresses]);
-
-  useEffect(() => {
-    if (customerAccount === null) {
-      setDeliveryAddresses([]);
-      setDeliveryAddress(null);
-      return;
+    if (customerAccount !== null) {
+      const band = selectedCustomer?.band;
+      if (band) setPriceBand(band);
+    } else {
+      setPriceBand('');
     }
-    const controller = new AbortController();
-    setIsLoadingDeliveryAddresses(true);
-    listAddresses(customerAccount, { signal: controller.signal })
-      .then((response) => {
-        if (controller.signal.aborted) return;
-        const nextAddresses = Array.isArray(response.data) ? response.data : [];
-        setDeliveryAddresses(nextAddresses);
-        setDeliveryAddress((current) => {
-          if (nextAddresses.some((address) => address.id === current)) {
-            return current;
-          }
-          const defaultAddress = nextAddresses.find((address) => address.defaultAddress);
-          return defaultAddress?.id ?? null;
-        });
-      })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          console.error('[OrderCreate] Failed to load customer addresses:', err);
-          setDeliveryAddresses([]);
-          setDeliveryAddress(null);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingDeliveryAddresses(false);
-      });
+  }, [customerAccount, selectedCustomer]);
 
-    return () => controller.abort();
-  }, [customerAccount]);
+  // Pending items: using usePendingItems hook
 
   const isDirty = useMemo(
     () =>
@@ -119,11 +78,26 @@ export default function CreateOrderScreen() {
       orderContact !== '' ||
       priceBand !== '' ||
       receivedOn !== '' ||
-      deliveryAddress !== null,
-    [customerAccount, customerRef, orderContact, priceBand, receivedOn, deliveryAddress],
+      deliveryAddress !== null ||
+      pendingItems.length > 0,
+    [customerAccount, customerRef, orderContact, priceBand, receivedOn, deliveryAddress, pendingItems.length],
   );
 
   const { guardAction, skipNextGuard } = useUnsavedChangesGuard({ isDirty });
+  // Set default delivery address when the customer address list loads
+  useEffect(() => {
+    if (customerAccount === null) {
+      setDeliveryAddress(null);
+      return;
+    }
+    setDeliveryAddress((current) => {
+      if (deliveryAddresses.some((address) => address.addressId === current)) {
+        return current;
+      }
+      const defaultAddress = deliveryAddresses.find((address) => address.defaultAddress);
+      return defaultAddress?.addressId ?? null;
+    });
+  }, [customerAccount, deliveryAddresses]);
 
   const performCreate = useCallback(async () => {
     if (!canMutate) {
@@ -140,6 +114,20 @@ export default function CreateOrderScreen() {
       return;
     }
 
+    if (pendingItems.length === 0) {
+      const msg = 'Please add at least one line item.';
+      setError(msg);
+      showDanger('Required field', msg);
+      return;
+    }
+
+    if (vatRate === null) {
+      const msg = 'No active VAT rate is configured. Please set up a VAT rate before creating orders.';
+      setError(msg);
+      showDanger('VAT rate unavailable', msg);
+      return;
+    }
+
     const trimmedReceivedOn = receivedOn.trim();
     if (trimmedReceivedOn.length > 0 && Number.isNaN(Date.parse(trimmedReceivedOn))) {
       const msg = 'Received on must be a valid ISO date/time value.';
@@ -148,6 +136,7 @@ export default function CreateOrderScreen() {
       return;
     }
 
+    setIsCreatingOrder(true);
     setIsSaving(true);
     setError(null);
     console.log('[OrderCreate] Submitting order — customerAccount:', customerAccount);
@@ -163,36 +152,80 @@ export default function CreateOrderScreen() {
         receivedOn: trimmedReceivedOn || undefined,
         priceBand: trimmedPriceBand || undefined,
       };
-      console.log('[OrderCreate] Payload:', payload);
+      console.log('[OrderCreate] Payload JSON:', JSON.stringify(payload));
 
       const result = await createOrder(payload);
       console.log('[OrderCreate] Order created successfully:', result);
+
+      // Submit pending items sequentially
+      const createdOrderNumber = result.orderNumber;
+      const createdOrderBatch: number = result.orderBatch ?? 1;
+      const failedItems: string[] = [];
+
+      if (pendingItems.length > 0) {
+        for (const item of pendingItems) {
+          try {
+            await addOrderItem(createdOrderNumber, createdOrderBatch, {
+              modelCode: item.itemId,
+              description: item.description,
+              price: item.unitPrice ?? 0,
+              patientInitial: item.patientInitial,
+              patientSurname: item.patientSurname,
+              side: item.side,
+            } as Parameters<typeof addOrderItem>[2]);
+          } catch (itemErr) {
+            console.warn('[OrderCreate] Failed to add item:', item.itemId, itemErr);
+            failedItems.push(item.description || item.itemId);
+          }
+        }
+      }
+
+      // Show warning if any items failed
+      if (failedItems.length > 0 && isMountedRef.current) {
+        showWarning(
+          'Order created - some items not added',
+          `Order ${createdOrderNumber}/${createdOrderBatch} was created, but the following items could not be added: ${failedItems.join(', ')}. You can add them manually on the order detail screen.`
+        );
+      }
+
       skipNextGuard();
-      showSuccess(
-        'Order created',
-        typeof result?.orderNumber === 'number'
-          ? `Order ${result.orderNumber} was created successfully.`
-          : 'The order was created successfully.',
-      );
-      router.replace('/(app)/orders');
+      router.replace(`/(app)/orders/${createdOrderNumber}/${createdOrderBatch}` as never);
     } catch (err) {
       console.error('[OrderCreate] API error:', err);
       if (isMountedRef.current) {
-        showDanger('Create Order Failed', err instanceof Error ? err.message : 'Failed to create order. Please try again.');
+        const detail = err instanceof ApiError && err.code ? err.code : err instanceof Error ? err.message : 'Failed to create order. Please try again.';
+        showDanger('Create Order Failed', detail);
       }
     } finally {
       if (isMountedRef.current) {
+        setIsCreatingOrder(false);
         setIsSaving(false);
       }
     }
-  }, [canMutate, customerAccount, customerRef, deliveryAddress, isMountedRef, orderContact, priceBand, receivedOn, router, showDanger, showSuccess, skipNextGuard]);
+  }, [
+    canMutate,
+    customerAccount,
+    customerRef,
+    deliveryAddress,
+    isMountedRef,
+    orderContact,
+    pendingItems,
+    priceBand,
+    receivedOn,
+    router,
+    setIsSaving,
+    showDanger,
+    showWarning,
+    skipNextGuard,
+    vatRate,
+  ]);
+
 
   const handleCreate = useCallback(async () => {
-    if (isSaving) {
+    if (isCreatingOrder || isSaving) {
       return;
     }
 
-    const selectedCustomer = customers.find((c) => c.customerId === customerAccount);
     const customerLabel = selectedCustomer
       ? selectedCustomer.accountNumber
         ? `${selectedCustomer.accountNumber} — ${selectedCustomer.companyName}`
@@ -201,7 +234,7 @@ export default function CreateOrderScreen() {
 
     const confirmed = await showConfirm({
       title: 'Create new order?',
-      message: `A new order will be created for ${customerLabel}. An order number will be assigned automatically.`,
+      message: `A new order will be created for ${customerLabel}${pendingItems.length > 0 ? ` with ${pendingItems.length} line item(s)` : ''}.`,
       confirmLabel: 'Create',
       cancelLabel: 'Cancel',
     });
@@ -211,7 +244,7 @@ export default function CreateOrderScreen() {
     }
 
     await performCreate();
-  }, [isSaving, showConfirm, customerAccount, customers, performCreate]);
+  }, [isCreatingOrder, isSaving, showConfirm, customerAccount, selectedCustomer, pendingItems.length, performCreate]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -226,11 +259,11 @@ export default function CreateOrderScreen() {
     return [
       buildIconTopBarAction({
         id: 'submit-create-order',
-        label: isSaving ? 'Creating order...' : 'Create order',
-        accessibilityLabel: isSaving ? 'Creating order' : undefined,
+        label: isCreatingOrder ? 'Creating order...' : 'Create order',
+        accessibilityLabel: isCreatingOrder ? 'Creating order' : undefined,
         onPress: handleCreate,
         icon: CreateIcon,
-        disabled: isSaving,
+        disabled: isCreatingOrder || isSaving || pendingItems.length === 0,
         primary: true,
       }),
       buildIconTopBarAction({
@@ -243,19 +276,19 @@ export default function CreateOrderScreen() {
             setOrderContact('');
             setDeliveryAddress(null);
             setReceivedOn('');
-            setDeliveryAddresses([]);
             setPriceBand('');
+            handleResetPendingItems();
             setError(null);
           });
         },
         icon: ResetIcon,
-        disabled: isSaving,
+        disabled: isCreatingOrder || isSaving,
       }),
       buildBackTopBarAction({
-        onPress: () => void guardAction(() => router.back()),
+        onPress: () => void guardAction(goBackWithBrowserFallback),
       }),
     ];
-  }, [handleCreate, isSaving, guardAction, router]);
+  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
@@ -312,13 +345,54 @@ export default function CreateOrderScreen() {
         onChangeText={setReceivedOn}
         editable={!isSaving}
       />
-      <ThemedInput
-        placeholder="Price band (optional)"
-        style={styles.input}
-        value={priceBand}
-        onChangeText={setPriceBand}
-        editable={!isSaving}
-      />
+      {isLoadingPriceBands ? (
+        <LoadingSpinner size="small" message="Loading price bands..." />
+      ) : priceBandsError ? (
+        null
+      ) : (
+        <ThemedSelect<string>
+          value={priceBand ?? null}
+          options={priceBands}
+          onChange={(value) => setPriceBand(value ?? '')}
+          placeholder="Select Price Band"
+          nullLabel="None"
+          disabled={isSaving || isLoadingPriceBands}
+          style={styles.input}
+        />
+      )}
+
+      <View style={styles.vatRow}>
+        <Text style={styles.vatLabel}>VAT</Text>
+        <Text style={styles.vatValue}>{vatRate === undefined ? '...' : vatRate === null ? 'UNAVAILABLE' : `${vatRate}%`}</Text>
+      </View>
+
+      {/* Line Items Grid */}
+      <ItemsCard
+        mode="edit"
+        title="Line Items"
+        isLoading={isLoadingPriceList && priceList.length === 0}
+        emptyMessage="No line items added yet"
+        addItemCard={
+          <AddItemCard
+            priceList={priceList}
+            vatRate={vatRate}
+            priceBand={priceBand}
+            isLoadingPriceList={isLoadingPriceList}
+            isAddingItem={isSaving}
+            onAddItem={handleAddPendingItem}
+          />
+        }
+      >
+        {pendingItems.map((item) => (
+          <PendingItemCard
+            key={item.id}
+            item={item}
+            isAddingItem={isSaving}
+            onUpdateItem={handleUpdatePendingItem}
+            onRemoveItem={handleRemovePendingItem}
+          />
+        ))}
+      </ItemsCard>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </ScreenContent>
@@ -331,5 +405,22 @@ function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     ...common,
     loader: { alignSelf: 'flex-start', marginTop: 4 },
+    vatRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    vatLabel: {
+      fontSize: 15,
+      fontWeight: '600' as const,
+      color: theme.colors.textSecondary,
+    },
+    vatValue: {
+      fontSize: 15,
+      color: theme.colors.textPrimary,
+    },
   });
 }
+

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Image, ScrollView, StyleSheet, Text } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { useAuth } from '@context/AuthContext';
 import { TwoFactorEnrollment } from '@features/auth/TwoFactorEnrollment';
@@ -18,35 +18,49 @@ export default function TwoFactorEnrollScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Image
-        source={require('@assets/images/branding/Sonic-Labs-logo.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <Text style={styles.title}>Set up two-factor authentication</Text>
-      <Text style={styles.subtitle}>
-        Your account requires a second factor before you can access the portal.
-      </Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      enabled={Platform.OS !== 'web'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Image
+          source={require('@assets/images/branding/Sonic-Labs-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>Set up two-factor authentication</Text>
+        <Text style={styles.subtitle}>
+          Your account requires a second factor before you can access the portal.
+        </Text>
 
-      <TwoFactorEnrollment
-        method={pendingTwoFactor.method}
-        scopedToken={pendingTwoFactor.token}
-        onComplete={completeTwoFactor}
-      />
+        <TwoFactorEnrollment
+          method={pendingTwoFactor.method}
+          scopedToken={pendingTwoFactor.token}
+          onComplete={completeTwoFactor}
+        />
 
-      <ThemedButton
-        label="Cancel and sign out"
-        variant="secondary"
-        onPress={cancelTwoFactor}
-        style={styles.cancelButton}
-      />
-    </ScrollView>
+        <ThemedButton
+          label="Cancel and sign out"
+          variant="secondary"
+          onPress={cancelTwoFactor}
+          style={styles.cancelButton}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
+    flex: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
     container: {
       flexGrow: 1,
       justifyContent: 'center',

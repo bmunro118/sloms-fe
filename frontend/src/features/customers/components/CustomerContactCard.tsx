@@ -1,13 +1,16 @@
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
+import { ThemedSelect } from '@components/ui/ThemedSelect';
 import { FieldPair } from '@components/ui/FieldPair';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { CustomerDetails, CustomerFormMode } from '../types';
 import { ThemedButton } from '@components/ui/ThemedButton';
+import { usePriceBands } from '@features/price-list/hooks/usePriceBands';
 
 type Props = {
   mode: CustomerFormMode;
@@ -16,8 +19,10 @@ type Props = {
   formData: Partial<CustomerDetails>;
   onFormChange: (data: Partial<CustomerDetails>) => void;
   canMutate: boolean;
+  canOnboard?: boolean;
   onSuspend?: () => void;
   onReinstate?: () => void;
+  onOnboard?: () => void;
 };
 
 export function CustomerContactCard({
@@ -27,13 +32,25 @@ export function CustomerContactCard({
   formData,
   onFormChange,
   canMutate,
+  canOnboard,
   onSuspend,
   onReinstate,
+  onOnboard,
 }: Props) {
   const styles = useThemedStyles(createStyles);
   const { width } = useWindowDimensions();
   const isCompact = width < 768 || mode !== 'view';
   const theme = useAppTheme();
+  
+  // Fetch price bands for dropdown
+  const { priceBands, isLoading: isLoadingPriceBands, error: priceBandsError } = usePriceBands();
+
+  // Find display label for current band value (for view mode)
+  const getBandDisplayLabel = (bandValue: string | undefined): string => {
+    if (!bandValue) return 'N/A';
+    const bandOption = priceBands.find((option) => option.value === bandValue);
+    return bandOption?.label ?? bandValue;
+  };
 
   return (
     <>
@@ -147,14 +164,22 @@ export function CustomerContactCard({
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Price Band</Text>
           {mode !== 'view' ? (
-            <ThemedInput
-              placeholder="Price Band (e.g. NHS1)"
-              value={formData.band ?? ''}
-              onChangeText={(text) => onFormChange({ ...formData, band: text })}
-              editable={!isSaving}
-            />
+            isLoadingPriceBands ? (
+              <LoadingSpinner size="small" message="Loading price bands..." />
+            ) : priceBandsError ? (
+              <Text style={[styles.fieldValue, { color: theme.colors.danger }]}>Error loading price bands</Text>
+            ) : (
+              <ThemedSelect
+                value={formData.band ?? null}
+                options={priceBands}
+                onChange={(value) => onFormChange({ ...formData, band: value ?? undefined })}
+                placeholder="Select Price Band"
+                nullLabel="None"
+                disabled={isSaving || isLoadingPriceBands}
+              />
+            )
           ) : (
-            <Text style={styles.fieldValue}>{customer?.band ?? 'N/A'}</Text>
+            <Text style={styles.fieldValue}>{getBandDisplayLabel(customer?.band)}</Text>
           )}
         </View>
       </ThemedCard>
@@ -184,17 +209,26 @@ export function CustomerContactCard({
             </View>
           </View>
           <View style={styles.actionsStack}>
+            {canOnboard && !customer?.isSuspended ? (
+              <View style={styles.actionButton}>
+                <ThemedButton
+                  label="Onboard to Portal"
+                  onPress={onOnboard ?? (() => {})}
+                  style={{ minWidth: 160 }}
+                />
+              </View>
+            ) : null}
             {customer?.isSuspended ? (
               <ThemedButton
                 label="Reinstate Customer"
-                onPress={onReinstate}
+                onPress={onReinstate ?? (() => {})}
                 style={styles.actionButton}
               />
             ) : (
               <View style={styles.actionButton}>
                 <ThemedButton
                   label="Suspend Customer"
-                  onPress={onSuspend}
+                  onPress={onSuspend ?? (() => {})}
                   variant="danger"
                   style={{ minWidth: 160 }}
                 />

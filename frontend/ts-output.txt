@@ -1,0 +1,13 @@
+src/components/navigation/CompactWebNavLayout.tsx(59,29): error TS2339: Property 'hovered' does not exist on type 'PressableStateCallbackType'.
+src/components/navigation/CompactWebNavLayout.tsx(78,25): error TS2339: Property 'hovered' does not exist on type 'PressableStateCallbackType'.
+src/components/navigation/NavLayout.tsx(177,49): error TS2345: Argument of type '(prev: any) => boolean' is not assignable to parameter of type 'boolean'.
+src/components/navigation/NavLayout.tsx(177,50): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/features/orders/breakdown-download.ts(14,19): error TS2339: Property 'cacheDirectory' does not exist on type 'typeof import("E:/sync/dev/client_projects/sonic_project/sloms-fe/frontend/node_modules/expo-file-system/build/index")'.
+src/features/orders/breakdown-download.ts(29,35): error TS2339: Property 'cacheDirectory' does not exist on type 'typeof import("E:/sync/dev/client_projects/sonic_project/sloms-fe/frontend/node_modules/expo-file-system/build/index")'.
+src/features/orders/components/index.ts(10,40): error TS2307: Cannot find module './OrderItemsSnapshotCard' or its corresponding type declarations.
+src/features/price-list/csv-export.ts(14,19): error TS2339: Property 'cacheDirectory' does not exist on type 'typeof import("E:/sync/dev/client_projects/sonic_project/sloms-fe/frontend/node_modules/expo-file-system/build/index")'.
+src/features/price-list/csv-export.ts(27,35): error TS2339: Property 'cacheDirectory' does not exist on type 'typeof import("E:/sync/dev/client_projects/sonic_project/sloms-fe/frontend/node_modules/expo-file-system/build/index")'.
+vitest.config.ts(6,40): error TS2345: Argument of type 'URL' is not assignable to parameter of type 'string | URL'.
+  Type 'URL' is not assignable to type 'import("node:url").URL'.
+    The types returned by 'searchParams[Symbol.iterator]()' are incompatible between these types.
+      Type 'IterableIterator<[string, string]>' is missing the following properties from type 'URLSearchParamsIterator<[string, string]>': map, filter, take, drop, and 9 more.

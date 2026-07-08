@@ -1,10 +1,8 @@
 export { OrderCard } from './OrderCard';
 export { OrderDetailCard } from './OrderDetailCard';
+export { OrderHistoryCard } from './OrderHistoryCard';
 export { OrderItemCard } from './OrderItemCard';
 export { OrderItemsCard } from './OrderItemsCard';
-export { OrderProgressTimeline } from './OrderProgressTimeline';
 export { OrderTrackingSummaryCard } from './OrderTrackingSummaryCard';
 export { OrderSystemNotificationsCard } from './OrderSystemNotificationsCard';
-export { OrderUpdatesCard } from './OrderUpdatesCard';
 export { SerialLookupCard } from './SerialLookupCard';
-export { OrderItemsSnapshotCard } from './OrderItemsSnapshotCard';

@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import {
   CreateCustomerPayload,
   CreateAddressPayload,
@@ -143,7 +143,7 @@ export default function CreateCustomerScreen() {
   }, [formData, pendingAddresses, validate, showConfirm, showSuccess, showDanger, showWarning, router, skipNextGuard]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),
+    buildBackTopBarAction({ onPress: () => void guardAction(goBackWithBrowserFallback) }),
     buildIconTopBarAction({
       id: 'save-new-customer',
       label: 'Save customer',
@@ -151,7 +151,7 @@ export default function CreateCustomerScreen() {
       icon: SaveIcon,
       disabled: isSaving,
     }),
-  ], [handleSave, isSaving, guardAction, router]);
+  ], [handleSave, isSaving, guardAction]);
 
   useScreenTopBar({ title: 'Create Customer', actions: topBarActions });
 

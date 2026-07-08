@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
@@ -172,67 +172,84 @@ export default function PromptPasswordChangeScreen() {
     }
   };
 
+  const isNative = Platform.OS !== 'web';
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>First-Time Password Setup</Text>
-      <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Choose a new password that is different from your temporary one.</Text>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      enabled={isNative}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>First-Time Password Setup</Text>
+        <Text style={styles.subtitle}>Your account requires a new password before you can access the portal. Choose a new password that is different from your temporary one.</Text>
 
-      <ThemedInput
-        secureTextEntry
-        placeholder="New password"
-        style={styles.formInput}
-        value={newPassword}
-        onChangeText={(text) => {
-          setNewPassword(text);
-          resetInactivityTimer();
-        }}
-      />
-      <ThemedInput
-        secureTextEntry
-        placeholder="Confirm new password"
-        style={styles.formInput}
-        value={confirmPassword}
-        onChangeText={(text) => {
-          setConfirmPassword(text);
-          resetInactivityTimer();
-        }}
-      />
+        <ThemedInput
+          secureTextEntry
+          placeholder="New password"
+          style={styles.formInput}
+          value={newPassword}
+          onChangeText={(text) => {
+            setNewPassword(text);
+            resetInactivityTimer();
+          }}
+        />
+        <ThemedInput
+          secureTextEntry
+          placeholder="Confirm new password"
+          style={styles.formInput}
+          value={confirmPassword}
+          onChangeText={(text) => {
+            setConfirmPassword(text);
+            resetInactivityTimer();
+          }}
+        />
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <ThemedButton
-        label={isSubmitting ? 'Updating...' : 'Update password'}
-        disabled={isSubmitting}
-        onPress={() => {
-          resetInactivityTimer();
-          handleSubmit();
-        }}
-        style={styles.primaryButton}
-        textStyle={styles.primaryButtonText}
-      />
+        <ThemedButton
+          label={isSubmitting ? 'Updating...' : 'Update password'}
+          disabled={isSubmitting}
+          onPress={() => {
+            resetInactivityTimer();
+            handleSubmit();
+          }}
+          style={styles.primaryButton}
+          textStyle={styles.primaryButtonText}
+        />
 
-      <ThemedButton
-        label="Cancel and sign out"
-        variant="secondary"
-        onPress={() => {
-          resetInactivityTimer();
-          signOut();
-        }}
-        style={styles.secondaryButton}
-        textStyle={styles.secondaryButtonText}
-      />
-    </View>
+        <ThemedButton
+          label="Cancel and sign out"
+          variant="secondary"
+          onPress={() => {
+            resetInactivityTimer();
+            signOut();
+          }}
+          style={styles.secondaryButton}
+          textStyle={styles.secondaryButtonText}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    container: {
+    flex: {
       flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    container: {
+      flexGrow: 1,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: theme.colors.background,
       paddingHorizontal: 24,
+      paddingVertical: 32,
     },
     title: {
       fontSize: 28,

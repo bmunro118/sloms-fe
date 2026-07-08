@@ -1,6 +1,6 @@
 import { usePathname, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChevronLeft as BackIcon, LogOut as SignOutIcon, Menu as MenuIcon, X as CloseIcon } from 'lucide-react-native';
 import { TooltipPressable } from '@components/ui/TooltipPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -105,7 +105,10 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
   );
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={styles.topBarLayer} onLayout={(event) => setTopBarHeight(event.nativeEvent.layout.height)}>
         <TopBar />
       </View>
@@ -117,6 +120,7 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
             paddingBottom: Math.max(insets.bottom + 96, bottomBarHeight + 16),
           },
         ]}
+        keyboardShouldPersistTaps="handled"
       >
         {children}
       </ScrollView>
@@ -205,7 +209,7 @@ export function MobileNavLayout({ items, onSignOut, children }: NavLayoutProps) 
             : <MenuIcon size={18} color={theme.colors.navTextStrong} />}
         </TooltipPressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

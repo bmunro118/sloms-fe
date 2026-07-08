@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Pencil as EditIcon, PencilOff as CancelEditIcon, RotateCcw as ResetIcon, Save as SaveIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, RefreshControl, Platform } from 'react-native';
@@ -7,8 +7,9 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
-import { getCustomer, updateCustomer, suspendCustomer, reinstateCustomer, CustomerRecord, UpdateCustomerPayload } from '@src/features/customers/api';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
+import { getCustomer, updateCustomer, suspendCustomer, reinstateCustomer, onboardCustomer, CustomerRecord, UpdateCustomerPayload, OnboardCustomerPayload } from '@src/features/customers/api';
+import { OnboardCustomerModal } from '@src/features/customers/components/OnboardCustomerModal';
 import { CustomerInfoCard } from '@src/features/customers/components/CustomerInfoCard';
 import { CustomerContactCard } from '@src/features/customers/components/CustomerContactCard';
 import { CustomerDeliveryAddressesCard } from '@src/features/customers/components/CustomerDeliveryAddressesCard';
@@ -20,9 +21,8 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
 export default function CustomerDetailScreen() {
-  const { isStaff, canMutate } = useAuth();
+  const { isStaff, canMutate, role } = useAuth();
   const { showConfirm, showSuccess, showDanger } = useAppModal();
-  const router = useRouter();
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const params = useLocalSearchParams<{ id: string; mode?: string }>();
@@ -45,6 +45,7 @@ export default function CustomerDetailScreen() {
   const [formData, setFormData] = useState<Partial<CustomerRecord>>({});
   const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [isOnboardingModalVisible, setIsOnboardingModalVisible] = useState(false);
 
   useEffect(() => {
     if (!routeWantsEdit || hasAppliedRouteEdit) return;
@@ -184,6 +185,17 @@ export default function CustomerDetailScreen() {
     }
   }, [customer, customerId, showConfirm, showSuccess, showDanger]);
 
+  const handleOnboard = useCallback(async (payload: OnboardCustomerPayload) => {
+    if (!customer || !Number.isFinite(customerId)) return;
+    try {
+      const result = await onboardCustomer(customerId, payload);
+      setIsOnboardingModalVisible(false);
+      showSuccess('Customer onboarded', `Welcome email sent to ${result.loginEmail}.`);
+    } catch (err) {
+      showDanger('Onboarding failed', err instanceof Error ? err.message : 'Could not onboard customer.');
+    }
+  }, [customer, customerId, showSuccess, showDanger]);
+
   const handleReinstate = useCallback(async () => {
     if (!customer || !Number.isFinite(customerId)) return;
     const confirmed = await showConfirm({
@@ -203,7 +215,7 @@ export default function CustomerDetailScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({
-      onPress: () => void guardAction(() => router.back()),
+      onPress: () => void guardAction(goBackWithBrowserFallback),
       label: 'Back to customers',
     });
 
@@ -251,7 +263,7 @@ export default function CustomerDetailScreen() {
       }),
       backAction,
     ];
-  }, [canMutate, customer, guardAction, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, router]);
+  }, [canMutate, customer, guardAction, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving]);
 
   useScreenTopBar({ title: 'Customer Detail', actions: topBarActions });
 
@@ -285,8 +297,10 @@ export default function CustomerDetailScreen() {
             formData={formData}
             onFormChange={setFormData}
             canMutate={canMutate}
+            canOnboard={canMutate && (role === 'Admin' || role === 'Manager')}
             onSuspend={handleSuspend}
             onReinstate={handleReinstate}
+            onOnboard={() => setIsOnboardingModalVisible(true)}
           />
           <CustomerDeliveryAddressesCard
             mode={isEditing ? 'edit' : 'view'}
@@ -294,6 +308,14 @@ export default function CustomerDetailScreen() {
             canMutate={canMutate}
           />
         </ScrollView>
+      ) : null}
+      {customer ? (
+        <OnboardCustomerModal
+          visible={isOnboardingModalVisible}
+          customer={customer}
+          onConfirm={handleOnboard}
+          onClose={() => setIsOnboardingModalVisible(false)}
+        />
       ) : null}
     </ScreenContent>
   );

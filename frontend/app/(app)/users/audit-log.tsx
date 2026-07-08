@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -7,7 +7,7 @@ import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import {
   AuditLogEntry,
   AuditLogEventType,
@@ -48,7 +48,6 @@ const PAGE_SIZE = 25;
 
 export default function UserAuditLogScreen() {
   const { isAdmin } = useAuth();
-  const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
   const params = useLocalSearchParams<{ userId?: string }>();
@@ -116,8 +115,8 @@ export default function UserAuditLogScreen() {
   }, []);
 
   const topBarActions = useMemo<TopBarAction[]>(() => [
-    buildBackTopBarAction({ onPress: () => router.back() }),
-  ], [router]);
+    buildBackTopBarAction({ onPress: goBackWithBrowserFallback }),
+  ], []);
 
   const title = prefilledUserId ? `Audit Log — User #${prefilledUserId}` : 'User Audit Log';
   useScreenTopBar({ title, actions: topBarActions });

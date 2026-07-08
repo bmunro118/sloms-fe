@@ -31,8 +31,8 @@ export function TypesTab({
           <View style={styles.rowHeader}>
             <View style={styles.rowInfo}>
               <Text style={styles.cardTitle}>{lt.name}</Text>
-              {lt.description ? (
-                <Text style={styles.cardMeta}>{lt.description}</Text>
+              {lt.displayName ? (
+                <Text style={styles.cardMeta}>{lt.displayName}</Text>
               ) : null}
             </View>
             {isAdmin ? (

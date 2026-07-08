@@ -11,7 +11,7 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
-import { buildBackTopBarAction, buildIconTopBarAction } from '@src/features/app-shell';
+import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import {
   UpdateUserPayload,
   UserRecord,
@@ -235,7 +235,7 @@ export default function UserDetailScreen() {
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const actions: TopBarAction[] = [
-      buildBackTopBarAction({ onPress: () => void guardAction(() => router.back()) }),
+      buildBackTopBarAction({ onPress: () => void guardAction(goBackWithBrowserFallback) }),
     ];
 
     if (isAdmin && !isEditing) {
@@ -270,7 +270,7 @@ export default function UserDetailScreen() {
     }
 
     return actions;
-  }, [isAdmin, isEditing, isLoading, user, isSaving, guardAction, handleStartEdit, handleSave, handleCancelEdit, router]);
+  }, [isAdmin, isEditing, isLoading, user, isSaving, guardAction, handleStartEdit, handleSave, handleCancelEdit]);
 
   useScreenTopBar({
     title: user ? (user.fullName ?? user.username ?? `User #${user.userId}`) : 'User',

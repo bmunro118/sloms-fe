@@ -121,14 +121,17 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
   if (!response.ok) {
     const contentType = response.headers.get('content-type') ?? '';
     const responseText = await response.text();
+    console.error(`[apiRequest] ${method} ${url} → ${response.status}:`, responseText);
     const payload = extractErrorPayload(contentType, responseText);
     const code = typeof payload.code === 'string'
       ? payload.code
       : typeof payload.message === 'string'
         ? payload.message
-        : typeof payload.error === 'string'
-          ? payload.error
-          : undefined;
+        : Array.isArray(payload.message) && payload.message.length > 0
+          ? String(payload.message[0])
+          : typeof payload.error === 'string'
+            ? payload.error
+            : undefined;
 
     // When an authenticated request is rejected with 401, the session token
     // is no longer valid. Notify the auth layer so it can clear state and

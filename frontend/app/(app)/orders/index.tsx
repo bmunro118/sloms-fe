@@ -20,7 +20,8 @@ import { useAppTheme } from '@theme/ThemeProvider';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import { dispatchOrder, listOrders } from '@src/features/orders/api';
+import { dispatchOrder, getOrderItemBySerial, listOrders, OrderItem } from '@src/features/orders/api';
+import { SerialMatchCard } from '@src/features/orders/components/SerialMatchCard';
 import { resolveOrderStatus } from '@src/features/orders/types';
 import { ApiError } from '@utils/api';
 
@@ -72,6 +73,7 @@ export default function OrdersListScreen() {
   const [dispatchingOrderKey, setDispatchingOrderKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [serialMatch, setSerialMatch] = useState<OrderItem | null>(null);
 
   const {
     appliedFilters,
@@ -214,6 +216,17 @@ export default function OrdersListScreen() {
     };
   }, [hasServerFilterQuery, listQuery, refreshTick]);
 
+  // Serial number lookup — fires alongside the debounced search
+  useEffect(() => {
+    const term = debouncedSearch.trim();
+    if (!term) { setSerialMatch(null); return; }
+    const controller = new AbortController();
+    getOrderItemBySerial<OrderItem>(term)
+      .then((item) => { if (!controller.signal.aborted) setSerialMatch(item); })
+      .catch(() => { if (!controller.signal.aborted) setSerialMatch(null); });
+    return () => { controller.abort(); };
+  }, [debouncedSearch]);
+
   const customerMap = useBulkOrderCustomers(allOrders);
 
   const ordersByFilter = allOrders.filter((o) => {
@@ -278,7 +291,8 @@ export default function OrdersListScreen() {
               ) : undefined
             }
           >
-            {resolvedOrders.length === 0 ? <Text style={styles.muted}>No orders found.</Text> : null}
+            {serialMatch ? <SerialMatchCard item={serialMatch} /> : null}
+            {resolvedOrders.length === 0 && !serialMatch ? <Text style={styles.muted}>No orders found.</Text> : null}
             {resolvedOrders.map((order) => (
               <OrderCard
                 key={`${order.orderNumber}-${order.orderBatch}`}
