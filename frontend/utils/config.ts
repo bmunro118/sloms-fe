@@ -220,6 +220,9 @@ export const ENDPOINTS = {
   documents: {
     list: e('/api/documents'),
   },
+
+  // ── Scan Labels ────────────────────────────────────────────────────────────
+  scanLabels: e('/api/scan-labels'),
 };
 
 

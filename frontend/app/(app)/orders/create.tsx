@@ -1,5 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
-import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
+import { PackageCheck as CreateIcon, RotateCcw as ResetIcon, ScanLine } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
+import { useFeatureFlag } from '@src/hooks/useFeatureFlag';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { usePriceBands } from '@features/price-list/hooks/usePriceBands';
@@ -29,6 +30,7 @@ import {
 import { usePendingItems } from '@src/features/orders/hooks/usePendingItems';
 import { useCurrentVatRate } from '@src/features/orders/hooks/useCurrentVatRate';
 import { useCreateOrderData } from '@src/features/orders/hooks/useCreateOrderData';
+import { ScanLabelsModal, useScanLabel } from '@features/scan-labels';
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -37,6 +39,7 @@ export default function CreateOrderScreen() {
   const { showConfirm, showDanger, showWarning } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
+  const scanLabelsEnabled = useFeatureFlag('scanLabels');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [customerRef, setCustomerRef] = useState('');
   const [orderContact, setOrderContact] = useState('');
@@ -45,6 +48,13 @@ export default function CreateOrderScreen() {
   const [priceBand, setPriceBand] = useState('');
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const handleLabelScanned = useCallback((label: string) => {
+    // Handle scanned label - can be extended for actual label processing
+  }, []);
+
+  const { isModalVisible, openScanner, closeScanner, manualText, setManualText, handleManualSubmit } = useScanLabel({
+    onLabelScanned: handleLabelScanned,
+  });
   const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
   const { vatRate } = useCurrentVatRate();
   const {
@@ -139,7 +149,6 @@ export default function CreateOrderScreen() {
     setIsCreatingOrder(true);
     setIsSaving(true);
     setError(null);
-    console.log('[OrderCreate] Submitting order — customerAccount:', customerAccount);
     try {
       const trimmedPriceBand = priceBand.trim();
       const trimmedCustomerRef = customerRef.trim();
@@ -152,10 +161,8 @@ export default function CreateOrderScreen() {
         receivedOn: trimmedReceivedOn || undefined,
         priceBand: trimmedPriceBand || undefined,
       };
-      console.log('[OrderCreate] Payload JSON:', JSON.stringify(payload));
 
       const result = await createOrder(payload);
-      console.log('[OrderCreate] Order created successfully:', result);
 
       // Submit pending items sequentially
       const createdOrderNumber = result.orderNumber;
@@ -174,7 +181,6 @@ export default function CreateOrderScreen() {
               side: item.side,
             } as Parameters<typeof addOrderItem>[2]);
           } catch (itemErr) {
-            console.warn('[OrderCreate] Failed to add item:', item.itemId, itemErr);
             failedItems.push(item.description || item.itemId);
           }
         }
@@ -191,7 +197,6 @@ export default function CreateOrderScreen() {
       skipNextGuard();
       router.replace(`/(app)/orders/${createdOrderNumber}/${createdOrderBatch}` as never);
     } catch (err) {
-      console.error('[OrderCreate] API error:', err);
       if (isMountedRef.current) {
         const detail = err instanceof ApiError && err.code ? err.code : err instanceof Error ? err.message : 'Failed to create order. Please try again.';
         showDanger('Create Order Failed', detail);
@@ -256,7 +261,7 @@ export default function CreateOrderScreen() {
   }, [navigation, isDirty, guardAction]);
 
   const topBarActions = useMemo<TopBarAction[]>(() => {
-    return [
+    const actions: TopBarAction[] = [
       buildIconTopBarAction({
         id: 'submit-create-order',
         label: isCreatingOrder ? 'Creating order...' : 'Create order',
@@ -284,11 +289,28 @@ export default function CreateOrderScreen() {
         icon: ResetIcon,
         disabled: isCreatingOrder || isSaving,
       }),
+    ];
+
+    if (scanLabelsEnabled) {
+      actions.push(
+        buildIconTopBarAction({
+          id: 'scan-labels',
+          label: 'Scan Labels',
+          onPress: openScanner,
+          icon: ScanLine,
+          disabled: isCreatingOrder || isSaving,
+        })
+      );
+    }
+
+    actions.push(
       buildBackTopBarAction({
         onPress: () => void guardAction(goBackWithBrowserFallback),
-      }),
-    ];
-  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length]);
+      })
+    );
+
+    return actions;
+  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length, scanLabelsEnabled, openScanner]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
@@ -395,6 +417,16 @@ export default function CreateOrderScreen() {
       </ItemsCard>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {scanLabelsEnabled && (
+        <ScanLabelsModal
+          visible={isModalVisible}
+          onClose={closeScanner}
+          onLabelScanned={handleLabelScanned}
+          manualText={manualText}
+          setManualText={setManualText}
+          handleManualSubmit={handleManualSubmit}
+        />
+      )}
     </ScreenContent>
   );
 }

@@ -23,7 +23,8 @@ export type FeatureName =
   | 'documentsPage'
   | 'priceListPage'
   | 'vatRatesPage'
-  | 'statsPage';
+  | 'statsPage'
+  | 'scanLabels';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,8 @@ function getEnvFlag(name: FeatureName): boolean | null {
       return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_VAT_RATES_PAGE);
     case 'statsPage':
       return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_STATS_PAGE);
+    case 'scanLabels':
+      return parseEnvBool(process.env.EXPO_PUBLIC_FEATURE_SCAN_LABELS);
     default:
       return null;
   }
@@ -95,6 +98,9 @@ export const featureFlags: Record<FeatureName, boolean> = {
   priceListPage: getEnvFlag('priceListPage') ?? false,
   vatRatesPage: getEnvFlag('vatRatesPage') ?? false,
   statsPage: getEnvFlag('statsPage') ?? false,
+
+  // Experimental features — dev-enabled by default
+  scanLabels: getEnvFlag('scanLabels') ?? __DEV__,
 };
 
 export function isFeatureEnabled(feature: FeatureName): boolean {
