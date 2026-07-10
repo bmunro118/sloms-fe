@@ -119,15 +119,18 @@ export function CollapsibleCard({
       <Animated.View
         style={[
           styles.contentContainer,
-          {
-            height: heightInterpolated,
-            opacity: animatedOpacity,
-          },
+          { height: heightInterpolated },
         ]}
       >
-        <View onLayout={handleContentLayout} style={styles.contentInner}>
+        <Animated.View
+          onLayout={handleContentLayout}
+          style={[
+            styles.contentInner,
+            { opacity: animatedOpacity },
+          ]}
+        >
           {children}
-        </View>
+        </Animated.View>
       </Animated.View>
     </ThemedCard>
   );

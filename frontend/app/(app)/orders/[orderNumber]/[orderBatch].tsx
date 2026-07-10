@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import {
   Archive as ArchiveIcon,
   Download as DownloadIcon,
@@ -69,7 +69,7 @@ export default function OrderDetailScreen() {
   } = useOrderDetailScan(orderNumber, orderBatch);
   const router = useRouter();
   const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ReactNavigation.RootParamList>>();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
   const routeWantsEdit = params.mode === 'edit';
