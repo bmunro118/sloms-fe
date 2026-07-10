@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { PackagePlus as PackagePlusIcon } from 'lucide-react-native';
+import { PackagePlus as PackagePlusIcon, ScanLine } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -14,9 +14,11 @@ import { OrderCard } from '@src/features/orders/components/OrderCard';
 import { useBulkOrderCustomers } from '@src/features/orders/hooks/useBulkOrderCustomers';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
+import { useFeatureFlag } from '@src/hooks/useFeatureFlag';
 import { useListFilters } from '@src/hooks/useListFilters';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useAppTheme } from '@theme/ThemeProvider';
+import { ScanLabelsModal, useScanLabel } from '@features/scan-labels';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -65,6 +67,13 @@ export default function OrdersListScreen() {
   const router = useRouter();
   const { canMutate, isStaff } = useAuth();
   const { showConfirm } = useAppModal();
+  const scanLabelsEnabled = useFeatureFlag('scanLabels');
+
+  const handleLabelScanned = useCallback((label: string) => {
+    setSearchQuery(label);
+  }, [setSearchQuery]);
+
+  const { isModalVisible, openScanner, closeScanner, manualText, setManualText, handleManualSubmit, step, capturedPhoto, correctionText, onPhotoTaken, onRetake, onCorrectionConfirm } = useScanLabel({ onLabelScanned: handleLabelScanned });
   const styles = useThemedStyles(createStyles);
   const theme = useAppTheme();
   const [refreshTick, setRefreshTick] = useState(0);
@@ -150,8 +159,20 @@ export default function OrdersListScreen() {
       }));
     }
 
+    if (scanLabelsEnabled && isStaff) {
+      actions.push(
+        buildIconTopBarAction({
+          id: 'scan-labels',
+          label: 'Scan Labels',
+          onPress: openScanner,
+          icon: ScanLine,
+          disabled: isLoading,
+        })
+      );
+    }
+
     return actions;
-  }, [canMutate, isStaff, router]);
+  }, [canMutate, isStaff, router, scanLabelsEnabled, openScanner, isLoading]);
 
   const listQuery = useMemo<OrdersListQuery>(() => {
     const customerIdRaw = appliedFilters.customerId.trim();
@@ -360,6 +381,22 @@ export default function OrdersListScreen() {
           </View>
         ) : null}
       </FilterModal>
+      {scanLabelsEnabled && (
+        <ScanLabelsModal
+          visible={isModalVisible}
+          onClose={closeScanner}
+          onLabelScanned={handleLabelScanned}
+          manualText={manualText}
+          setManualText={setManualText}
+          handleManualSubmit={handleManualSubmit}
+          step={step}
+          capturedPhoto={capturedPhoto}
+          correctionText={correctionText}
+          onPhotoTaken={onPhotoTaken}
+          onRetake={onRetake}
+          onCorrectionConfirm={onCorrectionConfirm}
+        />
+      )}
     </>
   );
 }

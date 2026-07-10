@@ -9,6 +9,7 @@ import {
   PencilOff as CancelEditIcon,
   RotateCcw as ResetIcon,
   Save as SaveIcon,
+  ScanLine,
   Send,
 } from 'lucide-react-native';
 import { ScreenContent } from '@components/layout/ScreenContent';
@@ -19,9 +20,11 @@ import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildBackTopBarAction, buildIconTopBarAction, goBackWithBrowserFallback } from '@src/features/app-shell';
 import { Address, listAddresses } from '@src/features/customers/api';
 import { useAppModal } from '@src/hooks/useAppModal';
+import { useFeatureFlag } from '@src/hooks/useFeatureFlag';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useUnsavedChangesGuard, normaliseForDirtyCheck } from '@src/hooks/useUnsavedChangesGuard';
+import { ScanLabelsModal, useScanLabel } from '@features/scan-labels';
 import { downloadAndShareBreakdownPdfNative } from '@src/features/orders/breakdown-download';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -52,6 +55,13 @@ import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string; mode?: string; dispatch?: string }>();
   const { canMutate, isStaff } = useAuth();
+  const scanLabelsEnabled = useFeatureFlag('scanLabels');
+
+  const handleLabelScanned = useCallback((_label: string) => {
+    // Placeholder: scan-to-add-item integration goes here.
+  }, []);
+
+  const { isModalVisible, openScanner, closeScanner, manualText, setManualText, handleManualSubmit, step, capturedPhoto, correctionText, onPhotoTaken, onRetake, onCorrectionConfirm } = useScanLabel({ onLabelScanned: handleLabelScanned });
   const router = useRouter();
   const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
   const navigation = useNavigation();
@@ -355,10 +365,23 @@ export default function OrderDetailScreen() {
     actions.push(
       buildIconTopBarAction({ id: 'download-order-breakdown', label: 'Download breakdown', onPress: () => { void handleDownloadBreakdown(); }, icon: DownloadIcon, disabled: isLoading || !order }),
       buildIconTopBarAction({ id: 'void-order', label: 'Void order', onPress: () => { void handleVoidOrder(); }, icon: ArchiveIcon, disabled: isLoading || !order || !canMutate, secondary: true }),
-      backAction,
     );
+
+    if (scanLabelsEnabled && isStaff) {
+      actions.push(
+        buildIconTopBarAction({
+          id: 'scan-labels',
+          label: 'Scan Labels',
+          onPress: openScanner,
+          icon: ScanLine,
+          disabled: isLoading || !order,
+        })
+      );
+    }
+
+    actions.push(backAction);
     return actions;
-  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, order]);
+  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, isStaff, order, openScanner, scanLabelsEnabled]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
@@ -442,6 +465,22 @@ export default function OrderDetailScreen() {
 
         </ScrollView>
       ) : null}
+      {scanLabelsEnabled && (
+        <ScanLabelsModal
+          visible={isModalVisible}
+          onClose={closeScanner}
+          onLabelScanned={handleLabelScanned}
+          manualText={manualText}
+          setManualText={setManualText}
+          handleManualSubmit={handleManualSubmit}
+          step={step}
+          capturedPhoto={capturedPhoto}
+          correctionText={correctionText}
+          onPhotoTaken={onPhotoTaken}
+          onRetake={onRetake}
+          onCorrectionConfirm={onCorrectionConfirm}
+        />
+      )}
     </ScreenContent>
   );
 }

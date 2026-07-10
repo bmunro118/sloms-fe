@@ -52,9 +52,20 @@ export default function CreateOrderScreen() {
     // Handle scanned label - can be extended for actual label processing
   }, []);
 
-  const { isModalVisible, openScanner, closeScanner, manualText, setManualText, handleManualSubmit } = useScanLabel({
-    onLabelScanned: handleLabelScanned,
-  });
+  const {
+    isModalVisible,
+    openScanner,
+    closeScanner,
+    manualText,
+    setManualText,
+    handleManualSubmit,
+    step,
+    capturedPhoto,
+    correctionText,
+    onPhotoTaken,
+    onRetake,
+    onCorrectionConfirm,
+  } = useScanLabel({ onLabelScanned: handleLabelScanned });
   const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
   const { vatRate } = useCurrentVatRate();
   const {
@@ -425,6 +436,12 @@ export default function CreateOrderScreen() {
           manualText={manualText}
           setManualText={setManualText}
           handleManualSubmit={handleManualSubmit}
+          step={step}
+          capturedPhoto={capturedPhoto}
+          correctionText={correctionText}
+          onPhotoTaken={onPhotoTaken}
+          onRetake={onRetake}
+          onCorrectionConfirm={onCorrectionConfirm}
         />
       )}
     </ScreenContent>

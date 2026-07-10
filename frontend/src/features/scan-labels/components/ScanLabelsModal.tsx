@@ -6,6 +6,8 @@ import { ThemedInput } from '@components/ui/ThemedInput';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { tokens } from '@theme/tokens';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { ScanCorrectionView } from './ScanCorrectionView';
+import type { ScanStep, CapturedPhoto } from '../types';
 
 interface ScanLabelsModalProps {
   visible: boolean;
@@ -14,6 +16,13 @@ interface ScanLabelsModalProps {
   manualText: string;
   setManualText: (text: string) => void;
   handleManualSubmit: () => void;
+  // New props for correction flow
+  step: ScanStep;
+  capturedPhoto: CapturedPhoto | null;
+  correctionText: string;
+  onPhotoTaken: (photo: CapturedPhoto) => void;
+  onRetake: () => void;
+  onCorrectionConfirm: (text: string) => void;
 }
 
 export function ScanLabelsModal({
@@ -23,6 +32,12 @@ export function ScanLabelsModal({
   manualText,
   setManualText,
   handleManualSubmit,
+  step,
+  capturedPhoto,
+  correctionText,
+  onPhotoTaken,
+  onRetake,
+  onCorrectionConfirm,
 }: ScanLabelsModalProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -51,13 +66,11 @@ export function ScanLabelsModal({
     try {
       if (!cameraRef.current) return;
       const photo = await cameraRef.current.takePictureAsync();
-      // Dummy behaviour - log would show: 'Scanned photo:', photo
-      // Dummy behaviour - extract label from photo uri as placeholder
-      const label = `scanned_${Date.now()}`;
-      onLabelScanned(label);
-      onClose();
-    } catch (error) {
-      // Dummy behaviour - error would be logged: 'Scan error:', error
+      if (photo) {
+        onPhotoTaken({ uri: photo.uri });
+      }
+    } catch {
+      // camera error — stays on camera step
     }
   };
 
@@ -91,6 +104,20 @@ export function ScanLabelsModal({
   }
 
   const isNarrow = Platform.OS !== 'web' || dimensions.width < 768;
+
+  if (step === 'correction' && capturedPhoto) {
+    return (
+      <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
+        <ScanCorrectionView
+          photoUri={capturedPhoto.uri}
+          initialText={correctionText}
+          onConfirm={onCorrectionConfirm}
+          onRetake={onRetake}
+          onCancel={onClose}
+        />
+      </Modal>
+    );
+  }
 
   return (
     <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
