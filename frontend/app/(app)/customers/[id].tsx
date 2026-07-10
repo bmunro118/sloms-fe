@@ -13,6 +13,7 @@ import { OnboardCustomerModal } from '@src/features/customers/components/Onboard
 import { CustomerInfoCard } from '@src/features/customers/components/CustomerInfoCard';
 import { CustomerContactCard } from '@src/features/customers/components/CustomerContactCard';
 import { CustomerDeliveryAddressesCard } from '@src/features/customers/components/CustomerDeliveryAddressesCard';
+import { CustomerActionsCard } from '@src/features/customers/components/CustomerActionsCard';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useUnsavedChangesGuard, normaliseForDirtyCheck } from '@src/hooks/useUnsavedChangesGuard';
@@ -296,17 +297,21 @@ export default function CustomerDetailScreen() {
             isSaving={isSaving}
             formData={formData}
             onFormChange={setFormData}
-            canMutate={canMutate}
-            canOnboard={canMutate && (role === 'Admin' || role === 'Manager')}
-            onSuspend={handleSuspend}
-            onReinstate={handleReinstate}
-            onOnboard={() => setIsOnboardingModalVisible(true)}
           />
           <CustomerDeliveryAddressesCard
             mode={isEditing ? 'edit' : 'view'}
             customerId={customerId}
             canMutate={canMutate}
           />
+          {canMutate ? (
+            <CustomerActionsCard
+              customer={customer}
+              canOnboard={canMutate && (role === 'Admin' || role === 'Manager')}
+              onSuspend={handleSuspend}
+              onReinstate={handleReinstate}
+              onOnboard={() => setIsOnboardingModalVisible(true)}
+            />
+          ) : null}
         </ScrollView>
       ) : null}
       {customer ? (

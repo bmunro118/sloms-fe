@@ -173,7 +173,6 @@ export default function CreateCustomerScreen() {
           isSaving={isSaving}
           formData={formData}
           onFormChange={(data) => setFormData((prev) => ({ ...prev, ...data as Partial<CreateCustomerPayload> }))}
-          canMutate={true}
         />
         <CustomerDeliveryAddressesCard
           mode="create"
