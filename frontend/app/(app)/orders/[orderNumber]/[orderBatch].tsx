@@ -5,10 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import {
   Archive as ArchiveIcon,
   Download as DownloadIcon,
-  Pencil as EditIcon,
-  PencilOff as CancelEditIcon,
-  RotateCcw as ResetIcon,
-  Save as SaveIcon,
   ScanLine,
   Send,
 } from 'lucide-react-native';
@@ -23,26 +19,17 @@ import { useAppModal } from '@src/hooks/useAppModal';
 import { useFeatureFlag } from '@src/hooks/useFeatureFlag';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
-import { useUnsavedChangesGuard, normaliseForDirtyCheck } from '@src/hooks/useUnsavedChangesGuard';
-import { ScanLabelsModal, useScanLabel } from '@features/scan-labels';
-import { downloadAndShareBreakdownPdfNative } from '@src/features/orders/breakdown-download';
+import { useOrderDetailMutations } from '@src/features/orders/hooks/useOrderDetailMutations';
+import { useOrderDetailScan } from '@src/features/orders/hooks/useOrderDetailScan';
+import { OrderScanSection } from '@src/features/orders/components/OrderScanSection';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
-import {
-  dispatchOrder,
-  getOrder,
-  getOrderBreakdownPdf,
-  updateOrder,
-  voidOrder,
-} from '@src/features/orders/api';
-import { ENDPOINTS } from '@utils/config';
+import { getOrder } from '@src/features/orders/api';
 import {
   OrderDetails,
   OrderEditForm,
-  OrderUpdatePayload,
   resolveOrderStatus,
-  toOrderEditForm,
 } from '@src/features/orders/types';
 import { OrderDetailCard } from '@src/features/orders/components/OrderDetailCard';
 import { OrderItemsCard } from '@src/features/orders/components/OrderItemsCard';
@@ -56,36 +43,44 @@ export default function OrderDetailScreen() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string; mode?: string; dispatch?: string }>();
   const { canMutate, isStaff } = useAuth();
   const scanLabelsEnabled = useFeatureFlag('scanLabels');
+  const orderNumber = Number(params.orderNumber);
+  const orderBatch = Number(params.orderBatch);
 
-  const handleLabelScanned = useCallback((_label: string) => {
-    // Placeholder: scan-to-add-item integration goes here.
-  }, []);
-
-  const { isModalVisible, openScanner, closeScanner, manualText, setManualText, handleManualSubmit, step, capturedPhoto, correctionText, onPhotoTaken, onRetake, onCorrectionConfirm } = useScanLabel({ onLabelScanned: handleLabelScanned });
+  const {
+    isModalVisible,
+    openScanner,
+    closeScanner,
+    manualText,
+    setManualText,
+    handleManualSubmit,
+    step,
+    capturedPhoto,
+    correctionText,
+    onPhotoTaken,
+    onRetake,
+    onCorrectionConfirm,
+    extraction,
+    isLoading: isScanning,
+    error: scanError,
+    handleConfirmExtraction,
+    lastCreatedItem,
+    refreshSignal,
+    resetLastCreatedItem,
+  } = useOrderDetailScan(orderNumber, orderBatch);
   const router = useRouter();
   const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  const orderNumber = Number(params.orderNumber);
-  const orderBatch = Number(params.orderBatch);
   const routeWantsEdit = params.mode === 'edit';
   const routeWantsDispatch = params.dispatch === 'true';
   // Order state
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDispatching, setIsDispatching] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<OrderEditForm>(toOrderEditForm(null));
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
-  const [hasAppliedRouteEdit, setHasAppliedRouteEdit] = useState(false);
-  const [hasHandledRouteDispatch, setHasHandledRouteDispatch] = useState(false);
-  const [itemsRefreshSignal, setItemsRefreshSignal] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const isEditingRef = useRef(false);
   // Tracking data (extracted into dedicated hook)
   const {
     tracking,
@@ -109,15 +104,6 @@ export default function OrderDetailScreen() {
   } = useOrderTracking(orderNumber, orderBatch);
   const { customerName, customerAccountNumber } = useOrderCustomer(order?.customerAccount);
 
-  useEffect(() => { isEditingRef.current = isEditing; }, [isEditing]);
-  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() =>
-    deliveryAddresses.map((address, index) => {
-      const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
-      const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
-      const defaultBadge = address.defaultAddress ? ' (Default)' : '';
-      return { value: address.addressId, label: `${line}${city}${defaultBadge}` };
-    }), [deliveryAddresses]);
-  // Data loading
   const reload = useCallback(async (signal?: AbortSignal) => {
     if (!isMountedRef.current || signal?.aborted) return;
     setIsLoading(true);
@@ -126,7 +112,6 @@ export default function OrderDetailScreen() {
       const response = await getOrder(orderNumber, orderBatch, { signal });
       if (isMountedRef.current && !signal?.aborted) {
         setOrder(response);
-        if (!isEditingRef.current) setFormData(toOrderEditForm(response));
       }
     } catch (err) {
       if (isMountedRef.current && !signal?.aborted) setError(err instanceof Error ? err.message : 'Failed to load order.');
@@ -134,6 +119,42 @@ export default function OrderDetailScreen() {
       if (isMountedRef.current && !signal?.aborted) setIsLoading(false);
     }
   }, [isMountedRef, orderBatch, orderNumber]);
+
+  const {
+    isDispatching,
+    isEditing,
+    setIsEditing,
+    isSaving,
+    formData,
+    setFormData,
+    itemsRefreshSignal,
+    setItemsRefreshSignal,
+    isDirty,
+    guardAction,
+    handleConfirmSave,
+    handleConfirmReset,
+    handleDispatch,
+    handleDownloadBreakdown,
+    handleVoidOrder,
+    handleCancelOrderEdit,
+    orderCardActions,
+  } = useOrderDetailMutations({
+    orderNumber, orderBatch, order, canMutate, isMountedRef,
+    routeWantsEdit, routeWantsDispatch, isLoading,
+    navigation, router,
+    showConfirm, showDanger, showSuccess, showInfo,
+    reload,
+  });
+
+  const combinedItemsRefreshSignal = itemsRefreshSignal + refreshSignal;
+
+  const deliveryAddressOptions = useMemo<SelectOption<number>[]>(() =>
+    deliveryAddresses.map((address, index) => {
+      const line = address.delAddressLn1 ?? address.delPostCode ?? `Address ${index + 1}`;
+      const city = address.delTownOrCity ? `, ${address.delTownOrCity}` : '';
+      const defaultBadge = address.defaultAddress ? ' (Default)' : '';
+      return { value: address.addressId, label: `${line}${city}${defaultBadge}` };
+    }), [deliveryAddresses]);
   useEffect(() => {
     if (!Number.isFinite(orderNumber) || !Number.isFinite(orderBatch)) {
       setError('Invalid order route parameters.');
@@ -161,191 +182,13 @@ export default function OrderDetailScreen() {
       });
     return () => { controller.abort(); };
   }, [order?.customerAccount]);
-  // Save / reset / cancel
-  const performSave = async () => {
-    if (!canMutate || isSaving) return;
-    const payload: OrderUpdatePayload = {
-      customerRef: formData.customerRef?.trim() || undefined,
-      orderContact: formData.orderContact?.trim() || undefined,
-      deliveryAddress: formData.deliveryAddress ?? undefined,
-      priceBand: formData.priceBand?.trim() || undefined,
-    };
-    setIsSaving(true);
-    setError(null);
-    try {
-      const response = await updateOrder(orderNumber, orderBatch, payload);
-      if (isMountedRef.current) {
-        setOrder(response);
-        setFormData(toOrderEditForm(response));
-        setIsEditing(false);
-        showSuccess('Order updated', `Order ${orderNumber}/${orderBatch} was updated successfully.`);
-      }
-    } catch (err) {
-      if (isMountedRef.current) setError(err instanceof Error ? err.message : 'Failed to save order changes.');
-    } finally {
-      if (isMountedRef.current) setIsSaving(false);
-    }
-  };
-
-  const handleConfirmSave = async () => {
-    if (isSaving) return;
-    const confirmed = await showConfirm({
-      title: 'Save order changes?',
-      message: `This will update order ${orderNumber}/${orderBatch} with your current edits.`,
-      confirmLabel: 'Save',
-      cancelLabel: 'Keep editing',
-    });
-    if (!confirmed) return;
-    await performSave();
-  };
-
-  const handleConfirmReset = async () => {
-    if (isSaving || !order) return;
-    const confirmed = await showConfirm({
-      title: 'Reset unsaved changes?',
-      message: 'Your current edits will be discarded and values restored from the latest saved order.',
-      confirmLabel: 'Reset',
-      cancelLabel: 'Continue editing',
-      confirmVariant: 'danger',
-    });
-    if (!confirmed) return;
-    setFormData(toOrderEditForm(order));
-  };
-  // Unsaved changes guard
-  const isDirty = useMemo(
-    () => isEditing && !!order && JSON.stringify(normaliseForDirtyCheck(formData)) !== JSON.stringify(normaliseForDirtyCheck(toOrderEditForm(order))),
-    [isEditing, formData, order],
-  );
-
-  const { guardAction } = useUnsavedChangesGuard({ isDirty });
-
-  const handleCancelOrderEdit = useCallback(() => {
-    void guardAction(() => {
-      setIsEditing(false);
-      if (order) setFormData(toOrderEditForm(order));
-    });
-  }, [guardAction, order]);
-
+  // Show success toast when a new item is created from label scan
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!isDirty) return;
-      e.preventDefault();
-      void guardAction(() => navigation.dispatch(e.data.action));
-    });
-    return unsubscribe;
-  }, [navigation, isDirty, guardAction]);
-  // Dispatch / download / void
-  const handleDispatch = useCallback(async () => {
-    if (!canMutate) return;
-    const confirmed = await showConfirm({
-      title: 'Mark Order as Dispatched',
-      message: `Are you sure you want to mark order ${orderNumber}/${orderBatch} as dispatched? This action cannot be undone.`,
-      confirmLabel: 'Dispatch',
-      cancelLabel: 'Cancel',
-    });
-    if (!confirmed) return;
-    setIsDispatching(true);
-    setError(null);
-    try {
-      await dispatchOrder(orderNumber, orderBatch);
-      await reload();
-    } catch (err) {
-      if (isMountedRef.current) {
-        const status = typeof (err as { status?: unknown }).status === 'number'
-          ? (err as { status: number }).status : undefined;
-        const code = typeof (err as { code?: unknown }).code === 'string'
-          ? (err as { code: string }).code.toLowerCase() : '';
-        if (status === 400 && (code.includes('delivery') || code.includes('address') || !order?.deliveryAddress)) {
-          showDanger('Customer has no delivery address',
-            'This order cannot be dispatched because no valid delivery address is selected. Add a customer delivery address, set it on the order, then try dispatch again.');
-          return;
-        }
-        showDanger('Dispatch failed', err instanceof Error ? err.message : 'Failed to dispatch order. Please try again.');
-      }
-    } finally {
-      if (isMountedRef.current) setIsDispatching(false);
+    if (lastCreatedItem) {
+      showSuccess('Item added', 'A new item was successfully added from the scanned label.');
+      resetLastCreatedItem();
     }
-  }, [canMutate, isMountedRef, order, orderBatch, orderNumber, reload, showConfirm, showDanger]);
-
-  const handleDownloadBreakdown = useCallback(async () => {
-    try {
-      const fileName = `order-${orderNumber}-${orderBatch}-breakdown.pdf`;
-      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
-        const pdfBlob = await getOrderBreakdownPdf(orderNumber, orderBatch);
-        const objectUrl = URL.createObjectURL(pdfBlob);
-        const anchor = document.createElement('a');
-        anchor.href = objectUrl;
-        anchor.download = fileName;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        URL.revokeObjectURL(objectUrl);
-        showSuccess('Breakdown downloaded', `Saved ${fileName}.`);
-        return;
-      }
-      const nativeResult = await downloadAndShareBreakdownPdfNative(
-        ENDPOINTS.orders.breakdown(orderNumber, orderBatch), fileName);
-      if (nativeResult.shared) {
-        showSuccess('Breakdown ready', 'Download complete and share sheet opened.');
-      } else {
-        showInfo('Breakdown downloaded', `Saved ${fileName} to ${nativeResult.fileUri}.`);
-      }
-    } catch (err) {
-      showDanger('Unable to download breakdown', err instanceof Error ? err.message : 'Breakdown download failed.');
-    }
-  }, [orderBatch, orderNumber, showDanger, showInfo, showSuccess]);
-
-  const handleVoidOrder = useCallback(async () => {
-    if (!canMutate) return;
-    const confirmed = await showConfirm({
-      title: 'Void this order?',
-      message: `Order ${orderNumber}/${orderBatch} will be marked as voided. Continue?`,
-      confirmLabel: 'Void order',
-      cancelLabel: 'Cancel',
-      confirmVariant: 'danger',
-    });
-    if (!confirmed) return;
-    try {
-      await voidOrder(orderNumber, orderBatch);
-      showSuccess('Order voided', `Order ${orderNumber}/${orderBatch} was voided.`);
-      router.replace('/(app)/orders');
-    } catch (err) {
-      showDanger('Unable to void order', err instanceof Error ? err.message : 'Void order request failed.');
-    }
-  }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
-
-  // Route-driven actions
-  useEffect(() => {
-    if (!routeWantsEdit || hasAppliedRouteEdit || !order) return;
-    setFormData(toOrderEditForm(order));
-    setIsEditing(true);
-    setHasAppliedRouteEdit(true);
-  }, [hasAppliedRouteEdit, order, routeWantsEdit]);
-
-  useEffect(() => {
-    if (!routeWantsDispatch || hasHandledRouteDispatch) return;
-    if (isLoading || !order || isDispatching) return;
-    if (resolveOrderStatus(order)?.trim().toLowerCase() === 'dispatched') {
-      setHasHandledRouteDispatch(true);
-      return;
-    }
-    setHasHandledRouteDispatch(true);
-    void handleDispatch();
-  }, [handleDispatch, hasHandledRouteDispatch, isDispatching, isLoading, order, routeWantsDispatch]);
-  // Card-level actions (edit/save/cancel for OrderDetailCard)
-  const orderCardActions = useMemo<TopBarAction[]>(() => {
-    if (!canMutate || !order) return [];
-    if (isEditing) {
-      return [
-        buildIconTopBarAction({ id: 'save-order', label: isSaving ? 'Saving...' : 'Save changes', onPress: () => { void handleConfirmSave(); }, icon: SaveIcon, disabled: isSaving }),
-        buildIconTopBarAction({ id: 'reset-order-form', label: 'Reset changes', onPress: () => { void handleConfirmReset(); }, icon: ResetIcon, disabled: isSaving || !order }),
-        buildIconTopBarAction({ id: 'cancel-order-edit', label: 'Cancel edit', onPress: handleCancelOrderEdit, icon: CancelEditIcon, disabled: isSaving }),
-      ];
-    }
-    return [
-      buildIconTopBarAction({ id: 'edit-order', label: 'Edit order', onPress: () => setIsEditing(true), icon: EditIcon, disabled: isLoading || isSaving }),
-    ];
-  }, [canMutate, handleCancelOrderEdit, handleConfirmReset, handleConfirmSave, isEditing, isLoading, isSaving, order]);
+  }, [lastCreatedItem, showSuccess, resetLastCreatedItem]);
   // TopBar actions
   const topBarActions = useMemo<TopBarAction[]>(() => {
     const backAction = buildBackTopBarAction({ onPress: () => void guardAction(goBackWithBrowserFallback), label: 'Back to orders' });
@@ -374,14 +217,14 @@ export default function OrderDetailScreen() {
           label: 'Scan Labels',
           onPress: openScanner,
           icon: ScanLine,
-          disabled: isLoading || !order,
+          disabled: isLoading || !order || isScanning,
         })
       );
     }
 
     actions.push(backAction);
     return actions;
-  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, isStaff, order, openScanner, scanLabelsEnabled]);
+  }, [canMutate, guardAction, handleDispatch, handleDownloadBreakdown, handleVoidOrder, isDispatching, isLoading, isScanning, isStaff, order, openScanner, scanLabelsEnabled]);
 
   useScreenTopBar({ title: 'Order Detail', actions: topBarActions });
 
@@ -459,28 +302,31 @@ export default function OrderDetailScreen() {
             orderNumber={orderNumber}
             orderBatch={orderBatch}
             canMutate={canMutate}
-            refreshSignal={itemsRefreshSignal}
+            refreshSignal={combinedItemsRefreshSignal}
             priceBand={order?.priceBand ?? ''}
           />
 
         </ScrollView>
       ) : null}
-      {scanLabelsEnabled && (
-        <ScanLabelsModal
-          visible={isModalVisible}
-          onClose={closeScanner}
-          onLabelScanned={handleLabelScanned}
-          manualText={manualText}
-          setManualText={setManualText}
-          handleManualSubmit={handleManualSubmit}
-          step={step}
-          capturedPhoto={capturedPhoto}
-          correctionText={correctionText}
-          onPhotoTaken={onPhotoTaken}
-          onRetake={onRetake}
-          onCorrectionConfirm={onCorrectionConfirm}
-        />
-      )}
+      <OrderScanSection
+        scanLabelsEnabled={scanLabelsEnabled}
+        isModalVisible={isModalVisible}
+        onClose={closeScanner}
+        onLabelScanned={() => {}}
+        manualText={manualText}
+        setManualText={setManualText}
+        handleManualSubmit={handleManualSubmit}
+        step={step}
+        capturedPhoto={capturedPhoto}
+        correctionText={correctionText}
+        onPhotoTaken={onPhotoTaken}
+        onRetake={onRetake}
+        onCorrectionConfirm={onCorrectionConfirm}
+        extraction={extraction}
+        isLoading={isScanning}
+        error={scanError}
+        onConfirmExtraction={handleConfirmExtraction}
+      />
     </ScreenContent>
   );
 }

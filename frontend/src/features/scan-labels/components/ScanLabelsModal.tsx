@@ -4,10 +4,12 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { ThemedButton } from '@components/ui/ThemedButton';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { tokens } from '@theme/tokens';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { ScanCorrectionView } from './ScanCorrectionView';
-import type { ScanStep, CapturedPhoto } from '../types';
+import { LabelExtractionReview } from './LabelExtractionReview';
+import type { ScanStep, CapturedPhoto, LabelExtraction } from '../types';
 
 interface ScanLabelsModalProps {
   visible: boolean;
@@ -23,6 +25,11 @@ interface ScanLabelsModalProps {
   onPhotoTaken: (photo: CapturedPhoto) => void;
   onRetake: () => void;
   onCorrectionConfirm: (text: string) => void;
+  // New props for extraction flow
+  extraction: LabelExtraction | null;
+  isLoading: boolean;
+  error: string | null;
+  onConfirmExtraction: () => void;
 }
 
 export function ScanLabelsModal({
@@ -38,6 +45,11 @@ export function ScanLabelsModal({
   onPhotoTaken,
   onRetake,
   onCorrectionConfirm,
+  // New extraction props
+  extraction,
+  isLoading,
+  error,
+  onConfirmExtraction,
 }: ScanLabelsModalProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
@@ -105,6 +117,22 @@ export function ScanLabelsModal({
 
   const isNarrow = Platform.OS !== 'web' || dimensions.width < 768;
 
+  if (step === 'review' && capturedPhoto && extraction) {
+    return (
+      <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
+        <LabelExtractionReview
+          photoUri={capturedPhoto.uri}
+          extraction={extraction}
+          isLoading={isLoading}
+          error={error}
+          onConfirm={onConfirmExtraction}
+          onRetake={onRetake}
+          onCancel={onClose}
+        />
+      </Modal>
+    );
+  }
+
   if (step === 'correction' && capturedPhoto) {
     return (
       <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
@@ -115,6 +143,17 @@ export function ScanLabelsModal({
           onRetake={onRetake}
           onCancel={onClose}
         />
+      </Modal>
+    );
+  }
+
+  // Show loading overlay when processing
+  if (isLoading && step === 'camera') {
+    return (
+      <Modal visible={visible} transparent={false} animationType="slide" onRequestClose={onClose}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+          <LoadingSpinner message="Processing..." />
+        </View>
       </Modal>
     );
   }

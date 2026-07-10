@@ -106,7 +106,11 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
   };
 
   const hasBody = body !== undefined && body !== null;
-  if (hasBody && !('Content-Type' in requestHeaders)) {
+  
+  // Handle FormData specially - don't set Content-Type header or stringify
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  
+  if (hasBody && !isFormData && !('Content-Type' in requestHeaders)) {
     requestHeaders['Content-Type'] = 'application/json';
   }
 
@@ -115,7 +119,7 @@ export async function apiRequest<T>(url: string, options: RequestOptions = {}): 
     signal,
     credentials: usesCookieAuth() ? 'include' : 'omit',
     headers: requestHeaders,
-    body: hasBody ? JSON.stringify(body) : undefined,
+    body: hasBody && isFormData ? body : (hasBody ? JSON.stringify(body) : undefined),
   });
 
   if (!response.ok) {

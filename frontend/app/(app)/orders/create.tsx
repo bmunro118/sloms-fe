@@ -1,5 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
-import { PackageCheck as CreateIcon, RotateCcw as ResetIcon, ScanLine } from 'lucide-react-native';
+import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -30,7 +30,7 @@ import {
 import { usePendingItems } from '@src/features/orders/hooks/usePendingItems';
 import { useCurrentVatRate } from '@src/features/orders/hooks/useCurrentVatRate';
 import { useCreateOrderData } from '@src/features/orders/hooks/useCreateOrderData';
-import { ScanLabelsModal, useScanLabel } from '@features/scan-labels';
+
 
 export default function CreateOrderScreen() {
   const router = useRouter();
@@ -39,7 +39,6 @@ export default function CreateOrderScreen() {
   const { showConfirm, showDanger, showWarning } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
-  const scanLabelsEnabled = useFeatureFlag('scanLabels');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [customerRef, setCustomerRef] = useState('');
   const [orderContact, setOrderContact] = useState('');
@@ -48,24 +47,6 @@ export default function CreateOrderScreen() {
   const [priceBand, setPriceBand] = useState('');
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const handleLabelScanned = useCallback((label: string) => {
-    // Handle scanned label - can be extended for actual label processing
-  }, []);
-
-  const {
-    isModalVisible,
-    openScanner,
-    closeScanner,
-    manualText,
-    setManualText,
-    handleManualSubmit,
-    step,
-    capturedPhoto,
-    correctionText,
-    onPhotoTaken,
-    onRetake,
-    onCorrectionConfirm,
-  } = useScanLabel({ onLabelScanned: handleLabelScanned });
   const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
   const { vatRate } = useCurrentVatRate();
   const {
@@ -302,17 +283,7 @@ export default function CreateOrderScreen() {
       }),
     ];
 
-    if (scanLabelsEnabled) {
-      actions.push(
-        buildIconTopBarAction({
-          id: 'scan-labels',
-          label: 'Scan Labels',
-          onPress: openScanner,
-          icon: ScanLine,
-          disabled: isCreatingOrder || isSaving,
-        })
-      );
-    }
+
 
     actions.push(
       buildBackTopBarAction({
@@ -321,7 +292,7 @@ export default function CreateOrderScreen() {
     );
 
     return actions;
-  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length, scanLabelsEnabled, openScanner]);
+  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
@@ -428,22 +399,6 @@ export default function CreateOrderScreen() {
       </ItemsCard>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      {scanLabelsEnabled && (
-        <ScanLabelsModal
-          visible={isModalVisible}
-          onClose={closeScanner}
-          onLabelScanned={handleLabelScanned}
-          manualText={manualText}
-          setManualText={setManualText}
-          handleManualSubmit={handleManualSubmit}
-          step={step}
-          capturedPhoto={capturedPhoto}
-          correctionText={correctionText}
-          onPhotoTaken={onPhotoTaken}
-          onRetake={onRetake}
-          onCorrectionConfirm={onCorrectionConfirm}
-        />
-      )}
     </ScreenContent>
   );
 }

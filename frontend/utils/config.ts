@@ -175,6 +175,8 @@ export const ENDPOINTS = {
       e(`/api/orders/${orderNumber}/${orderBatch}/items/${serialNumber}/checkout`),
     uncheckedOutItem: (orderNumber: number, orderBatch: number, serialNumber: string) =>
       e(`/api/orders/${orderNumber}/${orderBatch}/items/${serialNumber}/unchecked-out`),
+    fromLabel: (orderNumber: number, orderBatch: number) =>
+      e(`/api/orders/${orderNumber}/${orderBatch}/items/from-label`),
   },
 
   // ── Price List ─────────────────────────────────────────────────────────────
@@ -220,9 +222,6 @@ export const ENDPOINTS = {
   documents: {
     list: e('/api/documents'),
   },
-
-  // ── Scan Labels ────────────────────────────────────────────────────────────
-  scanLabels: e('/api/scan-labels'),
 };
 
 

@@ -1,31 +1,28 @@
 import { apiRequest } from '@utils/api';
 import { ENDPOINTS } from '@utils/config';
-
-export type ScanLabelsResponse = {
-  text: string;
-};
-
-export type ScanLabelsPayload = {
-  image?: string;
-  label?: string;
-};
+import { createLabelFormData } from '@utils/fileUpload';
+import type { ScanLabelFromImageResponse } from './types';
 
 /**
- * Dummy OCR function - returns empty response
- * No real backend calls at this stage
+ * Scans a label from an image and returns structured extraction data.
+ * When dryRun is true, performs extraction only without creating an item.
+ * When dryRun is false, creates the item on the order using the extracted data.
  */
-export async function scanLabelsApi(payload?: ScanLabelsPayload): Promise<ScanLabelsResponse> {
-  // Dummy OCR - would log: '[scanLabelsApi] dummy OCR call with payload:', payload
-  return { text: '' };
-}
+export async function scanLabelFromImage(
+  orderNumber: number,
+  orderBatch: number,
+  photoUri: string,
+  dryRun = false,
+): Promise<ScanLabelFromImageResponse> {
+  const formData = createLabelFormData(photoUri);
+  
+  const url = ENDPOINTS.orders.fromLabel(orderNumber, orderBatch);
+  const searchParams = new URLSearchParams({ dryRun: String(dryRun) });
+  const fullUrl = `${url}?${searchParams.toString()}`;
 
-/**
- * Real API call (for future use when backend is implemented)
- */
-export async function scanLabels(payload?: ScanLabelsPayload): Promise<ScanLabelsResponse> {
-  return apiRequest<ScanLabelsResponse>(ENDPOINTS.scanLabels, {
+  return apiRequest<ScanLabelFromImageResponse>(fullUrl, {
     method: 'POST',
     requireAuth: true,
-    body: payload,
+    body: formData,
   });
 }
