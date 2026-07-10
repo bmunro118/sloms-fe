@@ -56,7 +56,7 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
                 <TooltipPressable
                   key={item.id}
                   tooltip={item.label}
-                  style={({ hovered }) => [
+                  style={({ hovered, pressed }: { pressed: boolean; hovered?: boolean }) => [
                     styles.navItem,
                     item.active ? styles.navItemActive : null,
                     hovered && !item.active ? styles.navItemHover : null,
@@ -75,7 +75,10 @@ export function CompactWebNavLayout({ items, onSignOut, children }: NavLayoutPro
             </View>
             <TooltipPressable
               tooltip="Sign out"
-              style={({ hovered }) => [styles.signOutButton, hovered ? styles.signOutButtonHover : null]}
+              style={({ hovered, pressed }: { pressed: boolean; hovered?: boolean }) => [
+                styles.signOutButton,
+                hovered ? styles.signOutButtonHover : null,
+              ]}
               onPress={onSignOut}
             >
               <Text style={styles.signOutButtonText}>Sign out</Text>

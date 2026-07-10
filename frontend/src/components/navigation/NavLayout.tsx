@@ -174,7 +174,7 @@ export function NavLayout({ items, onSignOut, children }: NavLayoutProps) {
               styles.sidebarToggleButton,
               isHovered(state) ? styles.navItemHover : null,
             ]}
-            onPress={() => setIsSidebarExpanded((prev) => !prev)}
+            onPress={() => setIsSidebarExpanded(!isSidebarExpanded)}
           >
             <View style={styles.sidebarToggleIconStack}>
               <Animated.View style={[styles.sidebarToggleIconLayer, { opacity: toggleExpandIconOpacity }]}>

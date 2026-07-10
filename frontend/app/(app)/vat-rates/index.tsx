@@ -16,6 +16,7 @@ import {
   createVatRate,
   getCurrentVatRate,
   listVatRates,
+  parseVatRate,
 } from '@src/features/vat-rates/api';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
@@ -162,7 +163,7 @@ export default function VatRatesScreen() {
 
     const confirmed = await showConfirm({
       title: 'Close VAT rate?',
-      message: `This will set the end date of the ${rate.rate}% rate to today (${today}). This cannot be undone.`,
+      message: `This will set the end date of the ${parseVatRate(rate.rate)?.toString()}% rate to today (${today}). This cannot be undone.`,
       confirmLabel: 'Close Rate',
       confirmVariant: 'danger',
     });
@@ -171,7 +172,7 @@ export default function VatRatesScreen() {
     setClosingId(rate.vatRateId);
     try {
       await closeVatRate(rate.vatRateId, { validTo: today });
-      showSuccess('VAT rate closed', `The ${rate.rate}% rate has been closed.`);
+      showSuccess('VAT rate closed', `The ${parseVatRate(rate.rate)?.toString()}% rate has been closed.`);
       setRefreshTick((t) => t + 1);
     } catch (err) {
       showDanger('Close failed', err instanceof Error ? err.message : 'Could not close VAT rate.');
@@ -345,7 +346,7 @@ function VatRateRow({
     <View style={styles.rateRow}>
       <View style={styles.rateRowMain}>
         <View style={styles.rateRowHeader}>
-          <Text style={styles.rateValue}>{rate.rate}%</Text>
+          <Text style={styles.rateValue}>{parseVatRate(rate.rate)?.toString()}%</Text>
           {isCurrent ? <Text style={styles.currentBadge}>Current</Text> : null}
           {isClosed ? <Text style={styles.closedBadge}>Closed</Text> : null}
         </View>

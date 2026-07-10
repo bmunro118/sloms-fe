@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 // Mirror the path aliases declared in tsconfig.json so tests resolve the same

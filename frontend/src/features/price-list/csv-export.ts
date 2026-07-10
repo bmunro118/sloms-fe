@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import { cacheDirectory, downloadAsync } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { getStoredAccessToken, usesCookieAuth } from '@utils/auth';
 
@@ -11,7 +11,7 @@ export async function downloadAndShareCsvNative(
   downloadUrl: string,
   fileName: string
 ): Promise<CsvExportResult> {
-  if (!FileSystem.cacheDirectory) {
+  if (!cacheDirectory) {
     throw new Error('File cache directory is unavailable on this device.');
   }
 
@@ -24,8 +24,8 @@ export async function downloadAndShareCsvNative(
     requestHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const targetUri = `${FileSystem.cacheDirectory}${Date.now()}-${fileName}`;
-  const downloadResult = await FileSystem.downloadAsync(downloadUrl, targetUri, {
+  const targetUri = `${cacheDirectory}${Date.now()}-${fileName}`;
+  const downloadResult = await downloadAsync(downloadUrl, targetUri, {
     headers: requestHeaders,
   });
 
