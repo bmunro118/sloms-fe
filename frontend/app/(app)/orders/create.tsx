@@ -1,5 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
-import { PackageCheck as CreateIcon, RotateCcw as ResetIcon } from 'lucide-react-native';
+import { PackageCheck as CreateIcon, RotateCcw as ResetIcon, ScanLine } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useFeatureFlag } from '@src/hooks/useFeatureFlag';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
+import { ScanLabelsModal, useScanLabel } from '@features/scan-labels';
 import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { usePriceBands } from '@features/price-list/hooks/usePriceBands';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
@@ -39,6 +40,7 @@ export default function CreateOrderScreen() {
   const { showConfirm, showDanger, showWarning } = useAppModal();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
+  const scanLabelsEnabled = useFeatureFlag('scanLabels');
   const [customerAccount, setCustomerAccount] = useState<number | null>(null);
   const [customerRef, setCustomerRef] = useState('');
   const [orderContact, setOrderContact] = useState('');
@@ -48,6 +50,10 @@ export default function CreateOrderScreen() {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { pendingItems, isSaving, handleAddPendingItem, handleRemovePendingItem, handleUpdatePendingItem, handleResetPendingItems, setIsSaving } = usePendingItems();
+
+  const handleLabelScanned = useCallback(() => {}, []);
+
+  const scanState = useScanLabel({ onLabelScanned: handleLabelScanned });
   const { vatRate } = useCurrentVatRate();
   const {
     customerOptions,
@@ -283,7 +289,17 @@ export default function CreateOrderScreen() {
       }),
     ];
 
-
+    if (scanLabelsEnabled) {
+      actions.push(
+        buildIconTopBarAction({
+          id: 'scan-labels',
+          label: 'Scan Labels',
+          onPress: scanState.openScanner,
+          icon: ScanLine,
+          disabled: isCreatingOrder || isSaving,
+        })
+      );
+    }
 
     actions.push(
       buildBackTopBarAction({
@@ -292,7 +308,7 @@ export default function CreateOrderScreen() {
     );
 
     return actions;
-  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length]);
+  }, [handleCreate, handleResetPendingItems, isCreatingOrder, isSaving, guardAction, pendingItems.length, scanLabelsEnabled, scanState.openScanner]);
 
   useScreenTopBar({ title: 'Create Order', actions: topBarActions });
 
@@ -399,6 +415,26 @@ export default function CreateOrderScreen() {
       </ItemsCard>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {scanLabelsEnabled ? (
+        <ScanLabelsModal
+          visible={scanState.isModalVisible}
+          onClose={scanState.closeScanner}
+          onLabelScanned={handleLabelScanned}
+          manualText={scanState.manualText}
+          setManualText={scanState.setManualText}
+          handleManualSubmit={scanState.handleManualSubmit}
+          step={scanState.step}
+          capturedPhoto={scanState.capturedPhoto}
+          correctionText={scanState.correctionText}
+          onPhotoTaken={scanState.onPhotoTaken}
+          onRetake={scanState.onRetake}
+          onCorrectionConfirm={scanState.onCorrectionConfirm}
+          extraction={scanState.extraction}
+          isLoading={scanState.isLoading}
+          error={scanState.error}
+          onConfirmExtraction={scanState.handleConfirmExtraction}
+        />
+      ) : null}
     </ScreenContent>
   );
 }
