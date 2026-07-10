@@ -78,12 +78,6 @@ export default function OrdersListScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [serialMatch, setSerialMatch] = useState<OrderItem | null>(null);
 
-  const handleLabelScanned = useCallback((label: string) => {
-    setSearchQuery(label);
-  }, [setSearchQuery]);
-
-  const scanState = useScanLabel({ onLabelScanned: handleLabelScanned });
-
   const {
     appliedFilters,
     draftFilters,
@@ -98,6 +92,12 @@ export default function OrdersListScreen() {
     applyFilters,
     clearFilters,
   } = useListFilters<OrderFilters>(INITIAL_FILTERS);
+
+  const handleLabelScanned = useCallback((label: string) => {
+    setSearchQuery(label);
+  }, [setSearchQuery]);
+
+  const scanState = useScanLabel({ onLabelScanned: handleLabelScanned });
 
   const handleDispatchFromList = useCallback(async (order: OrderRow) => {
     if (!canMutate) {

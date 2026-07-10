@@ -36,7 +36,7 @@ function getConfidenceColor(theme: AppTheme, level: ConfidenceLevel): string {
     case 'high':
       return theme.colors.statusComplete;
     case 'medium':
-      return theme.colors.statusPending;
+      return theme.colors.statusInProgress;
     case 'low':
       return theme.colors.danger;
     default:

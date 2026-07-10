@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Modal, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { ThemedButton } from '@components/ui/ThemedButton';
@@ -10,6 +9,37 @@ import { useThemedStyles } from '@theme/useThemedStyles';
 import { ScanCorrectionView } from './ScanCorrectionView';
 import { LabelExtractionReview } from './LabelExtractionReview';
 import type { ScanStep, CapturedPhoto, LabelExtraction } from '../types';
+import type { WebCameraViewHandle, WebCameraViewProps } from './WebCameraView';
+
+// Type for native CameraView ref
+interface NativeCameraRef {
+  takePictureAsync: () => Promise<{ uri: string }>;
+}
+
+// Camera permission types
+interface CameraPermissionState {
+  granted: boolean;
+}
+
+type CameraPermissionsHook = () => [CameraPermissionState, () => Promise<CameraPermissionState>];
+
+// Conditional imports for expo-camera - only loaded on native platforms
+let CameraView: React.ComponentType<{ style?: ViewStyle; facing?: string; ref?: React.Ref<NativeCameraRef> }> | null = null;
+let useCameraPermissionsHook: CameraPermissionsHook | null = null;
+let WebCameraView: React.ForwardRefExoticComponent<WebCameraViewProps & React.RefAttributes<WebCameraViewHandle>> | null = null;
+
+if (Platform.OS !== 'web') {
+  const cam = require('expo-camera');
+  CameraView = cam.CameraView;
+  useCameraPermissionsHook = cam.useCameraPermissions;
+} else {
+  // Import WebCameraView only on web
+  const webCam = require('./WebCameraView');
+  WebCameraView = webCam.WebCameraView;
+}
+
+// No-op permission hook for web - always granted
+const noopPermissions = () => [{ granted: true }, async () => ({ granted: true })] as const;
 
 interface ScanLabelsModalProps {
   visible: boolean;
@@ -53,7 +83,9 @@ export function ScanLabelsModal({
 }: ScanLabelsModalProps) {
   const theme = useAppTheme();
   const styles = useThemedStyles(createStyles);
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef<NativeCameraRef | null>(null);
+  const webCameraRef = useRef<WebCameraViewHandle | null>(null);
+  const useCameraPermissions = useCameraPermissionsHook ?? noopPermissions;
   const [permission, requestPermission] = useCameraPermissions();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -76,10 +108,18 @@ export function ScanLabelsModal({
 
   const handleScan = async () => {
     try {
-      if (!cameraRef.current) return;
-      const photo = await cameraRef.current.takePictureAsync();
-      if (photo) {
-        onPhotoTaken({ uri: photo.uri });
+      if (Platform.OS === 'web') {
+        if (!webCameraRef.current) return;
+        const photo = await webCameraRef.current.takePhoto();
+        if (photo) {
+          onPhotoTaken({ uri: photo.uri });
+        }
+      } else {
+        if (!cameraRef.current) return;
+        const photo = await cameraRef.current.takePictureAsync();
+        if (photo) {
+          onPhotoTaken({ uri: photo.uri });
+        }
       }
     } catch {
       // camera error — stays on camera step
@@ -167,11 +207,22 @@ export function ScanLabelsModal({
           // Vertical layout for narrow screens
           <View style={styles.verticalLayout}>
             <View style={[styles.cameraContainer, { borderColor: theme.colors.border }]}>
-              <CameraView
-                ref={cameraRef}
-                style={styles.camera}
-                facing="back"
-              />
+              {Platform.OS === 'web' ? (
+                WebCameraView && (
+                  <WebCameraView
+                    ref={webCameraRef}
+                    style={styles.camera}
+                  />
+                )
+              ) : (
+                CameraView && (
+                  <CameraView
+                    ref={cameraRef}
+                    style={styles.camera}
+                    facing="back"
+                  />
+                )
+              )}
             </View>
             <View style={styles.inputContainer}>
               <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}>
@@ -242,11 +293,22 @@ export function ScanLabelsModal({
               </View>
             </View>
             <View style={[styles.rightSide, { borderColor: theme.colors.border }]}>
-              <CameraView
-                ref={cameraRef}
-                style={styles.camera}
-                facing="back"
-              />
+              {Platform.OS === 'web' ? (
+                WebCameraView && (
+                  <WebCameraView
+                    ref={webCameraRef}
+                    style={styles.camera}
+                  />
+                )
+              ) : (
+                CameraView && (
+                  <CameraView
+                    ref={cameraRef}
+                    style={styles.camera}
+                    facing="back"
+                  />
+                )
+              )}
             </View>
           </View>
         )}
