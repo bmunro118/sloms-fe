@@ -112,13 +112,19 @@ export function ScanLabelsModal({
                 Or enter manually
               </Text>
               <ThemedInput
-                placeholder="Enter label text..."
+                placeholder="Label Text"
                 value={manualText}
                 onChangeText={setManualText}
-                onSubmitEditing={handleManualSubmit}
-                style={styles.input}
+                multiline
+                numberOfLines={4}
+                style={[styles.input, { textAlignVertical: 'top' }]}
               />
             </View>
+            <ThemedButton
+              label="Submit Label"
+              variant="solid"
+              onPress={handleManualSubmit}
+            />
             <View style={styles.buttonRow}>
               <ThemedButton
                 variant="outline"
@@ -142,11 +148,17 @@ export function ScanLabelsModal({
                 Enter label text
               </Text>
               <ThemedInput
-                placeholder="Enter label text..."
+                placeholder="Label Text"
                 value={manualText}
                 onChangeText={setManualText}
-                onSubmitEditing={handleManualSubmit}
-                style={styles.input}
+                multiline
+                numberOfLines={4}
+                style={[styles.input, { textAlignVertical: 'top' }]}
+              />
+              <ThemedButton
+                label="Submit Label"
+                variant="solid"
+                onPress={handleManualSubmit}
               />
               <View style={styles.buttonRow}>
                 <ThemedButton
@@ -229,7 +241,8 @@ function createStyles() {
       marginBottom: tokens.spacing.sm,
     },
     input: {
-      minHeight: 44,
+      minHeight: 100,
+      textAlignVertical: 'top',
     },
     buttonRow: {
       flexDirection: 'row',
