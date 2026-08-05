@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { PackagePlus as PackagePlusIcon } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
 import { FilterModal } from '@components/ui/FilterModal';
 import { ListFilterHeader } from '@components/ui/ListFilterHeader';
@@ -173,6 +174,15 @@ export default function OrdersListScreen() {
   }, [listQuery.customerId, listQuery.status]);
 
   useScreenTopBar({ title: 'Orders', actions: topBarActions });
+
+  // Refresh list when screen comes into focus (e.g., after returning from detail screen)
+  useFocusEffect(
+    useCallback(() => {
+      // Always refresh when screen comes into focus to ensure latest data
+      setRefreshTick((prev) => prev + 1);
+      return () => {};
+    }, [])
+  );
 
   useEffect(() => {
     const controller = new AbortController();

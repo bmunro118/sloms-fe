@@ -8,6 +8,7 @@ import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
 import { resolveOrderStatus } from '@src/features/orders/types';
+import { tokens } from '@theme/tokens';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
@@ -122,7 +123,7 @@ function createStyles(theme: AppTheme) {
     },
     customerInfo: {
       flexShrink: 1,
-      marginRight: 12,
+      marginRight: tokens.spacing.md,
     },
     customerName: {
       color: theme.colors.textPrimary,
@@ -132,7 +133,7 @@ function createStyles(theme: AppTheme) {
     customerNumber: {
       color: theme.colors.textMuted,
       fontSize: 11,
-      marginTop: 2,
+      marginTop: tokens.spacing.xs,
     },
   };
 }

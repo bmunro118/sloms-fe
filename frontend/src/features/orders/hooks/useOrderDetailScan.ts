@@ -3,6 +3,12 @@ import { useScanLabel } from '@features/scan-labels';
 import type { UseScanLabelResult } from '@features/scan-labels/hooks/useScanLabel';
 import type { ScanResult } from '@features/scan-labels/types';
 
+export interface UseOrderDetailScanParams {
+  orderNumber: number;
+  orderBatch: number;
+  onTrackingRefresh?: () => void;
+}
+
 export interface UseOrderDetailScanResult extends UseScanLabelResult {
   lastCreatedItem: unknown | null;
   refreshSignal: number;
@@ -16,6 +22,7 @@ export interface UseOrderDetailScanResult extends UseScanLabelResult {
 export function useOrderDetailScan(
   orderNumber: number,
   orderBatch: number,
+  onTrackingRefresh?: () => void,
 ): UseOrderDetailScanResult {
   const [lastCreatedItem, setLastCreatedItem] = useState<unknown | null>(null);
   const [refreshSignal, setRefreshSignal] = useState(0);
@@ -25,8 +32,10 @@ export function useOrderDetailScan(
       setLastCreatedItem(result.item);
       // Increment refresh signal to trigger items list reload
       setRefreshSignal((prev) => prev + 1);
+      // Trigger tracking refresh to update timeline
+      onTrackingRefresh?.();
     }
-  }, []);
+  }, [onTrackingRefresh]);
 
   const resetLastCreatedItem = useCallback(() => {
     setLastCreatedItem(null);

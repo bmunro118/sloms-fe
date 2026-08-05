@@ -11,6 +11,10 @@ import { normaliseForDirtyCheck, useUnsavedChangesGuard } from '@src/hooks/useUn
 import type { TopBarAction } from '@context/ScreenTitleContext';
 import { type OrderDetails, type OrderEditForm, type OrderUpdatePayload, resolveOrderStatus, toOrderEditForm } from '@src/features/orders/types';
 
+export interface OrderDetailMutationCallbacks {
+  onTrackingRefresh: () => void;
+}
+
 export function useOrderDetailMutations({
   orderNumber,
   orderBatch,
@@ -27,6 +31,7 @@ export function useOrderDetailMutations({
   showSuccess,
   showInfo,
   reload,
+  onTrackingRefresh,
 }: {
   orderNumber: number; orderBatch: number; order: OrderDetails | null; canMutate: boolean;
   isMountedRef: React.MutableRefObject<boolean>; routeWantsEdit: boolean; routeWantsDispatch: boolean;
@@ -34,6 +39,7 @@ export function useOrderDetailMutations({
   showConfirm: (opts: { title: string; message: string; confirmLabel?: string; cancelLabel?: string; confirmVariant?: 'danger' }) => Promise<boolean>;
   showDanger: (title: string, msg: string) => void; showSuccess: (title: string, msg: string) => void;
   showInfo: (title: string, msg: string) => void; reload: (signal?: AbortSignal) => Promise<void>;
+  onTrackingRefresh?: () => void;
 }) {
   const [isDispatching, setIsDispatching] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -62,13 +68,15 @@ export function useOrderDetailMutations({
         setFormData(toOrderEditForm(response));
         setIsEditing(false);
         showSuccess('Order updated', `Order ${orderNumber}/${orderBatch} was updated successfully.`);
+        onTrackingRefresh?.();
+        await reload();
       }
     } catch (err) {
       if (isMountedRef.current) showDanger('Save failed', err instanceof Error ? err.message : 'Failed to save order changes.');
     } finally {
       if (isMountedRef.current) setIsSaving(false);
     }
-  }, [canMutate, formData, isMountedRef, isSaving, orderBatch, orderNumber, showDanger, showSuccess]);
+  }, [canMutate, formData, isMountedRef, isSaving, onTrackingRefresh, orderBatch, orderNumber, reload, showDanger, showSuccess]);
 
   const handleConfirmSave = useCallback(async () => {
     if (isSaving) return;
@@ -133,6 +141,7 @@ export function useOrderDetailMutations({
     try {
       await dispatchOrder(orderNumber, orderBatch);
       await reload();
+      onTrackingRefresh?.();
     } catch (err) {
       if (isMountedRef.current) {
         const status = typeof (err as { status?: unknown }).status === 'number'
@@ -149,7 +158,7 @@ export function useOrderDetailMutations({
     } finally {
       if (isMountedRef.current) setIsDispatching(false);
     }
-  }, [canMutate, isMountedRef, order, orderBatch, orderNumber, reload, showConfirm, showDanger]);
+  }, [canMutate, isMountedRef, onTrackingRefresh, order, orderBatch, orderNumber, reload, showConfirm, showDanger]);
 
   const handleDownloadBreakdown = useCallback(async () => {
     try {
@@ -191,12 +200,13 @@ export function useOrderDetailMutations({
     if (!confirmed) return;
     try {
       await voidOrder(orderNumber, orderBatch);
+      onTrackingRefresh?.();
       showSuccess('Order voided', `Order ${orderNumber}/${orderBatch} was voided.`);
       router.replace('/(app)/orders');
     } catch (err) {
       showDanger('Unable to void order', err instanceof Error ? err.message : 'Void order request failed.');
     }
-  }, [canMutate, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
+  }, [canMutate, onTrackingRefresh, orderBatch, orderNumber, router, showConfirm, showDanger, showSuccess]);
 
   // Route-driven actions
   useEffect(() => {

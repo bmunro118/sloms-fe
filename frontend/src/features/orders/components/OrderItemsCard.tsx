@@ -27,6 +27,7 @@ interface OrderItemsCardProps {
   canMutate: boolean;
   refreshSignal?: number;
   priceBand?: string;
+  onTrackingRefresh?: () => void;
 }
 
 export function OrderItemsCard({
@@ -35,6 +36,7 @@ export function OrderItemsCard({
   canMutate,
   refreshSignal,
   priceBand = '',
+  onTrackingRefresh,
 }: OrderItemsCardProps) {
   const theme = useAppTheme();
   const isMountedRef = useIsMountedRef();
@@ -125,6 +127,7 @@ export function OrderItemsCard({
         unitPrice: item.unitPrice,
       });
       await loadItems();
+      onTrackingRefresh?.();
       showSuccess(
         'Item added',
         created?.serialNumber
@@ -138,7 +141,7 @@ export function OrderItemsCard({
     } finally {
       if (isMountedRef.current) setIsMutatingItems(false);
     }
-  }, [canMutate, isMountedRef, isMutatingItems, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess, vatRate]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, onTrackingRefresh, orderBatch, orderNumber, showConfirm, showDanger, showSuccess, vatRate]);
 
   const handleBeginEditItem = useCallback((item: OrderItemCardData) => {
     const initial = toItemEditForm(item);
@@ -183,6 +186,7 @@ export function OrderItemsCard({
       setEditingItemSerial(null);
       setItemFormData(toItemEditForm(null));
       await loadItems();
+      onTrackingRefresh?.();
       showSuccess('Item updated', `Item ${editingItemSerial} was updated.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update item.';
@@ -191,7 +195,7 @@ export function OrderItemsCard({
     } finally {
       if (isMountedRef.current) setIsMutatingItems(false);
     }
-  }, [editingItemSerial, isMountedRef, isMutatingItems, itemFormData, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
+  }, [editingItemSerial, isMountedRef, isMutatingItems, itemFormData, loadItems, onTrackingRefresh, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
 
   const handleToggleCheckout = useCallback(async (item: OrderItemCardData, checkedOut: boolean) => {
     if (!canMutate || isMutatingItems) return;
@@ -212,6 +216,7 @@ export function OrderItemsCard({
         await checkoutOrderItem(orderNumber, orderBatch, item.serialNumber);
       }
       await loadItems();
+      onTrackingRefresh?.();
       showSuccess('Item status updated', `Item ${item.serialNumber} was updated.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update checkout state.';
@@ -220,7 +225,7 @@ export function OrderItemsCard({
     } finally {
       if (isMountedRef.current) setIsMutatingItems(false);
     }
-  }, [canMutate, isMountedRef, isMutatingItems, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, onTrackingRefresh, orderBatch, orderNumber, showConfirm, showDanger, showSuccess]);
 
   const handleVoidItem = useCallback(async (item: OrderItemCardData) => {
     if (!canMutate || isMutatingItems) return;
@@ -237,6 +242,7 @@ export function OrderItemsCard({
     try {
       await voidOrderItem(orderNumber, orderBatch, item.serialNumber);
       await loadItems();
+      onTrackingRefresh?.();
       showWarning('Item voided', `Item ${item.serialNumber} was voided.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to void item.';
@@ -245,7 +251,7 @@ export function OrderItemsCard({
     } finally {
       if (isMountedRef.current) setIsMutatingItems(false);
     }
-  }, [canMutate, isMountedRef, isMutatingItems, loadItems, orderBatch, orderNumber, showConfirm, showDanger, showWarning]);
+  }, [canMutate, isMountedRef, isMutatingItems, loadItems, onTrackingRefresh, orderBatch, orderNumber, showConfirm, showDanger, showWarning]);
 
   const handleCancelSectionEdit = useCallback(() => {
     void guardCancelItem(() => {

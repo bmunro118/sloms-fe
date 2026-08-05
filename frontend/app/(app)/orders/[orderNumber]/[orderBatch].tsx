@@ -21,6 +21,7 @@ import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
 import { useOrderDetailMutations } from '@src/features/orders/hooks/useOrderDetailMutations';
 import { useOrderDetailScan } from '@src/features/orders/hooks/useOrderDetailScan';
+import { OrderDetailRefreshProvider, useOrderDetailRefresh } from '@src/features/orders/hooks/useOrderDetailRefresh';
 import { OrderScanSection } from '@src/features/orders/components/OrderScanSection';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
@@ -39,12 +40,23 @@ import { OrderSystemNotificationsCard } from '@src/features/orders/components/Or
 import { useOrderCustomer } from '@src/features/orders/hooks/useOrderCustomer';
 import { useOrderTracking } from '@src/features/orders/useOrderTracking';
 
-export default function OrderDetailScreen() {
+function OrderDetailScreenContent() {
   const params = useLocalSearchParams<{ orderNumber: string; orderBatch: string; mode?: string; dispatch?: string }>();
   const { canMutate, isStaff } = useAuth();
   const scanLabelsEnabled = useFeatureFlag('scanLabels');
   const orderNumber = Number(params.orderNumber);
   const orderBatch = Number(params.orderBatch);
+
+  const router = useRouter();
+  const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
+  const navigation = useNavigation<NavigationProp<ReactNavigation.RootParamList>>();
+  const styles = useThemedStyles(createStyles);
+  const isMountedRef = useIsMountedRef();
+  const routeWantsEdit = params.mode === 'edit';
+  const routeWantsDispatch = params.dispatch === 'true';
+  
+  // Refresh coordination (must be declared before any hook that uses it)
+  const { trackingRefreshSignal, triggerTrackingRefresh } = useOrderDetailRefresh();
 
   const {
     isModalVisible,
@@ -66,14 +78,8 @@ export default function OrderDetailScreen() {
     lastCreatedItem,
     refreshSignal,
     resetLastCreatedItem,
-  } = useOrderDetailScan(orderNumber, orderBatch);
-  const router = useRouter();
-  const { showConfirm, showDanger, showInfo, showSuccess } = useAppModal();
-  const navigation = useNavigation<NavigationProp<ReactNavigation.RootParamList>>();
-  const styles = useThemedStyles(createStyles);
-  const isMountedRef = useIsMountedRef();
-  const routeWantsEdit = params.mode === 'edit';
-  const routeWantsDispatch = params.dispatch === 'true';
+  } = useOrderDetailScan(orderNumber, orderBatch, triggerTrackingRefresh);
+  
   // Order state
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +87,7 @@ export default function OrderDetailScreen() {
   const [deliveryAddresses, setDeliveryAddresses] = useState<Address[]>([]);
   const [isLoadingDeliveryAddresses, setIsLoadingDeliveryAddresses] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
   // Tracking data (extracted into dedicated hook)
   const {
     tracking,
@@ -101,7 +108,7 @@ export default function OrderDetailScreen() {
     setIsFilterOpen,
     selectedFilterLabel,
     loadTracking,
-  } = useOrderTracking(orderNumber, orderBatch);
+  } = useOrderTracking(orderNumber, orderBatch, trackingRefreshSignal);
   const { customerName, customerAccountNumber } = useOrderCustomer(order?.customerAccount);
 
   const reload = useCallback(async (signal?: AbortSignal) => {
@@ -119,6 +126,10 @@ export default function OrderDetailScreen() {
       if (isMountedRef.current && !signal?.aborted) setIsLoading(false);
     }
   }, [isMountedRef, orderBatch, orderNumber]);
+
+  const handleTrackingRefresh = useCallback(() => {
+    triggerTrackingRefresh();
+  }, [triggerTrackingRefresh]);
 
   const {
     isDispatching,
@@ -144,6 +155,7 @@ export default function OrderDetailScreen() {
     navigation, router,
     showConfirm, showDanger, showSuccess, showInfo,
     reload,
+    onTrackingRefresh: handleTrackingRefresh,
   });
 
   const combinedItemsRefreshSignal = itemsRefreshSignal + refreshSignal;
@@ -175,7 +187,7 @@ export default function OrderDetailScreen() {
         if (!controller.signal.aborted) setDeliveryAddresses(Array.isArray(response.data) ? response.data : []);
       })
       .catch((err) => {
-        if (!controller.signal.aborted) console.error('[OrderDetail] Failed to load customer delivery addresses:', err);
+        if (!controller.signal.aborted) { /* silent error handling for delivery addresses */ }
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoadingDeliveryAddresses(false);
@@ -304,6 +316,7 @@ export default function OrderDetailScreen() {
             canMutate={canMutate}
             refreshSignal={combinedItemsRefreshSignal}
             priceBand={order?.priceBand ?? ''}
+            onTrackingRefresh={handleTrackingRefresh}
           />
 
         </ScrollView>
@@ -328,6 +341,14 @@ export default function OrderDetailScreen() {
         onConfirmExtraction={handleConfirmExtraction}
       />
     </ScreenContent>
+  );
+}
+
+export default function OrderDetailScreen() {
+  return (
+    <OrderDetailRefreshProvider>
+      <OrderDetailScreenContent />
+    </OrderDetailRefreshProvider>
   );
 }
 

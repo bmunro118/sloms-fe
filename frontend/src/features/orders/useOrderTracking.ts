@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FilterOption,
   JourneyStep,
@@ -38,11 +38,13 @@ export interface OrderTrackingState {
   setIsFilterOpen: (value: boolean) => void;
   selectedFilterLabel: string;
   loadTracking: (signal?: AbortSignal) => Promise<void>;
+  refreshTracking: () => Promise<void>;
 }
 
 export function useOrderTracking(
   orderNumber: number,
   orderBatch: number,
+  refreshSignal?: number,
 ): OrderTrackingState {
   const [tracking, setTracking] = useState<OrderTrackingPayload | null>(null);
   const [isLoadingTracking, setIsLoadingTracking] = useState(true);
@@ -50,6 +52,8 @@ export function useOrderTracking(
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [expandedUpdateId, setExpandedUpdateId] = useState<string | null>(null);
+
+  const prevRefreshSignal = useRef<number | undefined>(refreshSignal);
 
   const loadTracking = useCallback(async (signal?: AbortSignal) => {
     if (!Number.isFinite(orderNumber) || !Number.isFinite(orderBatch)) {
@@ -85,6 +89,17 @@ export function useOrderTracking(
       }
     }
   }, [orderBatch, orderNumber]);
+
+  const refreshTracking = useCallback(async () => {
+    await loadTracking();
+  }, [loadTracking]);
+
+  useEffect(() => {
+    if (refreshSignal === undefined) return;
+    if (prevRefreshSignal.current === refreshSignal) return;
+    prevRefreshSignal.current = refreshSignal;
+    void refreshTracking();
+  }, [refreshSignal, refreshTracking]);
 
   const historyEntries = useMemo(() => {
     return Array.isArray(tracking?.history) ? tracking.history : [];
@@ -313,5 +328,6 @@ export function useOrderTracking(
     setIsFilterOpen,
     selectedFilterLabel,
     loadTracking,
+    refreshTracking,
   };
 }
