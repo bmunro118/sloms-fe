@@ -239,6 +239,7 @@ function createStyles(theme: AppTheme) {
     passwordInput: { maxWidth: 440 },
     resetActionsRow: {
       flexDirection: 'row',
+      justifyContent: 'flex-end',
       gap: theme.spacing.sm,
       flexWrap: 'wrap',
     },

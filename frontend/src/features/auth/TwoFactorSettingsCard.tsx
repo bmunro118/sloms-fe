@@ -239,14 +239,12 @@ export function TwoFactorSettingsCard({ method, enabled, onChanged }: Props) {
                 setError(null);
               }}
               disabled={busy}
-              style={styles.rowButton}
             />
             <ThemedButton
               label={busy ? 'Disabling…' : 'Confirm disable'}
               variant="danger"
               onPress={handleDisable}
               disabled={busy}
-              style={styles.rowButton}
             />
           </View>
         </View>
@@ -350,14 +348,12 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.danger,
     },
     actionButton: {
-      alignSelf: 'flex-start',
+      alignSelf: 'flex-end',
     },
     buttonRow: {
       flexDirection: 'row',
+      justifyContent: 'flex-end',
       gap: 10,
-    },
-    rowButton: {
-      flex: 1,
     },
     deviceRow: {
       flexDirection: 'row',
