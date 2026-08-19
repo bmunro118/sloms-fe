@@ -3,11 +3,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenContent } from '@components/layout/ScreenContent';
+import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
+import { ThemedCard } from '@components/ui/ThemedCard';
 import { ThemedInput } from '@components/ui/ThemedInput';
 import { useAuth } from '@context/AuthContext';
 import { TopBarAction } from '@context/ScreenTitleContext';
 import { buildIconTopBarAction } from '@src/features/app-shell';
+import {
+  UserSettingRecord,
+  listUserSettings,
+  upsertUserSetting,
+  deleteUserSetting,
+  UserSettingRow,
+} from '@src/features/settings';
 import { UserRecord, getMe } from '@src/features/users/api';
 import { TwoFactorSettingsCard } from '@features/auth/TwoFactorSettingsCard';
 import { useIsMountedRef } from '@src/hooks/useIsMountedRef';
@@ -22,7 +31,7 @@ import { ENDPOINTS } from '@utils/config';
 
 export default function AccountScreen() {
   const { user } = useAuth();
-  const { showConfirm } = useAppModal();
+  const { showConfirm, showSuccess, showDanger } = useAppModal();
   const navigation = useNavigation();
   const styles = useThemedStyles(createStyles);
   const isMountedRef = useIsMountedRef();
@@ -32,6 +41,14 @@ export default function AccountScreen() {
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profile, setProfile] = useState<UserRecord | null>(null);
+
+  // User preferences
+  const [userSettings, setUserSettings] = useState<UserSettingRecord[]>([]);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [userSettingsError, setUserSettingsError] = useState<string | null>(null);
+  const [userDraft, setUserDraft] = useState<Record<string, string>>({});
+  const [savingUserKey, setSavingUserKey] = useState<string | null>(null);
+  const [deletingUserKey, setDeletingUserKey] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,6 +63,38 @@ export default function AccountScreen() {
     return () => controller.abort();
   }, [isMountedRef]);
 
+  // Load user preferences
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsLoadingUser(true);
+    setUserSettingsError(null);
+
+    (async () => {
+      try {
+        const response = await listUserSettings({ signal: controller.signal });
+        if (!controller.signal.aborted && isMountedRef.current) {
+          const rows = Array.isArray(response?.data) ? response.data : [];
+          setUserSettings(rows);
+          const draft: Record<string, string> = {};
+          rows.forEach((r) => { draft[r.key] = r.val ?? ''; });
+          setUserDraft(draft);
+        }
+      } catch (err) {
+        if (!controller.signal.aborted && isMountedRef.current) {
+          setUserSettingsError(
+            err instanceof Error ? err.message : 'Failed to load preferences.'
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted && isMountedRef.current) {
+          setIsLoadingUser(false);
+        }
+      }
+    })();
+
+    return () => controller.abort();
+  }, [isMountedRef]);
+
   const reloadProfile = useCallback(async () => {
     try {
       const result = await getMe();
@@ -54,6 +103,47 @@ export default function AccountScreen() {
       // Non-critical — leave the existing profile in place.
     }
   }, [isMountedRef]);
+
+  const handleSaveUserSetting = useCallback(async (key: string) => {
+    const val = userDraft[key] ?? '';
+    setSavingUserKey(key);
+    try {
+      const updated = await upsertUserSetting(key, val);
+      setUserSettings((prev) =>
+        prev.map((r) => (r.key === key ? { ...r, val: updated.val ?? val } : r))
+      );
+      showSuccess('Preference saved');
+    } catch (err) {
+      showDanger('Save failed', err instanceof Error ? err.message : 'Could not save preference.');
+    } finally {
+      setSavingUserKey(null);
+    }
+  }, [userDraft, showSuccess, showDanger]);
+
+  const handleDeleteUserSetting = useCallback(async (key: string) => {
+    const confirmed = await showConfirm({
+      title: 'Reset to default?',
+      message: 'This preference will be reset to the system default.',
+      confirmLabel: 'Reset',
+    });
+    if (!confirmed) return;
+
+    setDeletingUserKey(key);
+    try {
+      await deleteUserSetting(key);
+      const response = await listUserSettings();
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      setUserSettings(rows);
+      const draft: Record<string, string> = {};
+      rows.forEach((r) => { draft[r.key] = r.val ?? ''; });
+      setUserDraft(draft);
+      showSuccess('Preference reset', 'Reverted to default.');
+    } catch (err) {
+      showDanger('Reset failed', err instanceof Error ? err.message : 'Could not reset preference.');
+    } finally {
+      setDeletingUserKey(null);
+    }
+  }, [showConfirm, showSuccess, showDanger]);
 
   const canSubmitPasswordChange = useMemo(() => {
     const currentTrimmed = currentPassword.trim();
@@ -210,6 +300,31 @@ export default function AccountScreen() {
           enabled={Boolean(profile?.twoFactorEnabled)}
           onChanged={reloadProfile}
         />
+
+        <ThemedCard title="My Preferences" style={styles.card}>
+          {isLoadingUser ? (
+            <LoadingSpinner message="Loading preferences..." />
+          ) : userSettingsError ? (
+            <Text style={styles.status}>{userSettingsError}</Text>
+          ) : userSettings.length === 0 ? (
+            <Text style={styles.meta}>No preferences found.</Text>
+          ) : (
+            userSettings.map((entry) => (
+              <UserSettingRow
+                key={entry.key}
+                entry={entry}
+                draftVal={userDraft[entry.key] ?? entry.val ?? ''}
+                onDraftChange={(val) =>
+                  setUserDraft((d) => ({ ...d, [entry.key]: val }))
+                }
+                isSaving={savingUserKey === entry.key}
+                isDeleting={deletingUserKey === entry.key}
+                onSave={() => handleSaveUserSetting(entry.key)}
+                onDelete={() => handleDeleteUserSetting(entry.key)}
+              />
+            ))
+          )}
+        </ThemedCard>
       </View>
     </ScreenContent>
   );

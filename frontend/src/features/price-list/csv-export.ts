@@ -1,4 +1,4 @@
-import { cacheDirectory, downloadAsync } from 'expo-file-system';
+import { cacheDirectory, downloadAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { getStoredAccessToken, usesCookieAuth } from '@utils/auth';
 

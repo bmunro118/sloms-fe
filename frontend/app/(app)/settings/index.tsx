@@ -4,136 +4,120 @@ import { ScreenContent } from '@components/layout/ScreenContent';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedCard } from '@components/ui/ThemedCard';
 import {
-  UserSettingRecord,
-  listUserSettings,
-  upsertUserSetting,
-  deleteUserSetting,
+  SettingRecord,
+  listSettings,
+  patchSettingValue,
+  GlobalSettingRow,
+  createStyles,
 } from '@src/features/settings';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useScreenTopBar } from '@src/hooks/useScreenTopBar';
-import { UserSettingRow, createStyles } from './SettingsSubComponents';
 import { useThemedStyles } from '@theme/useThemedStyles';
 
 export default function SettingsScreen() {
   const styles = useThemedStyles(createStyles);
-  const { showConfirm, showSuccess, showDanger } = useAppModal();
+  const { showSuccess, showDanger } = useAppModal();
 
-  // User settings state
-  const [userSettings, setUserSettings] = useState<UserSettingRecord[]>([]);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [userError, setUserError] = useState<string | null>(null);
-  const [userDraft, setUserDraft] = useState<Record<string, string>>({});
-  const [savingUserKey, setSavingUserKey] = useState<string | null>(null);
-  const [deletingUserKey, setDeletingUserKey] = useState<string | null>(null);
-  const [refreshUserTick, setRefreshUserTick] = useState(0);
+  // Global settings state
+  const [settings, setSettings] = useState<SettingRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handlePullToRefresh = useCallback(() => {
     setIsRefreshing(true);
-    setRefreshUserTick((t) => t + 1);
+    setRefreshTick((t) => t + 1);
   }, []);
 
   useEffect(() => {
-    if (!isLoadingUser) setIsRefreshing(false);
-  }, [isLoadingUser]);
+    if (!isLoading) setIsRefreshing(false);
+  }, [isLoading]);
 
-  // Load user settings (all authenticated users)
+  // Load global settings (admin only)
   useEffect(() => {
     const controller = new AbortController();
-    setIsLoadingUser(true);
-    setUserError(null);
+    setIsLoading(true);
+    setError(null);
 
     (async () => {
       try {
-        const response = await listUserSettings({ signal: controller.signal });
+        const response = await listSettings(
+          { includeHidden: true },
+          { signal: controller.signal }
+        );
         if (!controller.signal.aborted) {
           const rows = Array.isArray(response?.data) ? response.data : [];
-          setUserSettings(rows);
-          const draft: Record<string, string> = {};
-          rows.forEach((r) => { draft[r.key] = r.val ?? ''; });
-          setUserDraft(draft);
+          setSettings(rows);
+          const nextDraft: Record<string, string> = {};
+          rows.forEach((r) => { nextDraft[r.key] = r.val ?? ''; });
+          setDraft(nextDraft);
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          setUserError(err instanceof Error ? err.message : 'Failed to load user settings.');
+          setError(err instanceof Error ? err.message : 'Failed to load settings.');
         }
       } finally {
-        if (!controller.signal.aborted) setIsLoadingUser(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     })();
 
     return () => controller.abort();
-  }, [refreshUserTick]);
+  }, [refreshTick]);
 
-  const handleSaveUserSetting = useCallback(async (key: string) => {
-    const val = userDraft[key] ?? '';
-    setSavingUserKey(key);
+  const handleSaveGlobalSetting = useCallback(async (key: string) => {
+    const val = draft[key] ?? '';
+    setSavingKey(key);
     try {
-      const updated = await upsertUserSetting(key, val);
-      setUserSettings((prev) =>
+      const updated = await patchSettingValue(key, val);
+      setSettings((prev) =>
         prev.map((r) => (r.key === key ? { ...r, val: updated.val ?? val } : r))
       );
-      showSuccess('Preference saved');
+      setDraft((d) => ({ ...d, [key]: updated.val ?? val }));
+      showSuccess('Setting saved');
     } catch (err) {
       showDanger('Save failed', err instanceof Error ? err.message : 'Could not save setting.');
     } finally {
-      setSavingUserKey(null);
+      setSavingKey(null);
     }
-  }, [userDraft, showSuccess, showDanger]);
-
-  const handleDeleteUserSetting = useCallback(async (key: string) => {
-    const confirmed = await showConfirm({
-      title: 'Reset to default?',
-      message: 'This setting will be reset to the system default.',
-      confirmLabel: 'Reset',
-    });
-    if (!confirmed) return;
-
-    setDeletingUserKey(key);
-    try {
-      await deleteUserSetting(key);
-      setRefreshUserTick((t) => t + 1);
-      showSuccess('Preference reset', 'Reverted to default.');
-    } catch (err) {
-      showDanger('Reset failed', err instanceof Error ? err.message : 'Could not reset setting.');
-    } finally {
-      setDeletingUserKey(null);
-    }
-  }, [showConfirm, showSuccess, showDanger]);
+  }, [draft, showSuccess, showDanger]);
 
   useScreenTopBar({ title: 'Settings' });
 
   return (
     <ScreenContent>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           Platform.OS !== 'web' ? (
             <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
           ) : undefined
-        }>
+        }
+      >
 
-        <ThemedCard title="My Preferences" style={styles.card}>
-          <Text style={styles.sectionSubtitle}>Personal preferences for your account.</Text>
+        <ThemedCard title="Company Settings" style={styles.card}>
+          <Text style={styles.sectionSubtitle}>Application-wide configuration values.</Text>
 
-          {isLoadingUser ? (
-            <LoadingSpinner message="Loading preferences..." />
-          ) : userError ? (
-            <Text style={styles.error}>{userError}</Text>
-          ) : userSettings.length === 0 ? (
-            <Text style={styles.muted}>No preferences found.</Text>
+          {isLoading ? (
+            <LoadingSpinner message="Loading settings..." />
+          ) : error ? (
+            <Text style={styles.error}>{error}</Text>
+          ) : settings.length === 0 ? (
+            <Text style={styles.muted}>No settings found.</Text>
           ) : (
-            userSettings.map((entry) => (
-              <UserSettingRow
+            settings.map((entry) => (
+              <GlobalSettingRow
                 key={entry.key}
                 entry={entry}
-                draftVal={userDraft[entry.key] ?? entry.val ?? ''}
+                draftVal={draft[entry.key] ?? entry.val ?? ''}
                 onDraftChange={(val) =>
-                  setUserDraft((d) => ({ ...d, [entry.key]: val }))
+                  setDraft((d) => ({ ...d, [entry.key]: val }))
                 }
-                isSaving={savingUserKey === entry.key}
-                isDeleting={deletingUserKey === entry.key}
-                onSave={() => handleSaveUserSetting(entry.key)}
-                onDelete={() => handleDeleteUserSetting(entry.key)}
+                isSaving={savingKey === entry.key}
+                onSave={() => handleSaveGlobalSetting(entry.key)}
               />
             ))
           )}

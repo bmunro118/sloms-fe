@@ -50,13 +50,19 @@ function assertValidApiBaseUrl(url: string): string {
 
   const protocol = parsedUrl.protocol.toLowerCase();
   const host = parsedUrl.hostname.toLowerCase();
-  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '10.0.2.2';
+  const isLocalOrPrivateIp =
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '10.0.2.2' ||
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host);
 
   if (protocol === 'https:') {
     return parsedUrl.origin;
   }
 
-  if (__DEV__ && protocol === 'http:' && isLocalHost) {
+  if (__DEV__ && protocol === 'http:' && isLocalOrPrivateIp) {
     return parsedUrl.origin;
   }
 

@@ -8,7 +8,7 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 
-import { ItemsTabProps } from './types';
+import { ItemsTabProps } from '../types';
 
 export function ItemsTab({
   filteredItems,

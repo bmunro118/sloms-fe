@@ -8,8 +8,8 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 
-import { statusColor, formatDate } from './helpers';
-import { RevisionsTabProps } from './types';
+import { statusColor, formatDate } from '../helpers';
+import { RevisionsTabProps } from '../types';
 
 export function RevisionsTab({
   revisions,

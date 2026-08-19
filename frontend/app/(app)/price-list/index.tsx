@@ -10,11 +10,13 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { featureFlags } from '@utils/features';
 
-import { Tab } from './types';
-import { usePriceList } from './usePriceList';
-import { ItemsTab } from './ItemsTab';
-import { RevisionsTab } from './RevisionsTab';
-import { TypesTab } from './TypesTab';
+import {
+  Tab,
+  usePriceList,
+  ItemsTab,
+  RevisionsTab,
+  TypesTab,
+} from '@src/features/price-list';
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 

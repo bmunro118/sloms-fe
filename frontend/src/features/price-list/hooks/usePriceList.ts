@@ -33,12 +33,12 @@ import { useListFilters } from '@src/hooks/useListFilters';
 import { ENDPOINTS } from '@utils/config';
 import { featureFlags } from '@utils/features';
 
-import { PriceListFilters, Tab } from './types';
+import { PriceListFilters, Tab } from '../types';
 import {
   normalizeItemLists,
   normalizePriceListItems,
   normalizeRevisions,
-} from './helpers';
+} from '../helpers';
 
 const INITIAL_FILTERS: PriceListFilters = { category: '' };
 

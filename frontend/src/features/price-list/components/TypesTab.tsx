@@ -7,7 +7,7 @@ import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 
-import { TypesTabProps } from './types';
+import { TypesTabProps } from '../types';
 
 export function TypesTab({
   listTypes,

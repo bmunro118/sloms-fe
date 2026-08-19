@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedInput } from '@components/ui/ThemedInput';
-import { UserSettingRecord } from '@src/features/settings';
 import { createCommonScreenStyleDefinitions } from '@theme/stylePresets';
 import { AppTheme } from '@theme/types';
 import { useThemedStyles } from '@theme/useThemedStyles';
+import { SettingRecord, UserSettingRecord } from '../api';
 
 export function UserSettingRow({
   entry,
@@ -57,11 +57,58 @@ export function UserSettingRow({
   );
 }
 
+export function GlobalSettingRow({
+  entry,
+  draftVal,
+  onDraftChange,
+  isSaving,
+  onSave,
+}: {
+  entry: SettingRecord;
+  draftVal: string;
+  onDraftChange: (val: string) => void;
+  isSaving: boolean;
+  onSave: () => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+
+  return (
+    <View style={styles.settingRow}>
+      <Text style={styles.fieldLabel}>{entry.key}</Text>
+      {entry.description ? (
+        <Text style={styles.description}>{entry.description}</Text>
+      ) : null}
+      <ThemedInput
+        value={draftVal}
+        onChangeText={onDraftChange}
+        placeholder="Value"
+        style={styles.settingInput}
+        autoCapitalize="none"
+        autoCorrect={false}
+        editable={!isSaving}
+      />
+      <View style={styles.userSettingActions}>
+        <ThemedButton
+          label={isSaving ? 'Saving…' : 'Save'}
+          onPress={onSave}
+          disabled={isSaving || draftVal === (entry.val ?? '')}
+          variant="solid"
+        />
+      </View>
+    </View>
+  );
+}
+
 export function createStyles(theme: AppTheme) {
   const common = createCommonScreenStyleDefinitions(theme);
 
   return StyleSheet.create({
     ...common,
+    description: {
+      fontSize: 12,
+      color: theme.colors.textMuted,
+      marginTop: 2,
+    },
     scrollContent: {
       gap: theme.spacing.md,
       paddingBottom: theme.spacing.xxl,

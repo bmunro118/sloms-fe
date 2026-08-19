@@ -110,7 +110,7 @@ const NAV_POLICY: NavPolicyItem[] = [
     label: 'Settings',
     href: '/(app)/settings',
     icon: 'settings',
-    visibleTo: ['Admin', 'Manager'],
+    visibleTo: ['Admin'],
   },
 ];
 
