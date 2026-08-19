@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import {
   FlatList,
-  Modal,
-  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
   ViewStyle,
 } from 'react-native';
 import { Check as CheckIcon, ChevronDown as ChevronDownIcon } from 'lucide-react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
+import { BottomSheet } from './BottomSheet';
 
 export type SelectOption<T extends string | number> = {
   value: T;
@@ -50,6 +48,11 @@ export function ThemedSelect<T extends string | number>({
     ...options,
   ];
 
+  const handleSelect = (itemValue: T | null) => {
+    onChange(itemValue);
+    setOpen(false);
+  };
+
   return (
     <>
       <Pressable
@@ -80,59 +83,31 @@ export function ThemedSelect<T extends string | number>({
         <ChevronDownIcon size={16} color={colors.textMuted} />
       </Pressable>
 
-      <Modal
-        visible={open}
-        transparent
-        animationType={Platform.OS === 'web' ? 'fade' : 'slide'}
-        onRequestClose={() => setOpen(false)}
-      >
-        <View style={styles.overlay}>
-          <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
-          <View
-            style={[
-              styles.sheet,
-              Platform.OS === 'web' ? styles.sheetWeb : null,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderTopLeftRadius: radii.lg,
-                borderTopRightRadius: radii.lg,
-                ...(Platform.OS === 'web' ? { borderRadius: radii.lg } : {}),
-              },
-            ]}
-          >
-            {Platform.OS !== 'web' ? (
-              <View style={[styles.handle, { backgroundColor: colors.border }]} />
-            ) : null}
-            <FlatList
-              data={allOptions}
-              keyExtractor={(item) => String(item.value ?? '__null__')}
-              contentContainerStyle={{ paddingVertical: spacing.sm }}
-              renderItem={({ item }) => {
-                const isSelected =
-                  item.value === value || (item.value === null && (value === null || value === undefined));
-                return (
-                  <TouchableOpacity
-                    onPress={() => {
-                      onChange(item.value as T | null);
-                      setOpen(false);
-                    }}
-                    style={[
-                      styles.option,
-                      { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-                      isSelected ? { backgroundColor: colors.accentMuted } : null,
-                    ]}
-                    accessibilityRole="menuitem"
-                  >
-                    <Text style={[styles.optionText, { color: colors.textPrimary }]}>{item.label}</Text>
-                    {isSelected ? <CheckIcon size={16} color={colors.accent} /> : null}
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        </View>
-      </Modal>
+      <BottomSheet visible={open} onClose={() => setOpen(false)} maxHeight="60%">
+        <FlatList
+          data={allOptions}
+          keyExtractor={(item) => String(item.value ?? '__null__')}
+          contentContainerStyle={{ paddingVertical: spacing.sm }}
+          renderItem={({ item }) => {
+            const isSelected =
+              item.value === value || (item.value === null && (value === null || value === undefined));
+            return (
+              <TouchableOpacity
+                onPress={() => handleSelect(item.value as T | null)}
+                style={[
+                  styles.option,
+                  { paddingVertical: spacing.md },
+                  isSelected ? { backgroundColor: colors.accentMuted } : null,
+                ]}
+                accessibilityRole="menuitem"
+              >
+                <Text style={[styles.optionText, { color: colors.textPrimary }]}>{item.label}</Text>
+                {isSelected ? <CheckIcon size={16} color={colors.accent} /> : null}
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </BottomSheet>
     </>
   );
 }
@@ -149,34 +124,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     flex: 1,
     marginRight: 8,
-  },
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-  },
-  sheet: {
-    width: '100%',
-    maxHeight: '60%',
-    borderWidth: 1,
-  },
-  sheetWeb: {
-    maxWidth: 480,
-    marginBottom: 'auto' as unknown as number,
-    marginTop: 'auto' as unknown as number,
-    alignSelf: 'center',
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 10,
-    marginBottom: 4,
   },
   option: {
     flexDirection: 'row',
