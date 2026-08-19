@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
+import { Building as BuildingIcon, User as UserIcon } from 'lucide-react-native';
 import { LoadingSpinner } from '@components/ui/LoadingSpinner';
 import { ThemedButton } from '@components/ui/ThemedButton';
 import { ThemedCard } from '@components/ui/ThemedCard';
+import { TopBarAction } from '@context/ScreenTitleContext';
+import { buildIconTopBarAction } from '@src/features/app-shell';
 import { useAppModal } from '@src/hooks/useAppModal';
 import { useUnsavedChangesGuard } from '@src/hooks/useUnsavedChangesGuard';
 import { useThemedStyles } from '@theme/useThemedStyles';
 import {
   Address,
   CreateAddressPayload,
+  CreateCustomerPayload,
   createAddress,
   deleteAddress,
   listAddresses,
@@ -42,6 +46,7 @@ type Props =
       canMutate: boolean;
       pendingAddresses?: never;
       onPendingAddressesChange?: never;
+      formData?: never;
     }
   | {
       mode: 'create';
@@ -49,6 +54,7 @@ type Props =
       canMutate: boolean;
       pendingAddresses: CreateAddressPayload[];
       onPendingAddressesChange: (addresses: CreateAddressPayload[]) => void;
+      formData: CreateCustomerPayload;
     };
 
 export function CustomerDeliveryAddressesCard(props: Props) {
@@ -57,6 +63,7 @@ export function CustomerDeliveryAddressesCard(props: Props) {
   const customerId = isCreateMode ? undefined : (props as Extract<Props, { mode: Exclude<CustomerFormMode, 'create'> }>).customerId;
   const pendingAddresses = isCreateMode ? (props as Extract<Props, { mode: 'create' }>).pendingAddresses : undefined;
   const onPendingAddressesChange = isCreateMode ? (props as Extract<Props, { mode: 'create' }>).onPendingAddressesChange : undefined;
+  const formData = isCreateMode ? (props as Extract<Props, { mode: 'create' }>).formData : undefined;
   const { width } = useWindowDimensions();
   const isCompact = useMemo(() => width < 768, [width]);
   const styles = useThemedStyles(createStyles);
@@ -243,20 +250,82 @@ export function CustomerDeliveryAddressesCard(props: Props) {
     }
   }, [addForm, customerId, isCreateMode, isSaving, onPendingAddressesChange, pendingAddresses, reload, showDanger, showSuccess]);
 
+  // ── Card actions for new address form ───────────────────────────────────────────
+
+  const hasPrimaryAddress = useMemo(() => Boolean(
+    formData?.invBuildingName?.trim() ||
+    formData?.invAddressLn1?.trim() ||
+    formData?.invAddressLn2?.trim() ||
+    formData?.invTownOrCity?.trim() ||
+    formData?.invCounty?.trim() ||
+    formData?.invPostCode?.trim()
+  ), [formData]);
+
+  const hasPrimaryContact = useMemo(() => Boolean(
+    formData?.contactName?.trim() ||
+    formData?.contactEmail?.trim() ||
+    formData?.contactPhone?.trim() ||
+    formData?.contactMobile?.trim()
+  ), [formData]);
+
+  const handlePopulateFromPrimaryAddress = useCallback(() => {
+    if (!formData) return;
+    setAddForm((prev) => ({
+      ...prev,
+      delBuildingName: formData.invBuildingName?.trim() ?? '',
+      delAddressLn1: formData.invAddressLn1?.trim() ?? '',
+      delAddressLn2: formData.invAddressLn2?.trim() ?? '',
+      delTownOrCity: formData.invTownOrCity?.trim() ?? '',
+      delCounty: formData.invCounty?.trim() ?? '',
+      delPostCode: formData.invPostCode?.trim() ?? '',
+    }));
+  }, [formData]);
+
+  const handlePopulateFromPrimaryContact = useCallback(() => {
+    if (!formData) return;
+    setAddForm((prev) => ({
+      ...prev,
+      siteContactName: formData.contactName?.trim() ?? '',
+      siteContactEmail: formData.contactEmail?.trim() ?? '',
+      siteContactPhone: formData.contactPhone?.trim() ?? '',
+      siteContactMobile: formData.contactMobile?.trim() ?? '',
+    }));
+  }, [formData]);
+
+  const cardActions = useMemo<TopBarAction[]>(() => {
+    if (!isCreateMode || !showAddForm || !formData) return [];
+    return [
+      buildIconTopBarAction({
+        id: 'populate-delivery-address',
+        label: 'Populate with Primary Address',
+        accessibilityLabel: 'Populate delivery address with primary address',
+        onPress: handlePopulateFromPrimaryAddress,
+        icon: BuildingIcon,
+        disabled: !hasPrimaryAddress,
+      }),
+      buildIconTopBarAction({
+        id: 'populate-delivery-contact',
+        label: 'Populate with Primary Contact',
+        accessibilityLabel: 'Populate delivery contact with primary contact',
+        onPress: handlePopulateFromPrimaryContact,
+        icon: UserIcon,
+        disabled: !hasPrimaryContact,
+      }),
+    ];
+  }, [formData, handlePopulateFromPrimaryAddress, handlePopulateFromPrimaryContact, hasPrimaryAddress, hasPrimaryContact, isCreateMode, showAddForm]);
+
   // ── Render ────────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <ThemedCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Delivery Addresses</Text>
+      <ThemedCard style={styles.card} titleNode={<Text style={styles.sectionTitle}>Delivery Addresses</Text>}>
         <LoadingSpinner message="Loading addresses..." />
       </ThemedCard>
     );
   }
 
   return (
-    <ThemedCard style={styles.card}>
-      <Text style={styles.sectionTitle}>Delivery Addresses</Text>
+    <ThemedCard style={styles.card} titleNode={<Text style={styles.sectionTitle}>Delivery Addresses</Text>} actions={cardActions}>
 
       {effectiveAddresses.length === 0 && !showAddForm ? (
         <Text style={styles.muted}>No delivery addresses on record.</Text>

@@ -179,6 +179,7 @@ export default function CreateCustomerScreen() {
           canMutate={true}
           pendingAddresses={pendingAddresses}
           onPendingAddressesChange={setPendingAddresses}
+          formData={formData}
         />
       </ScrollView>
     </ScreenContent>

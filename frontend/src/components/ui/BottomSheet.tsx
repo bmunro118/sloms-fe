@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { X as CloseIcon } from 'lucide-react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 
 interface BottomSheetProps {
@@ -116,6 +117,15 @@ export function BottomSheet({
               {...(isWeb ? {} : panResponder.panHandlers)}
             >
               <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                onPress={onClose}
+                style={({ pressed }) => [pressed && styles.closeButtonPressed]}
+                hitSlop={12}
+              >
+                <CloseIcon size={20} color={colors.textMuted} />
+              </Pressable>
             </View>
           ) : null}
 
@@ -158,10 +168,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingBottom: 4,
   },
   title: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  closeButtonPressed: {
+    opacity: 0.7,
   },
 });

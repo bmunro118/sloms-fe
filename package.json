@@ -4,6 +4,7 @@
   "scripts": {
     "start": "npm --prefix frontend run start",
     "android": "npm --prefix frontend run android",
+    "waydroid": "npm --prefix frontend run waydroid",
     "ios": "npm --prefix frontend run ios",
     "web": "npm --prefix frontend run web",
     "test": "npm --prefix frontend run test",

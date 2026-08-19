@@ -7,6 +7,7 @@ import {
   CircleHelp,
   LucideIcon,
   OctagonAlert,
+  X as CloseIcon,
 } from 'lucide-react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
 import { AppTheme } from '@theme/types';
@@ -53,6 +54,9 @@ export function AppModal({ visible, request, onClose, onActionPress }: AppModalP
 
   const { Icon } = presentation;
 
+  // Check if there's a secondary/cancel action
+  const hasSecondaryAction = request.actions.some((action) => action.variant === 'secondary');
+
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={handleRequestClose}>
       <View style={styles.root}>
@@ -65,6 +69,17 @@ export function AppModal({ visible, request, onClose, onActionPress }: AppModalP
             <View style={styles.iconWrap}>
               <Icon size={20} color={presentation.accentColor} />
             </View>
+            {request.dismissible && !hasSecondaryAction ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                onPress={onClose}
+                style={({ pressed }) => [pressed && styles.closeButtonPressed]}
+                hitSlop={12}
+              >
+                <CloseIcon size={20} color={theme.colors.textMuted} />
+              </Pressable>
+            ) : null}
           </View>
 
           <Text style={styles.title}>{request.title}</Text>
@@ -224,11 +239,6 @@ function createStyles(theme: AppTheme, presentation: ModalPresentation) {
       padding: theme.spacing.lg,
       gap: theme.spacing.md,
     },
-    headerRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.md,
-    },
     headerTop: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -248,6 +258,9 @@ function createStyles(theme: AppTheme, presentation: ModalPresentation) {
       fontWeight: '800',
       color: theme.colors.textPrimary,
       marginBottom: theme.spacing.sm,
+    },
+    closeButtonPressed: {
+      opacity: 0.7,
     },
     typeChip: {
       alignSelf: 'flex-start',
