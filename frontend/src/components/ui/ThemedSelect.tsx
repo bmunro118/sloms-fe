@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Check as CheckIcon, ChevronDown as ChevronDownIcon } from 'lucide-react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
-import { BottomSheet } from './BottomSheet';
+import { ResponsiveModal } from './ResponsiveModal';
 
 export type SelectOption<T extends string | number> = {
   value: T;
@@ -83,7 +83,7 @@ export function ThemedSelect<T extends string | number>({
         <ChevronDownIcon size={16} color={colors.textMuted} />
       </Pressable>
 
-      <BottomSheet visible={open} onClose={() => setOpen(false)} maxHeight="60%">
+      <ResponsiveModal visible={open} onClose={() => setOpen(false)} maxHeight="60%">
         <FlatList
           data={allOptions}
           keyExtractor={(item) => String(item.value ?? '__null__')}
@@ -107,7 +107,7 @@ export function ThemedSelect<T extends string | number>({
             );
           }}
         />
-      </BottomSheet>
+      </ResponsiveModal>
     </>
   );
 }

@@ -1,7 +1,7 @@
 import { PropsWithChildren } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@theme/ThemeProvider';
-import { BottomSheet } from './BottomSheet';
+import { ResponsiveModal } from './ResponsiveModal';
 import { ThemedButton } from './ThemedButton';
 
 interface FilterModalProps {
@@ -23,7 +23,7 @@ export function FilterModal({
   const { spacing } = useAppTheme();
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} title={title}>
+    <ResponsiveModal visible={visible} onClose={onClose} title={title}>
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={{
@@ -51,7 +51,7 @@ export function FilterModal({
           style={styles.actionButton}
         />
       </View>
-    </BottomSheet>
+    </ResponsiveModal>
   );
 }
 
